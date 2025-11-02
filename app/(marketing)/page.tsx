@@ -1,5 +1,6 @@
 "use client"
 import { useState } from 'react'
+import ThemeToggle from '@/components/ThemeToggle'
 
 export default function LandingPage() {
   const [name, setName] = useState("")
@@ -35,192 +36,207 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative">
+      {/* Subtle background pattern */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none"></div>
+      <div className="relative z-10">
       {/* Header */}
-      <header className="border-b border-gray-800">
-        <div className="mx-auto flex max-w-[1200px] items-center justify-between px-6 py-4">
-          <div className="text-sm font-medium tracking-wider">MAVERICK LENS</div>
-          <div className="flex items-center gap-4">
-            <button className="text-sm text-gray-400 hover:text-white transition-colors">EN</button>
-            <span className="text-gray-600">|</span>
-            <button className="text-sm text-gray-400 hover:text-white transition-colors">DEFR</button>
-            <button className="text-sm text-gray-400 hover:text-white transition-colors">Sign In</button>
-          </div>
+      <header className="border-b border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm sticky top-0 z-50">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          <div className="text-lg font-semibold text-gray-900 dark:text-white">Maverick Lens</div>
+          <nav className="flex items-center gap-6">
+            <a href="#features" className="text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">Features</a>
+            <a href="#how-it-works" className="text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">How it works</a>
+            <ThemeToggle />
+            <button className="text-sm font-medium text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300 transition-colors">Sign In</button>
+          </nav>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="mx-auto max-w-[850px] px-6 py-20">
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-medium mb-4">AI Executive Intelligence Generator</h1>
-          <p className="text-xl text-gray-400 mb-8">
-            Multi-agent AI system that transforms company data into comprehensive executive intelligence reports with quantified ROI projections.
+      <section className="mx-auto max-w-4xl px-6 py-24 md:py-32">
+        <div className="text-center mb-16">
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
+            AI Executive Intelligence
+            <span className="block text-blue-600 dark:text-blue-400">Generator</span>
+          </h1>
+          <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto leading-relaxed">
+            Transform company data into comprehensive executive intelligence reports with quantified ROI projections in under 60 seconds.
           </p>
           <button
             onClick={() => {
               const formSection = document.getElementById('generator-form')
               formSection?.scrollIntoView({ behavior: 'smooth' })
             }}
-            className="inline-flex h-12 items-center justify-center rounded-lg bg-gradient-to-r from-[#0070F3] to-blue-600 px-8 text-sm font-medium text-white hover:shadow-lg hover:shadow-blue-500/20 transition-all"
+            className="inline-flex h-14 items-center justify-center rounded-xl bg-blue-600 dark:bg-blue-500 px-8 text-base font-semibold text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
           >
-            Generate AI Insights
+            Get Started
           </button>
-          <p className="mt-4 text-sm text-gray-500">Takes less than 60 seconds to analyze.</p>
+          <p className="mt-6 text-sm text-gray-500 dark:text-gray-400">No credit card required • Free to try</p>
         </div>
 
         {/* Form Section */}
-        <div id="generator-form" className="rounded-2xl border border-gray-800 bg-[#121212] p-8 shadow-lg mb-16">
-          <h2 className="text-sm font-medium text-gray-400 mb-1">Enter your company name and website address to start</h2>
-          <form className="mt-6 space-y-4" onSubmit={onSubmit}>
-            <div>
-              <label className="block text-sm text-gray-400 mb-2">Company Name</label>
-              <input
-                className="w-full rounded-lg border border-gray-800 bg-[#0A0A0A] px-4 py-3 text-sm text-white placeholder-gray-500 outline-none focus:border-[#0070F3] transition-colors"
-                placeholder="Enter company name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-2">Website</label>
-              <input
-                className="w-full rounded-lg border border-gray-800 bg-[#0A0A0A] px-4 py-3 text-sm text-white placeholder-gray-500 outline-none focus:border-[#0070F3] transition-colors"
-                placeholder="https://example.com"
-                value={website}
-                onChange={(e) => setWebsite(e.target.value)}
-                required
-              />
-            </div>
-            <p className="text-xs text-gray-500">
-              Maverick Lens will analyze public data from this website to generate your AI report.
-            </p>
-            <button
-              className="w-full h-12 items-center justify-center rounded-lg bg-gradient-to-r from-[#0070F3] to-blue-600 text-sm font-medium text-white hover:shadow-lg hover:shadow-blue-500/20 transition-all disabled:opacity-50"
-              disabled={loading}
-              type="submit"
-            >
-              {loading ? "Generating..." : "Generate AI Insights"}
-            </button>
-            {error && (
-              <div className="text-sm text-red-400 mt-2">{error}</div>
-            )}
-          </form>
-        </div>
-
-        {/* Built by footer */}
-        <div className="text-center mb-16">
-          <p className="text-sm text-gray-400 mb-6">Built by Maverick AI Group</p>
-          <p className="text-xs text-gray-500 mb-4">Powered by industry-leading AI and infrastructure</p>
-          <div className="flex items-center justify-center gap-6 flex-wrap">
-            <span className="text-xs text-gray-500">Built on</span>
-            <span className="text-xs text-gray-400">Anthropic</span>
-            <span className="text-gray-600">•</span>
-            <span className="text-xs text-gray-400">Perplexity</span>
-            <span className="text-gray-600">•</span>
-            <span className="text-xs text-gray-400">Supabase</span>
-            <span className="text-gray-600">•</span>
-            <span className="text-xs text-gray-400">Vercel</span>
+        <div id="generator-form" className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 md:p-10 shadow-xl mb-20">
+          <div className="max-w-2xl mx-auto">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2 text-center">Generate Your AI Report</h2>
+            <p className="text-gray-600 dark:text-gray-300 mb-8 text-center">Enter your company information to get started</p>
+            <form className="space-y-5" onSubmit={onSubmit}>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Company Name</label>
+                <input
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-3 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-400/20 transition-all"
+                  placeholder="e.g., Acme Corporation"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Website URL</label>
+                <input
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-3 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-400/20 transition-all"
+                  placeholder="https://example.com"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                  required
+                />
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                We'll analyze public data from this website to generate your comprehensive AI opportunity report.
+              </p>
+              <button
+                className="w-full h-14 items-center justify-center rounded-lg bg-blue-600 dark:bg-blue-500 text-base font-semibold text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loading}
+                type="submit"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Generating Report...
+                  </span>
+                ) : (
+                  "Generate AI Insights"
+                )}
+              </button>
+              {error && (
+                <div className="text-sm text-red-600 dark:text-red-400 mt-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">{error}</div>
+              )}
+            </form>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="mx-auto max-w-[850px] px-6 py-20 border-t border-gray-800">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="text-center">
-            <h3 className="text-lg font-medium mb-2">Multi-Agent AI System</h3>
-            <p className="text-sm text-gray-400">Tavily research + OpenAI analysis for comprehensive intelligence</p>
+      <section id="features" className="bg-gray-50 dark:bg-gray-900/50 py-24">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Everything you need</h2>
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">Powerful features to help you understand your AI opportunities</p>
           </div>
-          <div className="text-center">
-            <h3 className="text-lg font-medium mb-2">90-Second Generation</h3>
-            <p className="text-sm text-gray-400">Lightning-fast report generation with parallel processing</p>
-          </div>
-          <div className="text-center">
-            <h3 className="text-lg font-medium mb-2">Executive Intelligence</h3>
-            <p className="text-sm text-gray-400">8 comprehensive sections including competitive benchmarking and ROI projections</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-4">
+                <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Multi-Agent AI System</h3>
+              <p className="text-gray-600 dark:text-gray-300">Advanced AI research and analysis combining Tavily research with OpenAI for comprehensive intelligence gathering.</p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-4">
+                <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Lightning Fast</h3>
+              <p className="text-gray-600 dark:text-gray-300">Generate comprehensive reports in under 90 seconds with our optimized parallel processing pipeline.</p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-4">
+                <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Executive Intelligence</h3>
+              <p className="text-gray-600 dark:text-gray-300">8 comprehensive sections including competitive benchmarking, ROI projections, and actionable insights.</p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Preview Section */}
-      <section className="mx-auto max-w-[850px] px-6 py-20 border-t border-gray-800">
-        <h2 className="text-3xl font-medium mb-4 text-center">Your AI Report Preview</h2>
-        <p className="text-center text-gray-400 mb-12">Get a comprehensive analysis of AI opportunities tailored specifically to your company</p>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Executive Summary Preview */}
-          <div className="rounded-2xl border border-gray-800 bg-[#121212] p-6">
-            <h3 className="text-sm font-medium text-gray-400 mb-4">Executive Summary</h3>
-            <p className="text-xs text-gray-500 mb-3">Strategic overview with quantified AI opportunities</p>
-            <div className="flex gap-4">
+      {/* How It Works Section */}
+      <section id="how-it-works" className="py-24">
+        <div className="mx-auto max-w-4xl px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">How it works</h2>
+            <p className="text-xl text-gray-600 dark:text-gray-300">Get your comprehensive AI opportunity report in three simple steps</p>
+          </div>
+          <div className="space-y-8">
+            <div className="flex gap-6">
+              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-blue-600 dark:bg-blue-500 text-white flex items-center justify-center font-bold text-lg">1</div>
               <div>
-                <div className="text-2xl font-semibold text-[#0070F3] mb-1">CHF 2.5M</div>
-                <div className="text-xs text-gray-400">ROI</div>
-              </div>
-              <div>
-                <div className="text-2xl font-semibold text-[#0070F3] mb-1">12</div>
-                <div className="text-xs text-gray-400">months</div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Enter Company Details</h3>
+                <p className="text-gray-600 dark:text-gray-300">Provide your company name and website URL. We'll use this to gather public information.</p>
               </div>
             </div>
-          </div>
-
-          {/* AI Opportunity Landscape Preview */}
-          <div className="rounded-2xl border border-gray-800 bg-[#121212] p-6">
-            <h3 className="text-sm font-medium text-gray-400 mb-4">AI Opportunity Landscape</h3>
-            <p className="text-xs text-gray-500 mb-3">4-5 specific use cases with feasibility scores</p>
-            <div className="flex gap-2">
-              <span className="rounded-full border border-gray-800 px-3 py-1 text-xs text-green-400">High</span>
-              <span className="rounded-full border border-gray-800 px-3 py-1 text-xs text-amber-400">Medium</span>
-              <span className="rounded-full border border-gray-800 px-3 py-1 text-xs text-gray-400">Low</span>
-            </div>
-          </div>
-
-          {/* CEO Action Plan Preview */}
-          <div className="rounded-2xl border border-gray-800 bg-[#121212] p-6">
-            <h3 className="text-sm font-medium text-gray-400 mb-4">CEO Action Plan</h3>
-            <p className="text-xs text-gray-500 mb-3">90-day roadmap with specific milestones</p>
-            <div className="flex gap-4">
+            <div className="flex gap-6">
+              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-blue-600 dark:bg-blue-500 text-white flex items-center justify-center font-bold text-lg">2</div>
               <div>
-                <div className="text-2xl font-semibold text-[#0070F3] mb-1">4</div>
-                <div className="text-xs text-gray-400">steps</div>
-              </div>
-              <div>
-                <div className="text-2xl font-semibold text-gray-400 mb-1">—</div>
-                <div className="text-xs text-gray-400">Assessment needed</div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">AI Analysis</h3>
+                <p className="text-gray-600 dark:text-gray-300">Our multi-agent AI system researches your company and analyzes opportunities using advanced LLM technology.</p>
               </div>
             </div>
-          </div>
-
-          {/* Feasibility Scan Preview */}
-          <div className="rounded-2xl border border-gray-800 bg-[#121212] p-6">
-            <h3 className="text-sm font-medium text-gray-400 mb-4">Feasibility Scan</h3>
-            <p className="text-xs text-gray-500 mb-3">Readiness assessment across 5 dimensions</p>
-            <div className="flex gap-2 flex-wrap">
-              <span className="rounded-full border border-gray-800 px-3 py-1 text-xs text-gray-400">Data</span>
-              <span className="rounded-full border border-gray-800 px-3 py-1 text-xs text-gray-400">Leadership</span>
-              <span className="rounded-full border border-gray-800 px-3 py-1 text-xs text-gray-400">Technical</span>
+            <div className="flex gap-6">
+              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-blue-600 dark:bg-blue-500 text-white flex items-center justify-center font-bold text-lg">3</div>
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Get Your Report</h3>
+                <p className="text-gray-600 dark:text-gray-300">Receive a comprehensive report with AI opportunities, ROI projections, competitive analysis, and actionable insights.</p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Final CTA Section */}
-      <section className="mx-auto max-w-[850px] px-6 py-20 border-t border-gray-800">
-        <div className="text-center">
-          <h2 className="text-3xl font-medium mb-4">See your AI opportunities in minutes</h2>
-          <p className="text-gray-400 mb-8">Get started with a comprehensive AI strategy report tailored to your company&apos;s unique situation and market position.</p>
+      <section className="bg-blue-600 dark:bg-blue-700 py-20">
+        <div className="mx-auto max-w-4xl px-6 text-center">
+          <h2 className="text-4xl font-bold text-white mb-4">Ready to discover your AI opportunities?</h2>
+          <p className="text-xl text-blue-100 dark:text-blue-200 mb-8">Get started with a comprehensive AI strategy report tailored to your company.</p>
           <button
             onClick={() => {
               const formSection = document.getElementById('generator-form')
               formSection?.scrollIntoView({ behavior: 'smooth' })
             }}
-            className="inline-flex h-12 items-center justify-center rounded-lg bg-gradient-to-r from-[#0070F3] to-blue-600 px-8 text-sm font-medium text-white hover:shadow-lg hover:shadow-blue-500/20 transition-all"
+            className="inline-flex h-14 items-center justify-center rounded-xl bg-white dark:bg-gray-100 px-8 text-base font-semibold text-blue-600 dark:text-blue-700 hover:bg-gray-50 dark:hover:bg-white transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
           >
-            Generate AI Insights
+            Generate Your Report Now
           </button>
         </div>
       </section>
+
+      {/* Footer */}
+      <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 py-12">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="text-sm text-gray-600 dark:text-gray-400">© 2025 AI Intelligence. All rights reserved.</div>
+            <div className="flex items-center gap-6 flex-wrap justify-center">
+              <span className="text-xs text-gray-500 dark:text-gray-500">Powered by</span>
+              <span className="text-xs text-gray-700 dark:text-gray-300 font-medium">OpenAI</span>
+              <span className="text-gray-300 dark:text-gray-600">•</span>
+              <span className="text-xs text-gray-700 dark:text-gray-300 font-medium">Tavily</span>
+              <span className="text-gray-300 dark:text-gray-600">•</span>
+              <span className="text-xs text-gray-700 dark:text-gray-300 font-medium">Supabase</span>
+              <span className="text-gray-300 dark:text-gray-600">•</span>
+              <span className="text-xs text-gray-700 dark:text-gray-300 font-medium">Vercel</span>
+            </div>
+          </div>
+        </div>
+      </footer>
+      </div>
     </div>
   )
 }

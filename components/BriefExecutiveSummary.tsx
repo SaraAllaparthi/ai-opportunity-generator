@@ -31,31 +31,34 @@ export default function BriefExecutiveSummary({ data }: { data: Brief }) {
   })()
 
   return (
-    <section className="rounded-2xl border border-gray-800 bg-[#121212] p-8 shadow-lg">
+    <section className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-lg">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium">Executive Summary</h3>
-        <div className="text-sm text-gray-400">{data.company.name}</div>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Executive Summary</h3>
+        <div className="text-sm text-gray-600 dark:text-gray-400">{data.company.name}</div>
       </div>
-      <p className="mt-1 text-sm italic">
+      <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
         {typeof uplift === 'number' && typeof weighted === 'number'
           ? `${data.company.name} can unlock ~${formatCurrencyCHF(uplift)} annual value with benefit-weighted payback around ${weighted} months; sequence deployments by fastest ROI to compound impact.`
           : `Significant value potential with rapid payback; sequence deployments by fastest ROI to compound impact. (Some figures are estimates pending additional data)`}
       </p>
       <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="rounded-xl border border-gray-800 bg-[#0A0A0A] p-4">
-          <div className="text-xs uppercase text-gray-400 mb-1">Annual uplift</div>
-          <div className="text-xl font-semibold text-[#0070F3]">{formatCurrencyCHF(uplift)}</div>
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-4">
+          <div className="text-xs uppercase text-gray-600 dark:text-gray-400 mb-1">Annual uplift</div>
+          <div className="text-xl font-semibold text-blue-600 dark:text-blue-400">{formatCurrencyCHF(uplift)}</div>
         </div>
-        <div className="rounded-xl border border-gray-800 bg-[#0A0A0A] p-4">
-          <div className="text-xs uppercase text-gray-400 mb-1">Weighted payback</div>
-          <div className="text-xl font-semibold text-[#0070F3]">{typeof weighted === 'number' ? `${weighted} months` : 'Estimate'}</div>
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-4">
+          <div className="text-xs uppercase text-gray-600 dark:text-gray-400 mb-1">Weighted payback</div>
+          <div className="text-xl font-semibold text-blue-600 dark:text-blue-400">{typeof weighted === 'number' ? `${weighted} months` : 'Estimate'}</div>
         </div>
-        <div className="rounded-xl border border-gray-800 bg-[#0A0A0A] p-4">
-          <div className="text-xs uppercase text-gray-400 mb-1">Delivery profile</div>
-          <div className="text-xl font-semibold text-white">Complexity {avgComplexity}/5 • Effort {avgEffort}/5</div>
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-4">
+          <div className="text-xs uppercase text-gray-600 dark:text-gray-400 mb-1">Delivery profile</div>
+          <div className="space-y-1">
+            <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">Complexity {avgComplexity}/5</div>
+            <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">Effort {avgEffort}/5</div>
+          </div>
         </div>
       </div>
-      <ul className="mt-6 list-disc pl-5 text-sm text-gray-300 space-y-1">
+      <ul className="mt-6 list-disc pl-5 text-sm text-gray-600 dark:text-gray-300 space-y-1">
         <li>Focus on {topValueDriver.toLowerCase()} impact across 5 initiatives.</li>
         <li>Sequence deployments by fastest payback to accelerate value.</li>
         <li>Use existing data assets; label estimates where evidence is limited.</li>

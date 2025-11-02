@@ -33,7 +33,7 @@ export default function CompetitorComparison({ data }: { data: Brief }) {
   const colors = ['#2563eb','#16a34a','#f59e0b','#ef4444','#7c3aed']
   return (
     <div className="w-full">
-      <div className="mb-2 text-sm italic">Compete on scale and personalization; lean into data moats.</div>
+      <div className="mb-2 text-sm text-gray-600 dark:text-gray-300">Compete on scale and personalization; lean into data moats.</div>
       <div className="h-72 w-full">
         {!R ? (
           <div className="text-sm text-muted-foreground">Loading…</div>

@@ -1,6 +1,6 @@
 "use client"
 import { Brief } from '@/lib/schema/brief'
-import { confidenceFromCount } from '@/lib/utils/citations'
+import { confidenceFromCount, getConfidenceColor } from '@/lib/utils/citations'
 import { motion } from 'framer-motion'
 
 function retitle(title: string, company: string, driver: string) {
@@ -26,13 +26,15 @@ function avg(values: Array<number | undefined>) {
 
 export default function UseCasesCard({ data }: { data: Brief }) {
   const sorted = [...data.use_cases].sort((a, b) => (a.payback_months ?? 999) - (b.payback_months ?? 999))
+  const confidenceRaw = confidenceFromCount(sorted.reduce((a,u)=>a+(u.citations?.length||0),0))
+  const confidence = confidenceRaw === 'Low' ? 'Medium' : confidenceRaw
   return (
-    <div className="rounded-2xl border border-gray-800 bg-[#121212] p-8 shadow-lg">
+    <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-lg">
       <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-lg font-medium">Top 5 AI Use Cases (by fastest payback)</h3>
-        <span className="rounded-full border border-gray-800 px-2 py-0.5 text-xs text-gray-400">Confidence {(() => { const c = confidenceFromCount(sorted.reduce((a,u)=>a+(u.citations?.length||0),0)); return c === 'Low' ? 'Medium' : c; })()}</span>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Top 5 AI Use Cases (by fastest payback)</h3>
+        <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getConfidenceColor(confidence)}`}>Confidence {confidence}</span>
       </div>
-      <p className="text-sm italic text-gray-400 mb-4">Sequence by payback; tailor delivery to {data.company.name}&apos;s products and client base.</p>
+      <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">Sequence by payback; tailor delivery to {data.company.name}&apos;s products and client base.</p>
       <ol className="space-y-3 text-sm">
         {sorted.map((u, i) => {
           const roiPct = (typeof u.est_annual_benefit === 'number' && typeof u.est_one_time_cost === 'number')
@@ -43,33 +45,33 @@ export default function UseCasesCard({ data }: { data: Brief }) {
           const progress = Math.min(100, Math.round(((u.payback_months || maxPayback) / maxPayback) * 100))
           const driverIcon = ({ revenue: '💰', cost: '💸', risk: '🛡️', speed: '⚡' } as any)[u.value_driver]
           return (
-          <motion.li key={i} className="rounded-2xl border border-gray-800 bg-[#0A0A0A] p-5 shadow-lg hover:shadow-blue-500/20 transition"
+          <motion.li key={i} className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-5 shadow-lg hover:shadow-blue-500/20 transition"
             initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
             <div className="flex items-center justify-between mb-2">
-              <div className="font-medium text-white">{driverIcon} {retitle(u.title, data.company.name, u.value_driver)}</div>
-              <div className="text-xs text-gray-400 flex items-center gap-2">
+              <div className="font-semibold text-gray-900 dark:text-white">{driverIcon} {retitle(u.title, data.company.name, u.value_driver)}</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-2">
                 <span className={`rounded-full px-2 py-0.5 text-white text-[10px] font-medium ${roiColor}`}>{roiPct !== undefined ? `${roiPct}% ROI` : 'ROI est.'}</span>
                 <span>Payback: {u.payback_months ? `${u.payback_months} mo` : 'est.'}</span>
               </div>
             </div>
-            <div className="text-xs text-gray-400 mb-2">Value: {u.value_driver} • Complexity {u.complexity}/5 • Effort {u.effort}/5</div>
-            <p className="mt-1 text-sm text-gray-300">{u.description} Designed for {data.company.name}&apos;s clients and core offerings.</p>
-            <div className="mt-3 h-2 w-full rounded-full bg-gray-800">
-              <div className="h-2 rounded-full bg-[#0070F3]" style={{ width: `${100 - progress}%` }}></div>
+            <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">Value: {u.value_driver} • Complexity {u.complexity}/5 • Effort {u.effort}/5</div>
+            <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{u.description} Designed for {data.company.name}&apos;s clients and core offerings.</p>
+            <div className="mt-3 h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+              <div className="h-2 rounded-full bg-blue-600 dark:bg-blue-500" style={{ width: `${100 - progress}%` }}></div>
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-gray-400">
-              <div>Annual benefit: <span className="text-[#0070F3]">{u.est_annual_benefit?.toLocaleString() ?? '—'}</span></div>
-              <div>One-time cost: <span className="text-gray-300">{u.est_one_time_cost?.toLocaleString() ?? '—'}</span></div>
-              <div>Ongoing cost: <span className="text-gray-300">{u.est_ongoing_cost?.toLocaleString() ?? '—'}</span></div>
+            <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-gray-600 dark:text-gray-400">
+              <div>Annual benefit: <span className="text-blue-600 dark:text-blue-400 font-medium">{u.est_annual_benefit?.toLocaleString() ?? '—'}</span></div>
+              <div>One-time cost: <span className="text-gray-700 dark:text-gray-300">{u.est_one_time_cost?.toLocaleString() ?? '—'}</span></div>
+              <div>Ongoing cost: <span className="text-gray-700 dark:text-gray-300">{u.est_ongoing_cost?.toLocaleString() ?? '—'}</span></div>
             </div>
           </motion.li>
         )})}
       </ol>
       <div className="mt-4">
-        <h4 className="mb-3 text-sm font-medium text-white">ROI Summary</h4>
-        <div className="overflow-x-auto rounded-xl border border-gray-800 bg-[#0A0A0A]">
+        <h4 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">ROI Summary</h4>
+        <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
           <table className="w-full text-left text-xs">
-            <thead className="text-gray-400 bg-[#121212]">
+            <thead className="text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800">
               <tr>
                 <th className="p-3">Use case</th>
                 <th className="p-3">Benefit</th>
@@ -88,21 +90,21 @@ export default function UseCasesCard({ data }: { data: Brief }) {
                 const confRaw = confidenceFromCount(u.citations?.length || 0)
                 const conf = confRaw === 'Low' ? 'Medium' : confRaw
                 return (
-                  <tr key={i} className="border-t border-gray-800">
-                    <td className="p-3 text-white">{retitle(u.title, data.company.name, u.value_driver)}</td>
-                    <td className="p-3 text-[#0070F3]">{u.est_annual_benefit?.toLocaleString() ?? '—'}</td>
-                    <td className="p-3 text-gray-300">{u.est_one_time_cost?.toLocaleString() ?? '—'}</td>
-                    <td className="p-3 text-gray-300">{u.est_ongoing_cost?.toLocaleString() ?? '—'}</td>
-                    <td className="p-3 text-gray-400">{u.payback_months ? `${u.payback_months} mo` : 'estimate'}</td>
-                    <td className="p-3 text-[#0070F3] font-medium">{roi}</td>
-                    <td className="p-3"><span className="rounded-full border border-gray-800 px-2 py-0.5 text-xs text-gray-400">{conf}</span></td>
+                  <tr key={i} className="border-t border-gray-200 dark:border-gray-700">
+                    <td className="p-3 text-gray-900 dark:text-white">{retitle(u.title, data.company.name, u.value_driver)}</td>
+                    <td className="p-3 text-blue-600 dark:text-blue-400 font-medium">{u.est_annual_benefit?.toLocaleString() ?? '—'}</td>
+                    <td className="p-3 text-gray-700 dark:text-gray-300">{u.est_one_time_cost?.toLocaleString() ?? '—'}</td>
+                    <td className="p-3 text-gray-700 dark:text-gray-300">{u.est_ongoing_cost?.toLocaleString() ?? '—'}</td>
+                    <td className="p-3 text-gray-600 dark:text-gray-400">{u.payback_months ? `${u.payback_months} mo` : 'estimate'}</td>
+                    <td className="p-3 text-blue-600 dark:text-blue-400 font-medium">{roi}</td>
+                    <td className="p-3"><span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${getConfidenceColor(conf)}`}>{conf}</span></td>
                   </tr>
                 )
               })}
             </tbody>
           </table>
         </div>
-        <p className="mt-4 text-sm italic text-gray-400">
+        <p className="mt-4 text-sm text-gray-600 dark:text-gray-300">
           {(() => {
             const totalBenefit = sum(sorted.map(u => u.est_annual_benefit))
             const totalOneTime = sum(sorted.map(u => u.est_one_time_cost))
