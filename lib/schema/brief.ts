@@ -100,5 +100,6 @@ export const BriefInputSchema = z.object({
 
 export type Brief = z.infer<typeof BriefSchema>
 export type BriefInput = z.infer<typeof BriefInputSchema>
+export type UseCase = z.infer<typeof UseCaseSchema>
 
 

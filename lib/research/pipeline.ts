@@ -1,6 +1,6 @@
 import { tavilySearch } from '@/lib/providers/tavily'
 import { llmGenerateJson } from '@/lib/providers/llm'
-import { Brief, BriefSchema, BriefInputSchema } from '@/lib/schema/brief'
+import { Brief, BriefSchema, BriefInputSchema, UseCase } from '@/lib/schema/brief'
 import { dedupeUrls } from '@/lib/utils/citations'
 
 export type CompetitorStrict = Brief['competitors'][number]
@@ -1219,8 +1219,8 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
   parsed.citations = dedupeUrls([...(parsed.citations || []), ...citations])
 
   /* 7) Deterministic rollups for Executive Summary (for UI hero cards) */
-  const cases: Array<{ est_annual_benefit?: number; est_one_time_cost?: number; est_ongoing_cost?: number }> = parsed.use_cases || []
-  const num = (v: any) => (typeof v === 'number' ? v : Number(v) || 0)
+  const cases: UseCase[] = parsed.use_cases || []
+  const num = (v: unknown) => (typeof v === 'number' && !Number.isNaN(v) ? v : 0)
 
   const totalBenefit = cases.reduce((s: number, c) => s + num(c.est_annual_benefit), 0)
   const totalOneTime = cases.reduce((s: number, c) => s + num(c.est_one_time_cost), 0)
