@@ -30,7 +30,9 @@ export const BriefSchema = z.object({
     latest_news: z.string().optional() // One point from latest news or announcement
   }),
   industry: z.object({
-    summary: z.string().min(20, 'Industry summary must be at least 20 characters').max(300, 'Industry summary must be under 50 words (approximately 300 characters)'),
+    summary: z.string()
+      .min(20, 'Industry summary must be at least 20 characters')
+      .max(300, 'Industry summary must be under 50 words (approximately 300 characters)'),
     trends: z.array(z.string().max(200, 'Each trend must be max 15 words')).min(4).max(5)
   }),
   strategic_moves: z.array(z.object({
@@ -54,6 +56,49 @@ export const BriefSchema = z.object({
   citations: z.array(z.string().url()).default([])
 })
 
+// Schema for initial LLM output (before competitor enrichment)
+// Competitors are enriched later with employee_band, geo_fit, and evidence_pages
+export const BriefInputSchema = z.object({
+  company: z.object({
+    name: z.string(),
+    website: z.string(),
+    summary: z.string().min(100, 'Company summary must be at least 100 characters to provide a comprehensive overview'),
+    size: z.string().optional(),
+    industry: z.string().optional(),
+    headquarters: z.string().optional(),
+    founded: z.string().optional(),
+    ceo: z.string().optional(),
+    market_position: z.string().optional(),
+    latest_news: z.string().optional()
+  }),
+  industry: z.object({
+    summary: z.string()
+      .min(20, 'Industry summary must be at least 20 characters')
+      .max(300, 'Industry summary must be under 50 words (approximately 300 characters)'),
+    trends: z.array(z.string().max(200, 'Each trend must be max 15 words')).min(4).max(5)
+  }),
+  strategic_moves: z.array(z.object({
+    title: z.string(),
+    dateISO: z.string().optional(),
+    impact: z.string().optional(),
+    citations: z.array(z.string().url()).default([])
+  })).max(5),
+  competitors: z.array(z.object({
+    name: z.string(),
+    website: z.string().url(),
+    positioning: z.string(),
+    ai_maturity: z.string(),
+    innovation_focus: z.string(),
+    employee_band: z.string().optional(), // Added during enrichment
+    geo_fit: z.string().optional(), // Added during enrichment
+    evidence_pages: z.array(z.string().url()).optional(), // Added during enrichment
+    citations: z.array(z.string().url()).default([])
+  })).max(3),
+  use_cases: z.array(UseCaseSchema).length(5),
+  citations: z.array(z.string().url()).default([])
+})
+
 export type Brief = z.infer<typeof BriefSchema>
+export type BriefInput = z.infer<typeof BriefInputSchema>
 
 

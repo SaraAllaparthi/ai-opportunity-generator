@@ -1,6 +1,6 @@
 import { tavilySearch } from '@/lib/providers/tavily'
 import { llmGenerateJson } from '@/lib/providers/llm'
-import { Brief, BriefSchema } from '@/lib/schema/brief'
+import { Brief, BriefSchema, BriefInputSchema } from '@/lib/schema/brief'
 import { dedupeUrls } from '@/lib/utils/citations'
 
 export type CompetitorStrict = Brief['competitors'][number]
@@ -952,7 +952,7 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
     'Do NOT invent or infer content. If there is no evidence, return an empty array for that section.',
     'Company summary: Write a comprehensive 4-8 sentence overview (minimum 100 characters) that thoroughly describes: (1) what the company does and its core business model, (2) primary products/services and key capabilities, (3) target markets and customer base, (4) market position and competitive standing, (5) operational focus and key differentiators, (6) strategic direction if evident. Be specific and detailed based on the provided snippets. This is required, not optional.',
     'Company facts: Extract and include size (PRIORITIZE employee count in format "X employees" or "X-Y employees" - search for "employees", "employee count", "workforce", "staffing", "headcount" in snippets; if employee count not found, estimate from revenue or company descriptions, format as "X employees" or approximate range; only include if verifiable from snippets), industry sector, headquarters location, founding year (format as "Founded in YYYY" using the company registration/incorporation year from snippets), CEO/founder name (extract from snippets - PRIORITIZE LinkedIn profiles, company register entries, and leadership pages; look for "CEO", "Chief Executive Officer", "Geschäftsführer", "Vorstand", "founder", "founder and CEO", "managing director"; for Swiss/German companies, also check for German terms like "Geschäftsführer", "Vorstandsvorsitzender"; extract full name format like "John Smith" or "Hans Müller" from verified sources like LinkedIn or company registers), market position/leadership information, and one point from latest news/announcements if available in snippets. Only include facts you can verify from snippets.',
-    'Industry summary: Write one paragraph (under 50 words) summarizing how intelligent automation, data analytics, and AI adoption are transforming the company\'s industry. Focus on business transformation and competitive advantage - not technical details. Explain how AI/ML/data-driven technologies are changing how companies operate, compete, and create value. Keep tone strategic and business-oriented for SMB leaders.',
+    'Industry summary: Write one paragraph (MAXIMUM 300 characters, approximately 50 words) summarizing how intelligent automation, data analytics, and AI adoption are transforming the company\'s industry. Focus on business transformation and competitive advantage - not technical details. Explain how AI/ML/data-driven technologies are changing how companies operate, compete, and create value. Keep tone strategic and business-oriented for SMB leaders. CRITICAL: The summary must be 300 characters or less - count carefully.',
     'Industry trends: Provide 4-5 trends (max 15 words each) that directly reference AI, ML, or data-driven technologies transforming the industry. Examples: "AI-driven predictive maintenance reduces downtime by 20%", "Smart factories use ML to optimize production schedules", "AI forecasting improves inventory accuracy by 30%", "Sustainability analytics help meet compliance faster". Each trend must clearly connect business impact and technology value in one short sentence. Focus on what SMB leaders can act on now or in the near future. Keep tone strategic, not technical.',
     'Use-case titles must be Verb + Outcome (e.g., "Cut Scrap with AI QC").',
     'All use_cases MUST include ALL numeric fields (est_annual_benefit, est_one_time_cost, est_ongoing_cost, payback_months); use 0 or reasonable estimates when uncertain.',
@@ -969,7 +969,7 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
       'Company summary: MUST provide a comprehensive 4-8 sentence overview (minimum 100 characters) covering business model, products/services, target markets, market position, operations, and strategic focus. Be thorough and specific. This is required.',
       'Company facts: Include size (PRIORITIZE employee count from snippets - search for "employees", "employee count", "workforce", "staffing", "headcount" - format as "X employees" or "X-Y employees"; estimate if needed from revenue or descriptions), industry, headquarters, founded (format as "Founded in YYYY" from company registration year in snippets), CEO (PRIORITIZE LinkedIn profiles and company registers - extract CEO/founder name from snippets - search for "CEO", "Chief Executive Officer", "Geschäftsführer", "Vorstand", "founder", "managing director" in both English and German; look for full names from LinkedIn or Handelsregister/Unternehmensregister entries), market_position, and latest_news if available in snippets. Extract specific factual information only.',
       'Include citations arrays (URLs) for each claim in sections. Citations default to [] if not provided.',
-      'Industry summary: MUST be one paragraph (under 50 words) summarizing how intelligent automation, data analytics, and AI adoption are transforming the company\'s industry. Focus on business transformation and competitive advantage - strategic and business-oriented, not technical.',
+      'Industry summary: MUST be one paragraph (MAXIMUM 300 characters, approximately 50 words) summarizing how intelligent automation, data analytics, and AI adoption are transforming the company\'s industry. Focus on business transformation and competitive advantage - strategic and business-oriented, not technical. CRITICAL: Count characters - the summary must be exactly 300 characters or less.',
       'industry.trends: MUST provide 4-5 AI/ML/data-driven technology trends (max 15 words each) that directly reference AI or emerging tech. Each trend must clearly connect business impact and technology value. Examples: predictive maintenance, smart factories, AI forecasting, sustainability analytics. Focus on what SMB leaders can act on now or in the near future.',
       'competitors: MUST return exactly 2-3 real, named companies from same industry and headquarters geography (≤500 employees). All five fields required: name (string), website (string - homepage URL), positioning (one sentence), ai_maturity (one short phrase), innovation_focus (one short phrase). No placeholders, no generics, no industry average. Citations optional (defaults to []).',
       'strategic_moves: citations array defaults to [] if not provided.',
@@ -984,7 +984,7 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
   console.log('[Pipeline] - Schema rules:', schemaRules)
   console.log('[Pipeline] - User payload (preview):', userPayload.substring(0, 500))
 
-  let parsed: Brief | null = null
+  let parsed: any = null
   let firstError: any | null = null
 
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -1003,7 +1003,7 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
                 'Return a JSON object (no markdown) matching schema_rules',
                 'company.summary is REQUIRED - provide a comprehensive 4-8 sentence overview (100+ characters) covering business model, products/services, markets, position, and operations based on snippets',
                 'Include company facts (size: PRIORITIZE employee count - search snippets for "employees", "employee count", "workforce", "staffing", "headcount" and format as "X employees" or "X-Y employees"; estimate from revenue if needed; industry, headquarters, founded as "Founded in YYYY" from registration year, ceo: PRIORITIZE LinkedIn profiles and company register entries - extract from search results looking for "CEO", "Chief Executive Officer", "Geschäftsführer", "Vorstand", "founder", "managing director" in both English and German sources, market_position, latest_news) if available in snippets',
-                'industry.summary is REQUIRED - one paragraph (under 50 words) summarizing how intelligent automation, data analytics, and AI adoption are transforming the industry. Focus on business transformation, not technical details.',
+                'industry.summary is REQUIRED - one paragraph (MAXIMUM 300 characters, approximately 50 words) summarizing how intelligent automation, data analytics, and AI adoption are transforming the industry. Focus on business transformation, not technical details. CRITICAL: The summary must be 300 characters or less - verify the character count before returning.',
                 'industry.trends: 4-5 AI/ML/data-driven trends (max 15 words each) that directly reference AI or emerging tech. Each must connect business impact and technology value. Focus on what SMB leaders can act on now or near future.',
                 'competitors: Return exactly 2-3 real, named companies from same industry and headquarters geography (≤500 employees). All five fields required: name (string), website (string - homepage URL), positioning (one sentence), ai_maturity (one short phrase), innovation_focus (one short phrase). No placeholders, no generics. Citations optional (defaults to [])',
                 'strategic_moves: citations defaults to [] if not provided',
@@ -1023,15 +1023,24 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
     }
     
     const json = await llmGenerateJson(system, payload)
-    console.log('[Pipeline] LLM returned JSON, validating with schema...')
+    console.log('[Pipeline] LLM returned JSON, validating with input schema...')
     
-    const result = BriefSchema.safeParse(json)
+    // Truncate industry summary if it exceeds 300 characters before validation
+    if (json.industry?.summary && json.industry.summary.length > 300) {
+      console.log(`[Pipeline] Truncating industry summary from ${json.industry.summary.length} to 300 characters`)
+      json.industry.summary = json.industry.summary.substring(0, 297).trim() + '...'
+    }
+    
+    // Use BriefInputSchema for initial validation (competitors will be enriched later)
+    const result = BriefInputSchema.safeParse(json)
     if (result.success) {
       console.log('[Pipeline] Schema validation PASSED')
       parsed = result.data
       break
     } else {
       console.error('[Pipeline] Schema validation FAILED:', result.error.errors)
+      console.error('[Pipeline] Validation errors details:', JSON.stringify(result.error.errors, null, 2))
+      console.error('[Pipeline] LLM response that failed:', JSON.stringify(json, null, 2))
       firstError = result.error
       if (attempt === 0) {
         console.log('[Pipeline] Retrying with more explicit rules...')
@@ -1039,7 +1048,12 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
     }
   }
 
-  if (!parsed) throw new Error('Failed to validate model output')
+  if (!parsed) {
+    const errorDetails = firstError?.errors 
+      ? `Validation errors: ${JSON.stringify(firstError.errors, null, 2)}`
+      : 'Unknown validation error'
+    throw new Error(`Failed to validate model output after 2 attempts. ${errorDetails}`)
+  }
 
   /* 5) Enhanced competitor search with industry tokens */
   console.log('[Pipeline] Starting enhanced competitor search...')
@@ -1265,7 +1279,14 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
     industryTrendsCount: parsed.industry?.trends?.length || 0
   })
 
-  return { brief: parsed, citations: parsed.citations }
+  // Final validation with full schema to ensure enriched data is correct
+  const finalValidation = BriefSchema.safeParse(parsed)
+  if (!finalValidation.success) {
+    console.error('[Pipeline] Final validation FAILED after enrichment:', finalValidation.error.errors)
+    throw new Error(`Failed to validate final brief after enrichment: ${JSON.stringify(finalValidation.error.errors, null, 2)}`)
+  }
+
+  return { brief: finalValidation.data, citations: parsed.citations }
 }
 
 
