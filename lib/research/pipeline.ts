@@ -1207,7 +1207,7 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
     console.warn(`[Pipeline] WARNING: Only found ${parsed.competitors.length} valid competitors from live searches (target: 2-3, no fallbacks)`)
   }
 
-  console.log(`[Pipeline] Final competitors (${parsed.competitors.length}):`, parsed.competitors.map(c => ({
+  console.log(`[Pipeline] Final competitors (${parsed.competitors.length}):`, parsed.competitors.map((c: CompetitorStrict) => ({
     name: c.name,
     hasWebsite: !!c.website,
     hasPositioning: !!c.positioning,
