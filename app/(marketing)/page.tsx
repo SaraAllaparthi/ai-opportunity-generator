@@ -73,7 +73,7 @@ export default function LandingPage() {
             Reveal Hidden <span className="text-blue-600 dark:text-blue-400">AI Opportunities</span> Instantly
           </h1>
           <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto leading-relaxed">
-            Seamlessly analyze your company's public data to discover the most valuable AI use cases, quantify ROI and get an executive ready strategy brief in under 90 seconds.
+            Seamlessly analyze your company&apos;s public data to discover the most valuable AI use cases, quantify ROI and get an executive ready strategy brief in under 90 seconds.
           </p>
           <button
             onClick={() => {
@@ -121,7 +121,7 @@ export default function LandingPage() {
                   CEOs know AI has potential — but not where to start.
                 </p>
                 <p className="text-gray-600 dark:text-gray-300">
-                  Most organizations waste months on vague "AI readiness" discussions without a clear ROI case.
+                  Most organizations waste months on vague &quot;AI readiness&quot; discussions without a clear ROI case.
                 </p>
               </div>
               
@@ -132,7 +132,7 @@ export default function LandingPage() {
                   <span className="text-blue-600 dark:text-blue-400">Solution</span>
                 </h4>
                 <p className="text-gray-600 dark:text-gray-300 mb-2">
-                  Maverick Lens uses multi-agent AI research to scan your company's public footprint, benchmark against competitors, and identify the fastest-payback AI initiatives.
+                  Maverick Lens uses multi-agent AI research to scan your company&apos;s public footprint, benchmark against competitors, and identify the fastest-payback AI initiatives.
                 </p>
                 <p className="text-gray-600 dark:text-gray-300">
                   The result: a quantified, McKinsey-style AI Opportunity Brief tailored to your business.
@@ -172,7 +172,7 @@ export default function LandingPage() {
                 />
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                We'll analyze public data from this website to generate your comprehensive AI opportunity report.
+                We&apos;ll analyze public data from this website to generate your comprehensive AI opportunity report.
               </p>
               <button
                 className="group w-full h-12 items-center justify-center gap-2 rounded-lg bg-blue-600 dark:bg-blue-500 text-base font-medium text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex"
@@ -256,7 +256,7 @@ export default function LandingPage() {
               <div className="flex-shrink-0 w-12 h-12 rounded-full bg-blue-600 dark:bg-blue-500 text-white flex items-center justify-center font-bold text-lg">1</div>
               <div>
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Enter Company Details</h3>
-                <p className="text-gray-600 dark:text-gray-300">Provide your company name and website URL. We'll use this to gather public information.</p>
+                <p className="text-gray-600 dark:text-gray-300">Provide your company name and website URL. We&apos;ll use this to gather public information.</p>
               </div>
             </div>
             <div className="flex gap-6">
@@ -280,8 +280,8 @@ export default function LandingPage() {
       {/* Final CTA Section */}
       <section className="bg-gray-50 dark:bg-gray-900/50 py-12">
         <div className="mx-auto max-w-4xl px-6 text-center">
-          <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Let's Design <span className="text-blue-600 dark:text-blue-400">Your AI Roadmap</span> Together</h2>
-          <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">Work directly with our strategy team to map your company's fastest-ROI AI initiatives, identify data gaps, and define your 90-day execution plan..</p>
+          <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Let&apos;s Design <span className="text-blue-600 dark:text-blue-400">Your AI Roadmap</span> Together</h2>
+          <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">Work directly with our strategy team to map your company&apos;s fastest-ROI AI initiatives, identify data gaps, and define your 90-day execution plan..</p>
             <a
               href="mailto:contact@maverickaigroup.ai"
               className="group inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-blue-600 dark:bg-blue-500 px-6 text-base font-medium text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-all shadow-md hover:shadow-lg"
