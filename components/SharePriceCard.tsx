@@ -31,35 +31,35 @@ export default function SharePriceCard({ companyName }: { companyName: string })
 
   if (!symbols.length) {
     return (
-      <div className="rounded-2xl border border-gray-800 bg-[#121212] p-6 shadow-lg w-full md:w-72">
-        <div className="text-xs uppercase text-gray-400 mb-2">Share Price</div>
-        <div className="text-sm text-gray-400">Ticker not available</div>
+      <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-lg w-full md:w-72">
+        <div className="text-xs uppercase text-gray-600 dark:text-gray-400 mb-2">Share Price</div>
+        <div className="text-sm text-gray-600 dark:text-gray-400">Ticker not available</div>
       </div>
     )
   }
 
   return (
-    <div className="rounded-2xl border border-gray-800 bg-[#121212] p-6 shadow-lg w-full md:w-72">
+    <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-lg w-full md:w-72">
       <div className="mb-2 flex items-center justify-between">
-        <div className="text-xs uppercase text-gray-400">Share Price</div>
+        <div className="text-xs uppercase text-gray-600 dark:text-gray-400">Share Price</div>
         {symbols.length > 1 && (
-          <select className="rounded border border-gray-800 bg-[#0f0f0f] px-2 py-1 text-xs text-white" value={symbol} onChange={(e)=>setSymbol(e.target.value)}>
+          <select className="rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 px-2 py-1 text-xs text-gray-900 dark:text-white" value={symbol} onChange={(e)=>setSymbol(e.target.value)}>
             {symbols.map(s => (<option key={s} value={s}>{s}</option>))}
           </select>
         )}
       </div>
       {loading ? (
-        <div className="text-sm text-gray-400">Loading...</div>
+        <div className="text-sm text-gray-600 dark:text-gray-400">Loading...</div>
       ) : data?.error ? (
-        <div className="text-sm text-gray-400">Price unavailable</div>
+        <div className="text-sm text-gray-600 dark:text-gray-400">Price unavailable</div>
       ) : (
         <div>
           <div className="flex items-baseline gap-2">
-            <div className="text-lg font-semibold">{data?.last?.toFixed(2)}</div>
-            <div className={`text-xs ${up ? 'text-green-600' : 'text-red-600'}`}>{(data?.changePct||0).toFixed(2)}%</div>
+            <div className="text-lg font-semibold text-gray-900 dark:text-white">{data?.last?.toFixed(2)}</div>
+            <div className={`text-xs ${up ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{(data?.changePct||0).toFixed(2)}%</div>
           </div>
           <div className="mt-2 h-8 w-full">
-            <svg viewBox="0 0 100 20" className="h-8 w-full text-muted-foreground">
+            <svg viewBox="0 0 100 20" className="h-8 w-full text-gray-400 dark:text-gray-600">
               <polyline fill="none" stroke="currentColor" strokeWidth="1" points={(() => {
                 const arr = (data?.spark?.length ? data.spark : [0,0,0,0,0])
                 const min = Math.min(...arr)
@@ -69,7 +69,7 @@ export default function SharePriceCard({ companyName }: { companyName: string })
               })()} />
             </svg>
           </div>
-          <div className="mt-1 text-[10px] text-gray-400">Updated {data?.ts ? new Date(data.ts).toLocaleTimeString() : ''}</div>
+          <div className="mt-1 text-[10px] text-gray-500 dark:text-gray-500">Updated {data?.ts ? new Date(data.ts).toLocaleTimeString() : ''}</div>
         </div>
       )}
     </div>

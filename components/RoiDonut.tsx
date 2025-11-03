@@ -2,6 +2,18 @@
 import { Brief } from '@/lib/schema/brief'
 import { useEffect, useState } from 'react'
 
+const CustomTooltip = ({ active, payload }: any) => {
+  if (!active || !payload || !payload.length) return null
+  const data = payload[0]
+  const value = typeof data.value === 'number' ? new Intl.NumberFormat('en-CH', { style: 'currency', currency: 'CHF', maximumFractionDigits: 0 }).format(data.value) : data.value
+  return (
+    <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2 shadow-lg">
+      <p className="text-xs font-medium text-gray-900 dark:text-white mb-1">{data.name}</p>
+      <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold">{value}</p>
+    </div>
+  )
+}
+
 export default function RoiDonut({ data }: { data: Brief }) {
   const [R, setR] = useState<any>(null)
   useEffect(() => { (async () => setR(await import('recharts')))() }, [])
@@ -10,14 +22,14 @@ export default function RoiDonut({ data }: { data: Brief }) {
   return (
     <div className="h-48 w-full">
       {!R ? (
-        <div className="text-sm text-muted-foreground">Loading…</div>
+        <div className="text-sm text-gray-600 dark:text-gray-400">Loading…</div>
       ) : (
         <R.ResponsiveContainer width="100%" height="100%">
           <R.PieChart>
             <R.Pie data={items} dataKey="value" nameKey="name" innerRadius={40} outerRadius={70} paddingAngle={2}>
               {items.map((_, i) => (<R.Cell key={i} fill={COLORS[i % COLORS.length]} />))}
             </R.Pie>
-            <R.Tooltip formatter={(v: any) => (typeof v === 'number' ? v.toLocaleString() : v)} />
+            <R.Tooltip content={<CustomTooltip />} />
           </R.PieChart>
         </R.ResponsiveContainer>
       )}
