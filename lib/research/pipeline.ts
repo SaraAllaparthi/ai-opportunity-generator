@@ -1219,12 +1219,12 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
   parsed.citations = dedupeUrls([...(parsed.citations || []), ...citations])
 
   /* 7) Deterministic rollups for Executive Summary (for UI hero cards) */
-  const cases = parsed.use_cases || []
+  const cases: Array<{ est_annual_benefit?: number; est_one_time_cost?: number; est_ongoing_cost?: number }> = parsed.use_cases || []
   const num = (v: any) => (typeof v === 'number' ? v : Number(v) || 0)
 
-  const totalBenefit = cases.reduce((s, c) => s + num(c.est_annual_benefit), 0)
-  const totalOneTime = cases.reduce((s, c) => s + num(c.est_one_time_cost), 0)
-  const totalOngoing = cases.reduce((s, c) => s + num(c.est_ongoing_cost), 0)
+  const totalBenefit = cases.reduce((s: number, c) => s + num(c.est_annual_benefit), 0)
+  const totalOneTime = cases.reduce((s: number, c) => s + num(c.est_one_time_cost), 0)
+  const totalOngoing = cases.reduce((s: number, c) => s + num(c.est_ongoing_cost), 0)
   const totalInvestment = totalOneTime + totalOngoing
 
   let weighted = 0
