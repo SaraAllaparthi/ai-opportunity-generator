@@ -2,22 +2,20 @@ import { getBriefBySlug } from '@/lib/db/briefs'
 import { track } from '@/lib/utils/analytics'
 import SnapshotCard from '@/components/BriefSnapshotCard'
 import IndustryCard from '@/components/BriefIndustryCard'
-import MovesCard from '@/components/BriefMovesCard'
 import CompetitorsCard from '@/components/BriefCompetitorsCard'
 import UseCasesCard from '@/components/BriefUseCasesCard'
 import BriefExecutiveSummary from '@/components/BriefExecutiveSummary'
-import SharePriceCard from '@/components/SharePriceCard'
 import RoiDonut from '@/components/RoiDonut'
 import BenefitInvestmentBar from '@/components/BenefitInvestmentBar'
-import MovesTimeline from '@/components/MovesTimeline'
-import TrendsBars from '@/components/TrendsBars'
+import TrendImpactGrid from '@/components/TrendImpactGrid'
 import CompetitorComparison from '@/components/CompetitorComparison'
 import CEOActionPlan from '@/components/CEOActionPlan'
 import FeasibilityScan from '@/components/FeasibilityScan'
 import StickyHeader from '@/components/StickyHeader'
 import SectionWrapper from '@/components/SectionWrapper'
 
-export const dynamic = 'force-dynamic'
+// Briefs are static once created - cache the page indefinitely
+export const revalidate = false // Never revalidate since briefs are immutable once created
 
 export default async function SharePage({ params }: { params: { slug: string } }) {
   const brief = await getBriefBySlug(params.slug)
@@ -50,7 +48,7 @@ export default async function SharePage({ params }: { params: { slug: string } }
       <StickyHeader />
       <main className="mx-auto max-w-6xl px-6">
         {/* Hero / Executive Summary */}
-        <SectionWrapper id="exec-summary">
+        <SectionWrapper id="exec-summary" className="pb-4">
           <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-3">AI Opportunity Brief — {data.company.name}</h1>
             <p className="text-gray-600 dark:text-gray-300 text-lg">
@@ -58,35 +56,126 @@ export default async function SharePage({ params }: { params: { slug: string } }
             </p>
           </div>
           
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3 mb-12">
-            <div className="md:col-span-2">
-              <BriefExecutiveSummary data={data} />
-              <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
-                <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-lg">
-                  <div className="mb-2 text-sm font-medium text-gray-600 dark:text-gray-400">ROI Contribution</div>
-                  <RoiDonut data={data} />
-                </div>
-                <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-lg">
-                  <div className="mb-2 text-sm font-medium text-gray-600 dark:text-gray-400">Benefit vs Investment</div>
-                  <BenefitInvestmentBar data={data} />
-                </div>
+          <div className="mb-12">
+            <BriefExecutiveSummary data={data} />
+            <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-lg">
+                <div className="mb-2 text-sm font-medium text-gray-600 dark:text-gray-400">ROI Contribution</div>
+                <RoiDonut data={data} />
+                <ul className="mt-6 space-y-2">
+                  {data.use_cases.map((useCase, index) => {
+                    // Normalize numeric values to ensure consistency
+                    const normalizeNum = (v: any): number => {
+                      if (typeof v === 'number' && !isNaN(v)) return v
+                      if (typeof v === 'string') {
+                        const parsed = parseFloat(v)
+                        return !isNaN(parsed) ? parsed : 0
+                      }
+                      return 0
+                    }
+                    
+                    const COLORS = ['#2563eb','#16a34a','#f59e0b','#ef4444','#7c3aed']
+                    const color = COLORS[index % COLORS.length]
+                    const amount = normalizeNum(useCase.est_annual_benefit)
+                    const formattedAmount = new Intl.NumberFormat('en-CH', { 
+                      style: 'currency', 
+                      currency: 'CHF', 
+                      maximumFractionDigits: 0 
+                    }).format(amount)
+                    return (
+                      <li key={index} className="flex items-start gap-2 text-sm">
+                        <span 
+                          className="mt-1.5 h-2 w-2 rounded-full flex-shrink-0" 
+                          style={{ backgroundColor: color }}
+                        />
+                        <span className="flex-1 text-gray-700 dark:text-gray-300">
+                          {useCase.title}
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {formattedAmount}
+                        </span>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+              <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-lg">
+                <div className="mb-2 text-sm font-medium text-gray-600 dark:text-gray-400">Benefit vs Investment</div>
+                <BenefitInvestmentBar data={data} />
+                <ul className="mt-6 space-y-2">
+                  {(() => {
+                    // Normalize numeric values to ensure consistency
+                    const normalizeNum = (v: any): number => {
+                      if (typeof v === 'number' && !isNaN(v)) return v
+                      if (typeof v === 'string') {
+                        const parsed = parseFloat(v)
+                        return !isNaN(parsed) ? parsed : 0
+                      }
+                      return 0
+                    }
+                    
+                    const totalOneTime = data.use_cases.reduce((a, u) => a + normalizeNum(u.est_one_time_cost), 0)
+                    const totalOngoing = data.use_cases.reduce((a, u) => a + normalizeNum(u.est_ongoing_cost), 0)
+                    const totalInvestment = totalOneTime + totalOngoing
+                    const totalBenefit = data.use_cases.reduce((a, u) => a + normalizeNum(u.est_annual_benefit), 0)
+                    const roiPercentage = totalInvestment > 0 
+                      ? ((totalBenefit - totalInvestment) / totalInvestment) * 100 
+                      : 0
+                    const formatAmount = (amount: number) => new Intl.NumberFormat('en-CH', { 
+                      style: 'currency', 
+                      currency: 'CHF', 
+                      maximumFractionDigits: 0 
+                    }).format(amount)
+                    
+                    return (
+                      <>
+                        <li className="flex items-start gap-2 text-sm">
+                          <span 
+                            className="mt-1.5 h-2 w-2 rounded-full flex-shrink-0" 
+                            style={{ backgroundColor: '#2563eb' }}
+                          />
+                          <span className="flex-1 text-gray-700 dark:text-gray-300">
+                            Investment
+                          </span>
+                          <span className="font-semibold text-gray-900 dark:text-white">
+                            {formatAmount(totalInvestment)}
+                          </span>
+                        </li>
+                        <li className="flex items-start gap-2 text-sm">
+                          <span 
+                            className="mt-1.5 h-2 w-2 rounded-full flex-shrink-0" 
+                            style={{ backgroundColor: '#16a34a' }}
+                          />
+                          <span className="flex-1 text-gray-700 dark:text-gray-300">
+                            Benefit
+                          </span>
+                          <span className="font-semibold text-gray-900 dark:text-white">
+                            {formatAmount(totalBenefit)}
+                          </span>
+                        </li>
+                        <li className="flex items-start gap-2 text-sm">
+                          <span 
+                            className="mt-1.5 h-2 w-2 rounded-full flex-shrink-0" 
+                            style={{ backgroundColor: '#7c3aed' }}
+                          />
+                          <span className="flex-1 text-gray-700 dark:text-gray-300">
+                            ROI
+                          </span>
+                          <span className="font-semibold text-gray-900 dark:text-white">
+                            {roiPercentage >= 0 ? '+' : ''}{roiPercentage.toFixed(1)}%
+                          </span>
+                        </li>
+                      </>
+                    )
+                  })()}
+                </ul>
               </div>
             </div>
-            <div><SharePriceCard companyName={data.company.name} /></div>
-          </div>
-
-          <div className="text-center">
-            <a
-              href="#book"
-              className="inline-flex h-12 items-center justify-center rounded-xl bg-blue-600 dark:bg-blue-500 px-8 text-sm font-semibold text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-            >
-              Schedule a 30-min {data.company.name} AI Value Workshop — define your fastest ROI path
-            </a>
           </div>
         </SectionWrapper>
 
         {/* Company Snapshot */}
-        <SectionWrapper id="snapshot">
+        <SectionWrapper id="snapshot" className="pt-2">
           <div className="mb-4">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">Company Snapshot</h2>
             <p className="text-gray-600 dark:text-gray-300 text-sm">Overview of {data.company.name} and market position</p>
@@ -95,31 +184,23 @@ export default async function SharePage({ params }: { params: { slug: string } }
         </SectionWrapper>
 
         {/* Industry Trends */}
-        <SectionWrapper id="industry">
+        <SectionWrapper id="industry" className="pt-2">
           <div className="mb-4">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">Industry Trends</h2>
-            <p className="text-gray-600 dark:text-gray-300 text-sm">Key market dynamics and opportunities</p>
+            <p className="text-gray-600 dark:text-gray-300 text-sm">Key market dynamics and opportunities for {data.company.name}</p>
           </div>
           <IndustryCard data={data} />
           <div className="mt-6 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-lg">
-            <TrendsBars data={data} />
-          </div>
-        </SectionWrapper>
-
-        {/* Strategic Moves */}
-        <SectionWrapper id="moves">
-          <div className="mb-4">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">Strategic Moves</h2>
-            <p className="text-gray-600 dark:text-gray-300 text-sm">Recent initiatives and market positioning</p>
-          </div>
-          <MovesCard data={data} />
-          <div className="mt-6 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-lg">
-            <MovesTimeline data={data} />
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Trend Analysis Impact Grid</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Prioritised trends by business readiness and potential impact</p>
+            </div>
+            <TrendImpactGrid data={data} />
           </div>
         </SectionWrapper>
 
         {/* Competitors */}
-        <SectionWrapper id="competitors">
+        <SectionWrapper id="competitors" className="pt-2">
           <div className="mb-4">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">Competitive Landscape</h2>
             <p className="text-gray-600 dark:text-gray-300 text-sm">Market positioning relative to key peers</p>
@@ -137,6 +218,15 @@ export default async function SharePage({ params }: { params: { slug: string } }
             <p className="text-gray-600 dark:text-gray-300 text-sm">Five prioritized use cases with ROI analysis</p>
           </div>
           <UseCasesCard data={data} />
+          
+          <div className="mt-8 text-center">
+            <a
+              href="#book"
+              className="inline-flex h-12 items-center justify-center rounded-xl bg-blue-600 dark:bg-blue-500 px-8 text-sm font-semibold text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            >
+              Schedule a 30-min {data.company.name} AI Value Workshop — define your fastest ROI path
+            </a>
+          </div>
         </SectionWrapper>
 
         {/* Action Plan */}
@@ -155,18 +245,6 @@ export default async function SharePage({ params }: { params: { slug: string } }
             <p className="text-gray-600 dark:text-gray-300 text-sm">Readiness assessment across key domains</p>
           </div>
           <FeasibilityScan _data={data} />
-        </SectionWrapper>
-
-        {/* Bottom CTA */}
-        <SectionWrapper>
-          <div className="text-center">
-            <a
-              href="#book"
-              className="inline-flex h-12 items-center justify-center rounded-xl bg-blue-600 dark:bg-blue-500 px-8 text-sm font-semibold text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-            >
-              Schedule a 30-min {data.company.name} AI Value Workshop — define your fastest ROI path
-            </a>
-          </div>
         </SectionWrapper>
 
         {/* Footer */}

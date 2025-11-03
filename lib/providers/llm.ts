@@ -22,6 +22,18 @@ export async function llmGenerateJson(system: string, user: string, options?: Ge
     ]
   }
 
+  console.log('[LLM] Sending request to OpenAI:', {
+    model,
+    systemLength: system.length,
+    userLength: user.length,
+    systemPreview: system.substring(0, 500),
+    userPreview: user.substring(0, 500)
+  })
+  
+  // Log full system and user prompts (may be long)
+  console.log('[LLM] Full system prompt:', system)
+  console.log('[LLM] Full user payload:', user)
+
   let attempt = 0
   const maxAttempts = 3
   const baseDelay = 500
@@ -39,12 +51,30 @@ export async function llmGenerateJson(system: string, user: string, options?: Ge
         body: JSON.stringify(body),
         signal: controller.signal
       })
-      if (!res.ok) throw new Error(`OpenAI error: ${res.status}`)
+      if (!res.ok) {
+        const errorText = await res.text()
+        console.error('[LLM] Error response:', { status: res.status, statusText: res.statusText, body: errorText })
+        throw new Error(`OpenAI error: ${res.status}`)
+      }
       const json = await res.json()
       clearTimeout(t)
       const content = json.choices?.[0]?.message?.content
-      if (!content) throw new Error('OpenAI returned empty content')
-      return JSON.parse(content)
+      if (!content) {
+        console.error('[LLM] OpenAI returned empty content. Full response:', JSON.stringify(json, null, 2))
+        throw new Error('OpenAI returned empty content')
+      }
+      
+      console.log('[LLM] Received response:', {
+        model: json.model,
+        usage: json.usage,
+        contentLength: content.length,
+        contentPreview: content.substring(0, 500)
+      })
+      
+      const parsed = JSON.parse(content)
+      console.log('[LLM] Parsed JSON response:', JSON.stringify(parsed, null, 2))
+      
+      return parsed
     } catch (err) {
       // If aborted, provide clearer message
       if ((err as any)?.name === 'AbortError') {

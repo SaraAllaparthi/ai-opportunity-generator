@@ -32,9 +32,8 @@ export default function BriefExecutiveSummary({ data }: { data: Brief }) {
 
   return (
     <section className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-lg">
-      <div className="flex items-center justify-between">
+      <div className="mb-1">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Executive Summary</h3>
-        <div className="text-sm text-gray-600 dark:text-gray-400">{data.company.name}</div>
       </div>
       <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
         {typeof uplift === 'number' && typeof weighted === 'number'

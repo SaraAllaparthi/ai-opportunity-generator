@@ -1,52 +1,100 @@
 "use client"
 import { Brief } from '@/lib/schema/brief'
-import { useEffect, useState } from 'react'
 
-const CustomTooltip = ({ active, payload }: any) => {
-  if (!active || !payload || !payload.length) return null
-  
-  const formatValue = (value: number, label: string) => {
-    return new Intl.NumberFormat('en-CH', { style: 'currency', currency: 'CHF', maximumFractionDigits: 0 }).format(value)
-  }
-
-  return (
-    <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2 shadow-lg space-y-1">
-      {payload.map((entry: any, index: number) => (
-        <div key={index} className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded" style={{ backgroundColor: entry.color }}></div>
-          <div>
-            <p className="text-xs font-medium text-gray-900 dark:text-white">{entry.name}</p>
-            <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold">
-              {formatValue(entry.value, entry.name)}
-            </p>
-          </div>
-        </div>
-      ))}
-    </div>
-  )
+function computeWeightedPayback(useCases: Brief['use_cases']) {
+  const items = useCases.filter(u => typeof u.est_annual_benefit === 'number' && typeof u.payback_months === 'number')
+  const num = items.reduce((acc, u) => acc + (u.est_annual_benefit as number) * (u.payback_months as number), 0)
+  const den = items.reduce((acc, u) => acc + (u.est_annual_benefit as number), 0)
+  if (!den) return undefined
+  return Math.round(num / den)
 }
 
 export default function BenefitInvestmentBar({ data }: { data: Brief }) {
-  const [R, setR] = useState<any>(null)
-  useEffect(() => { (async () => setR(await import('recharts')))() }, [])
-  const totalBenefit = data.use_cases.reduce((a,u)=>a+(u.est_annual_benefit||0),0)
-  const totalOneTime = data.use_cases.reduce((a,u)=>a+(u.est_one_time_cost||0),0)
-  const totalOngoing = data.use_cases.reduce((a,u)=>a+(u.est_ongoing_cost||0),0)
-  const chart = [{ name: 'Totals', Benefit: totalBenefit, Investment: totalOneTime + totalOngoing }]
+  // Normalize numeric values to ensure consistency (handle null, undefined, or string values)
+  const normalizeNum = (v: any): number => {
+    if (typeof v === 'number' && !isNaN(v)) return v
+    if (typeof v === 'string') {
+      const parsed = parseFloat(v)
+      return !isNaN(parsed) ? parsed : 0
+    }
+    return 0
+  }
+  
+  const totalBenefit = data.use_cases.reduce((a,u)=>a+normalizeNum(u.est_annual_benefit),0)
+  const totalOneTime = data.use_cases.reduce((a,u)=>a+normalizeNum(u.est_one_time_cost),0)
+  const totalOngoing = data.use_cases.reduce((a,u)=>a+normalizeNum(u.est_ongoing_cost),0)
+  const totalInvestment = totalOneTime + totalOngoing
+  
+  // Calculate ROI percentage
+  const roiPercentage = totalInvestment > 0 
+    ? ((totalBenefit - totalInvestment) / totalInvestment) * 100 
+    : 0
+  
+  // Calculate weighted payback
+  const weightedPayback = computeWeightedPayback(data.use_cases)
+  
+  // Format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-CH', { 
+      style: 'currency', 
+      currency: 'CHF', 
+      maximumFractionDigits: 0,
+      notation: 'compact',
+      compactDisplay: 'short'
+    }).format(amount)
+  }
+  
+  // Calculate proportions for the bar (Investment + Benefit = total, show both segments)
+  const total = totalInvestment + totalBenefit
+  const investmentPercent = total > 0 ? (totalInvestment / total) * 100 : 50
+  const benefitPercent = total > 0 ? (totalBenefit / total) * 100 : 50
+  
   return (
-    <div className="h-48 w-full">
-      {!R ? (
-        <div className="text-sm text-gray-600 dark:text-gray-400">Loading…</div>
-      ) : (
-        <R.ResponsiveContainer width="100%" height="100%">
-          <R.BarChart data={chart}>
-            <R.XAxis dataKey="name" hide />
-            <R.YAxis hide />
-            <R.Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
-            <R.Bar dataKey="Benefit" stackId="a" fill="#16a34a" />
-            <R.Bar dataKey="Investment" stackId="a" fill="#2563eb" />
-          </R.BarChart>
-        </R.ResponsiveContainer>
+    <div className="w-full space-y-4">
+      {/* ROI Percentage Display */}
+      <div className="text-center">
+        <div className="text-2xl font-bold text-gray-900 dark:text-white">
+          ROI: {roiPercentage >= 0 ? '+' : ''}{roiPercentage.toFixed(0)}%
+        </div>
+      </div>
+      
+      {/* Horizontal Gauge - Investment and Benefit side by side */}
+      <div className="relative">
+        <div className="h-10 w-full rounded-full overflow-hidden flex">
+          {/* Investment segment (left, blue) */}
+          <div 
+            className="h-full transition-all duration-500 rounded-l-full"
+            style={{ 
+              width: `${investmentPercent}%`,
+              backgroundColor: '#2563eb' // blue-600
+            }}
+          />
+          {/* Benefit segment (right, green) */}
+          <div 
+            className="h-full transition-all duration-500 rounded-r-full"
+            style={{ 
+              width: `${benefitPercent}%`,
+              backgroundColor: '#16a34a' // green-600
+            }}
+          />
+        </div>
+        
+        {/* Labels below the bar */}
+        <div className="flex justify-between mt-2 text-sm">
+          <span className="text-blue-600 dark:text-blue-400 font-medium">
+            {formatCurrency(totalInvestment)} Invested
+          </span>
+          <span className="text-green-600 dark:text-green-400 font-medium">
+            {formatCurrency(totalBenefit)} Gained
+          </span>
+        </div>
+      </div>
+      
+      {/* Payback period */}
+      {weightedPayback !== undefined && (
+        <div className="text-center text-xs text-gray-500 dark:text-gray-400">
+          Payback in {weightedPayback} months after AI solution is deployed into production
+        </div>
       )}
     </div>
   )
