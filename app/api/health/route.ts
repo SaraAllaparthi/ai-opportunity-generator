@@ -5,7 +5,7 @@ export async function GET(_req: NextRequest) {
     // Check env
     const have = {
       OPENAI_API_KEY: !!process.env.OPENAI_API_KEY,
-      TAVILY_API_KEY: !!process.env.TAVILY_API_KEY,
+      PERPLEXITY_API_KEY: !!process.env.PERPLEXITY_API_KEY,
       SUPABASE_URL: !!process.env.SUPABASE_URL,
       SUPABASE_SERVICE_ROLE_KEY: !!process.env.SUPABASE_SERVICE_ROLE_KEY
     }

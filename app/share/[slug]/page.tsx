@@ -253,7 +253,7 @@ export default async function SharePage({ params }: { params: { slug: string } }
             <p className="mb-4">Built by Maverick AI Group</p>
             <div className="flex items-center justify-center gap-6 flex-wrap">
               <span className="text-xs text-gray-500 dark:text-gray-500">Powered by</span>
-              <span className="text-xs text-gray-700 dark:text-gray-300 font-medium">Tavily</span>
+              <span className="text-xs text-gray-700 dark:text-gray-300 font-medium">Perplexity</span>
               <span className="text-gray-300 dark:text-gray-600">•</span>
               <span className="text-xs text-gray-700 dark:text-gray-300 font-medium">OpenAI</span>
               <span className="text-gray-300 dark:text-gray-600">•</span>

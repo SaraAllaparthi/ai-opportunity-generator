@@ -6,7 +6,7 @@ Generate a company-specific AI Opportunity Brief with citations, 5 tailored use 
 - Next.js (App Router) + TypeScript
 - Tailwind CSS + shadcn/ui-style primitives (dark mode supported)
 - Supabase (Postgres) for persistence
-- Tavily API for research
+- Perplexity API for competitor discovery (web search)
 - OpenAI API for reasoning (JSON mode)
 
 ## Setup
@@ -39,8 +39,8 @@ Open http://localhost:3000
 
 ## Flow Overview
 1. User submits company name + website
-2. API calls Tavily with 3–5 targeted queries; dedupes URLs and collects 10–15 snippets
-3. LLM (OpenAI) converts snippets to strict JSON per schema; validated with Zod; single retry on failure
+2. For competitor discovery: API calls Perplexity with 3–5 targeted queries; extracts competitors via OpenAI
+3. LLM (OpenAI) converts research data to strict JSON per schema; validated with Zod; single retry on failure
 4. Brief is persisted to Supabase and can be opened via share slug
 
 ## Analytics

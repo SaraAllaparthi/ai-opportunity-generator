@@ -10,9 +10,9 @@ export const UseCaseSchema = z.object({
   est_one_time_cost: z.number().optional(),
   est_ongoing_cost: z.number().optional(),
   payback_months: z.number().optional(),
-  data_requirements: z.string().optional().default('TBD'),
-  risks: z.string().optional().default('TBD'),
-  next_steps: z.string().optional().default('TBD'),
+  data_requirements: z.string().optional(),
+  risks: z.string().optional(),
+  next_steps: z.string().optional(),
   citations: z.array(z.string().url()).default([])
 })
 

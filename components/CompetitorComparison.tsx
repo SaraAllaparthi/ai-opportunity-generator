@@ -1,42 +1,74 @@
 "use client"
 import { Brief } from '@/lib/schema/brief'
-import { useEffect, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
+import { geoScore } from '@/lib/geo/swiss'
 
-// Calculate company's maturity scores based on available data
+const s = (v?: string) => (v ?? '').toString()
+const lc = (v?: string) => s(v).toLowerCase()
+const within = (x: number, min: number, max: number) => Math.max(min, Math.min(max, x))
+
+function parseEmployees(sizeField?: string | number): number | null {
+  if (typeof sizeField === 'number') return sizeField
+  const t = lc(sizeField)
+  if (!t) return null
+  const range = t.match(/(\d{1,5})\s*[-–]\s*(\d{1,5})/)
+  if (range) return Math.round((Number(range[1]) + Number(range[2])) / 2)
+  const single = t.match(/(~|about|approx\.?|around)?\s*(\d{1,5})/)
+  if (single) return Number(single[2])
+  const buckets: Record<string, number> = {
+    micro: 10, small: 50, sme: 250, mid: 300, midsize: 300,
+    medium: 250, large: 1000, enterprise: 2000
+  }
+  for (const k of Object.keys(buckets)) if (t.includes(k)) return buckets[k]
+  return null
+}
+
+function isSmallCompany(hint?: string | number): boolean {
+  const n = parseEmployees(hint)
+  if (n && !Number.isNaN(n)) return n < 250
+  const txt = lc(typeof hint === 'number' ? String(hint) : hint)
+  return /under|less|small|fewer|1-|10-|50-|100-|200-|sme|mid|midsize/.test(txt)
+}
+
+function normalizeCompetitorKey(name: string, website?: string): string {
+  const nameKey = name.toLowerCase().trim().replace(/\s+/g, ' ')
+  if (website) {
+    try {
+      const url = new URL(website.startsWith('http') ? website : `https://${website}`)
+      const host = url.hostname.toLowerCase().split('.').slice(-2).join('.')
+      return `${nameKey}|${host}`
+    } catch { return nameKey }
+  }
+  return nameKey
+}
+
+/** ---------- scoring for radar ---------- */
 function calculateCompanyScores(data: Brief): { dimension: string; value: number }[] {
   const company = data.company
   const industry = data.industry
   const useCases = data.use_cases || []
-  
-  // Innovation Speed: Based on industry trends mentioning AI adoption
-  const aiTrendsCount = (industry.trends || []).filter(t => 
-    t.toLowerCase().includes('ai') || t.toLowerCase().includes('ml') || t.toLowerCase().includes('automation')
-  ).length
-  const innovationSpeed = Math.min(4.5, 2.5 + (aiTrendsCount * 0.5))
-  
-  // Operational Efficiency: Based on use cases targeting cost reduction
-  const costUseCases = useCases.filter(u => u.value_driver === 'cost').length
-  const efficiency = Math.min(4.5, 2.5 + (costUseCases * 0.4))
-  
-  // Personalization: Based on company size (smaller = better for personalization)
-  const companySize = company.size || ''
-  const isSmallCompany = /under|less|small|fewer|1-|10-|50-|100-|200-/.test(companySize.toLowerCase())
-  const personalization = isSmallCompany ? 4.2 : 3.6
-  
-  // Data Readiness: Based on use case complexity (lower complexity = better readiness)
-  const avgComplexity = useCases.length > 0 
-    ? useCases.reduce((sum, u) => sum + (u.complexity || 3), 0) / useCases.length 
+
+  const aiTrendsCount = (industry.trends || [])
+    .map(s)
+    .filter(t => /ai|ml|machine learning|automation|computer vision|predictive/i.test(t)).length
+  const innovationSpeed = within(2.0 + aiTrendsCount * 0.5, 1.0, 5.0)
+
+  const costUseCases = useCases.filter(u => lc(u.value_driver) === 'cost').length
+  const efficiency = within(2.2 + costUseCases * 0.45, 1.0, 5.0)
+
+  const personalization = isSmallCompany(company.size ?? (company as any).employees) ? 4.2 : 3.6
+
+  const avgComplexity = useCases.length
+    ? useCases.reduce((sum, u) => sum + (u.complexity ?? 3), 0) / useCases.length
     : 3
-  const dataReadiness = Math.max(2.5, 5.0 - avgComplexity * 0.6)
-  
-  // AI Adoption: Based on number of AI-focused use cases
-  const aiUseCases = useCases.filter(u => 
-    u.title.toLowerCase().includes('ai') || 
-    u.description.toLowerCase().includes('ai') ||
-    u.description.toLowerCase().includes('machine learning')
+  const dataReadiness = within(5.0 - avgComplexity * 0.6, 2.4, 5.0)
+
+  const aiUseCases = useCases.filter(u =>
+    /ai|ml|machine learning|computer vision|predictive/i.test(s(u.title)) ||
+    /ai|ml|machine learning|computer vision|predictive/i.test(s(u.description))
   ).length
-  const aiAdoption = Math.min(4.5, 2.0 + (aiUseCases * 0.5))
-  
+  const aiAdoption = within(2.0 + aiUseCases * 0.5, 1.0, 5.0)
+
   return [
     { dimension: 'Innovation Speed', value: innovationSpeed },
     { dimension: 'Operational Efficiency', value: efficiency },
@@ -46,243 +78,148 @@ function calculateCompanyScores(data: Brief): { dimension: string; value: number
   ]
 }
 
-// Estimate competitor scores based on their descriptions
-function estimateCompetitorScores(competitor: Brief['competitors'][number], baseScores: { dimension: string; value: number }[]): { dimension: string; value: number }[] {
-  const aiMaturity = competitor.ai_maturity || ''
-  const innovationFocus = competitor.innovation_focus || ''
-  const positioning = competitor.positioning || ''
-  const combined = `${aiMaturity} ${innovationFocus} ${positioning}`.toLowerCase()
-  
-  // Adjust scores based on competitor descriptions
-  const adjustments: Record<string, number> = {}
-  
-  // AI Adoption: Higher if they mention AI/digital/automation
-  if (combined.includes('ai') || combined.includes('digital') || combined.includes('automation') || combined.includes('smart')) {
-    adjustments['AI Adoption'] = 0.8
-  } else {
-    adjustments['AI Adoption'] = -0.5
+function estimateCompetitorScores(
+  competitor: Brief['competitors'][number],
+  base: { dimension: string; value: number }[]
+) {
+  const combined = `${competitor.ai_maturity ?? ''} ${competitor.innovation_focus ?? ''} ${competitor.positioning ?? ''}`.toLowerCase()
+  const adj: Record<string, number> = {}
+  if (combined) {
+    adj['AI Adoption'] = /(ai|digital|automation|smart|ml|predictive)/.test(combined) ? 0.8 : -0.1
+    adj['Innovation Speed'] = /(innovation|fast|agile|cutting-edge|rapid|prototype)/.test(combined) ? 0.6 : 0
+    adj['Operational Efficiency'] = /(efficiency|optimization|lean|cost|productivity|throughput)/.test(combined) ? 0.45 : 0
+    adj['Personalization'] = /(regional|local|niche|specialized|custom|bespoke)/.test(combined) ? 0.35
+      : /(large|scale|global network)/.test(combined) ? -0.2 : 0
+    adj['Data Readiness'] = /(data|analytics|insight|predictive|mes|erp|digital thread|historians)/.test(combined) ? 0.5 : 0
   }
-  
-  // Innovation Speed: Higher if they mention innovation/speed/agile
-  if (combined.includes('innovation') || combined.includes('fast') || combined.includes('agile') || combined.includes('cutting-edge')) {
-    adjustments['Innovation Speed'] = 0.6
-  } else {
-    adjustments['Innovation Speed'] = -0.3
-  }
-  
-  // Efficiency: Higher if they mention efficiency/optimization/cost
-  if (combined.includes('efficiency') || combined.includes('optimiz') || combined.includes('cost') || combined.includes('productivity')) {
-    adjustments['Operational Efficiency'] = 0.5
-  } else {
-    adjustments['Operational Efficiency'] = -0.2
-  }
-  
-  // Personalization: Higher for smaller/regional companies
-  if (combined.includes('regional') || combined.includes('local') || combined.includes('niche') || combined.includes('specialized')) {
-    adjustments['Personalization'] = 0.4
-  } else if (combined.includes('large') || combined.includes('scale')) {
-    adjustments['Personalization'] = -0.3
-  }
-  
-  // Data Readiness: Higher if they mention data/analytics/insights
-  if (combined.includes('data') || combined.includes('analytic') || combined.includes('insight') || combined.includes('predictive')) {
-    adjustments['Data Readiness'] = 0.6
-  } else {
-    adjustments['Data Readiness'] = -0.3
-  }
-  
-  return baseScores.map(score => ({
-    dimension: score.dimension,
-    value: Math.max(1.0, Math.min(5.0, score.value + (adjustments[score.dimension] || 0)))
-  }))
+  return base.map(s => ({ dimension: s.dimension, value: within(s.value + (adj[s.dimension] ?? 0), 1.0, 5.0) }))
 }
 
-// Generate strategic insight - one sentence, action-oriented
 function generateStrategicInsight(
   companyScores: { dimension: string; value: number }[],
   competitorScores: Array<{ dimension: string; value: number }[]>
-): string {
-  if (competitorScores.length === 0) {
-    return 'Focus on data readiness and AI adoption to create sustainable competitive advantages in the next 12 months.'
+) {
+  if (!competitorScores.length) {
+    return 'Localize competitor discovery and prioritize Data Readiness and AI Adoption to beat regional peers on lead time and quality.'
   }
-  
-  // Find dimensions where company is below peer average
-  const weakDimensions = companyScores
-    .map(s => {
-      const compAvg = competitorScores.reduce((sum, comp) => {
-        const compScore = comp.find(c => c.dimension === s.dimension)?.value || 3.0
-        return sum + compScore
-      }, 0) / competitorScores.length
-      return { dimension: s.dimension, gap: compAvg - s.value, companyScore: s.value, compAvg }
-    })
-    .filter(d => d.gap > 0.2)
-    .sort((a, b) => b.gap - a.gap)
-  
-  if (weakDimensions.length > 0) {
-    const topGap = weakDimensions[0]
-    const dimensionMap: Record<string, string> = {
-      'data readiness': 'data-readiness',
-      'ai adoption': 'AI adoption',
-      'operational efficiency': 'operational efficiency',
-      'innovation speed': 'innovation speed',
-      'personalization': 'personalization'
+  const dims = companyScores.map(s => {
+    const compAvg = competitorScores.reduce((sum, comp) => sum + (comp.find(c => c.dimension === s.dimension)?.value ?? 3), 0) / competitorScores.length
+    return { dimension: s.dimension, company: s.value, compAvg, gap: compAvg - s.value }
+  })
+  const worst = [...dims].sort((a, b) => b.gap - a.gap)[0]
+  if (worst && worst.gap > 0.25) {
+    const map: Record<string, string> = {
+      'Data Readiness': 'Close data gaps (unify sensors, MES/ERP, SPC) to enable predictive QA within 90 days.',
+      'AI Adoption': 'Stand up a thin-slice computer-vision QA pilot to match peer automation and reduce scrap.',
+      'Operational Efficiency': 'Automate bottleneck steps to recover 8–12% throughput and match peer cycle times.',
+      'Innovation Speed': 'Adopt weekly pilot cadence and A/B ops changes to compress time-to-impact.',
+      'Personalization': 'Productize custom work with parametric templates to scale without margin loss.',
     }
-    const dimKey = dimensionMap[topGap.dimension.toLowerCase()] || topGap.dimension.toLowerCase()
-    
-    // Generate specific, action-oriented insight
-    if (topGap.dimension.toLowerCase().includes('data readiness')) {
-      return `Close the data-readiness gap to outperform peers on lead time and quality.`
-    } else if (topGap.dimension.toLowerCase().includes('ai adoption')) {
-      return `Accelerate AI adoption to match peer capabilities and gain competitive edge.`
-    } else if (topGap.dimension.toLowerCase().includes('efficiency')) {
-      return `Improve operational efficiency to compete on cost and speed with regional peers.`
-    } else if (topGap.dimension.toLowerCase().includes('innovation')) {
-      return `Increase innovation speed to keep pace with market leaders and capture opportunities faster.`
-    } else {
-      return `Strengthen ${dimKey} to outperform peers in agility and customer responsiveness.`
-    }
+    return map[worst.dimension] ?? `Strengthen ${worst.dimension.toLowerCase()} to overtake regional peers this year.`
   }
-  
-  // Find strongest dimension to leverage
-  const strongDimensions = companyScores
-    .map(s => {
-      const compAvg = competitorScores.reduce((sum, comp) => {
-        const compScore = comp.find(c => c.dimension === s.dimension)?.value || 3.0
-        return sum + compScore
-      }, 0) / competitorScores.length
-      return { dimension: s.dimension, lead: s.value - compAvg }
-    })
-    .filter(d => d.lead > 0.2)
-    .sort((a, b) => b.lead - a.lead)
-  
-  if (strongDimensions.length > 0) {
-    const topStrength = strongDimensions[0]
-    const strengthMap: Record<string, string> = {
-      'personalization': 'personalization capabilities',
-      'data readiness': 'data readiness',
-      'ai adoption': 'AI maturity',
-      'operational efficiency': 'efficiency focus',
-      'innovation speed': 'innovation agility'
+  const best = [...dims].sort((a, b) => (b.company - b.compAvg) - (a.company - a.compAvg))[0]
+  if (best && best.company - best.compAvg > 0.25) {
+    const map: Record<string, string> = {
+      'Personalization': 'Leverage high personalization to win mid-volume, high-mix programs with AI-guided quoting.',
+      'Data Readiness': 'Exploit strong data readiness to deploy predictive maintenance across critical lines first.',
+      'AI Adoption': 'Scale AI adoption from QA to scheduling/dispatch to lock in lead-time advantage.',
+      'Operational Efficiency': 'Convert efficiency lead into guaranteed SLAs and premium pricing.',
+      'Innovation Speed': 'Use rapid iteration to pilot coatings recipes faster and capture urgent demand.'
     }
-    const strengthKey = strengthMap[topStrength.dimension.toLowerCase()] || topStrength.dimension.toLowerCase()
-    return `Leverage your ${strengthKey} to differentiate and capture market share faster.`
+    return map[best.dimension] ?? `Leverage superior ${best.dimension.toLowerCase()} to capture share faster than peers.`
   }
-  
-  return 'Focus on data readiness and AI adoption to create sustainable competitive advantages in the next 12 months.'
+  return 'Double down on predictive QA and scheduling to create a defensible local edge.'
 }
 
 export default function CompetitorComparison({ data }: { data: Brief }) {
   const [R, setR] = useState<any>(null)
+
   useEffect(() => { (async () => setR(await import('recharts')))() }, [])
-  
-  const companyScores = calculateCompanyScores(data)
-  const competitors = (data.competitors || []).filter(c => c && c.name && c.name.trim()).slice(0, 3) // Top 3 competitors
-  const hasCompetitors = competitors.length > 0
-  
-  // Calculate competitor scores
-  const competitorScoresList = competitors.map(c => estimateCompetitorScores(c, companyScores))
-  
-  // Create radar chart data - format: [{ dimension: '...', Company: X, Peer1: Y, Peer2: Z }]
-  const chartData = companyScores.map(score => {
-    const entry: any = {
-      dimension: score.dimension,
-      [data.company.name]: Math.round(score.value * 10) / 10
-    }
-    
-    competitors.forEach((comp, i) => {
-      const compScore = competitorScoresList[i].find(s => s.dimension === score.dimension)
-      entry[comp.name] = compScore ? Math.round(compScore.value * 10) / 10 : 3.0
+
+  // Use only data.competitors - no client-side fetching
+  const allCompetitors = useMemo(() => {
+    return (data.competitors || []).filter(c => c && c.name && c.name.trim())
+  }, [data.competitors])
+
+  const companyHQ = data.company.headquarters ?? (data.company as any).hq
+
+  // Rank by locality
+  const ranked = useMemo(() => {
+    const seen = new Set<string>()
+    const uniq = allCompetitors.filter(c => {
+      const k = normalizeCompetitorKey(c.name, c.website)
+      if (seen.has(k)) return false
+      seen.add(k); return true
     })
-    
+    return uniq
+      .map(c => ({ c, score: geoScore(companyHQ, c.geo_fit) }))
+      .sort((a, b) => b.score - a.score)
+      .map(x => x.c)
+      .slice(0, 3)
+  }, [allCompetitors, companyHQ])
+
+  const competitors = ranked
+  const hasCompetitors = competitors.length > 0
+
+  const companyScores = useMemo(() => calculateCompanyScores(data), [data])
+  const competitorScoresList = competitors.map(c => estimateCompetitorScores(c, companyScores))
+  const competitorScoresByName = useMemo(
+    () => new Map(competitors.map((c, i) => [c.name, competitorScoresList[i]])),
+    [competitors, competitorScoresList]
+  )
+
+  const chartData = companyScores.map(score => {
+    const entry: any = { dimension: score.dimension, [data.company.name]: Math.round(score.value * 10) / 10 }
+    competitors.forEach(comp => {
+      const list = competitorScoresByName.get(comp.name) || []
+      const pt = list.find(s => s.dimension === score.dimension)
+      entry[comp.name] = Math.round((pt?.value ?? 3.0) * 10) / 10
+    })
     return entry
   })
-  
+
   const colors = ['#16a34a', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4']
   const strategicInsight = generateStrategicInsight(companyScores, competitorScoresList)
-  
-  // Only show chart if we have real competitors - no industry average fallback
-  const chartDataForDisplay = hasCompetitors ? chartData : null
-  
+
   return (
     <div className="w-full">
       <div className="mb-4">
         <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Peer Comparison: AI & Digital Maturity</h4>
         <p className="text-xs text-gray-600 dark:text-gray-300">
-          {hasCompetitors 
+          {hasCompetitors
             ? `How ${data.company.name} compares to key peers across critical capabilities`
-            : `Competitive positioning based on AI and digital maturity benchmarks`
-          }
+            : `Competitive positioning based on AI and digital maturity benchmarks`}
         </p>
       </div>
-      
+
       <div className="h-80 w-full">
         {!R ? (
           <div className="text-sm text-gray-600 dark:text-gray-400">Loading chart…</div>
-        ) : !hasCompetitors || !chartDataForDisplay ? (
-          <div className="flex items-center justify-center h-full text-sm text-gray-500 dark:text-gray-400">
-            No peer comparison data available from live searches.
+        ) : !hasCompetitors ? (
+          <div className="flex flex-col items-center justify-center h-full text-sm text-gray-500 dark:text-gray-400 gap-2">
+            No validated peers found for this company yet.
           </div>
         ) : (
           <R.ResponsiveContainer width="100%" height="100%">
-            <R.RadarChart data={chartDataForDisplay} margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
+            <R.RadarChart data={chartData} margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
               <R.PolarGrid stroke="#e5e7eb" strokeOpacity={0.3} />
-              <R.PolarAngleAxis 
-                dataKey="dimension" 
-                tick={{ fontSize: 11, fill: 'currentColor' }}
-                className="text-gray-700 dark:text-gray-300"
-              />
-              <R.PolarRadiusAxis 
-                angle={90} 
-                domain={[0, 5]} 
-                tickCount={6}
-                tick={{ fontSize: 10, fill: 'currentColor' }}
-                className="text-gray-500 dark:text-gray-400"
-              />
-              <R.Tooltip 
-                formatter={(value: number) => value.toFixed(1)}
-                contentStyle={{ 
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  padding: '8px 12px'
-                }}
-              />
-              <R.Legend 
-                wrapperStyle={{ paddingTop: '20px' }}
-                iconType="line"
-              />
-              <R.Radar
-                name={data.company.name}
-                dataKey={data.company.name}
-                stroke="#2563eb"
-                fill="#2563eb"
-                fillOpacity={0.2}
-                strokeWidth={2}
-                dot={{ fill: '#2563eb', r: 4 }}
-              />
+              <R.PolarAngleAxis dataKey="dimension" tick={{ fontSize: 11, fill: 'currentColor' }} className="text-gray-700 dark:text-gray-300" />
+              <R.PolarRadiusAxis angle={90} domain={[0, 5]} tickCount={6} tick={{ fontSize: 10, fill: 'currentColor' }} className="text-gray-500 dark:text-gray-400" />
+              <R.Tooltip formatter={(value: number) => value.toFixed(1)} contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 12px' }} />
+              <R.Legend wrapperStyle={{ paddingTop: 20 }} iconType="line" layout={competitors.length <= 2 ? 'horizontal' : 'vertical'} />
+              <R.Radar name={data.company.name} dataKey={data.company.name} stroke="#2563eb" fill="#2563eb" fillOpacity={0.2} strokeWidth={2} dot={{ fill: '#2563eb', r: 4 }} />
               {competitors.map((comp, i) => (
-                <R.Radar
-                  key={comp.name}
-                  name={comp.name}
-                  dataKey={comp.name}
-                  stroke={colors[(i + 1) % colors.length]}
-                  fill={colors[(i + 1) % colors.length]}
-                  fillOpacity={0.15}
-                  strokeWidth={2}
-                  strokeDasharray={i === 0 ? '5 5' : undefined}
-                  dot={{ fill: colors[(i + 1) % colors.length], r: 3 }}
-                />
+                <R.Radar key={comp.name} name={comp.name} dataKey={comp.name} stroke={colors[i % colors.length]} fill={colors[i % colors.length]} fillOpacity={0.15} strokeWidth={2} strokeDasharray={i === 0 ? '5 5' : undefined} dot={{ fill: colors[i % colors.length], r: 3 }} />
               ))}
             </R.RadarChart>
           </R.ResponsiveContainer>
         )}
       </div>
-      
-      {/* Strategic Insight */}
+
       <div className="mt-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
         <div className="text-xs font-semibold text-blue-900 dark:text-blue-300 mb-1">Strategic Insight</div>
         <p className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
-          {hasCompetitors ? strategicInsight : 'Peer comparison requires live competitor data from searches.'}
+          {hasCompetitors ? strategicInsight : 'Peer comparison requires competitor data from the research pipeline.'}
         </p>
       </div>
     </div>

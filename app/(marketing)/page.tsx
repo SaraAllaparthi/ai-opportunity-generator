@@ -13,11 +13,19 @@ export default function LandingPage() {
     setLoading(true)
     setError(null)
     try {
+      // Create abort controller for timeout
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 300000) // 5 minute timeout
+      
       const res = await fetch("/api/research", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, website })
+        body: JSON.stringify({ name, website }),
+        signal: controller.signal
       })
+      
+      clearTimeout(timeoutId)
+      
       if (!res.ok) {
         let msg = "Failed to start research"
         try {
@@ -29,7 +37,11 @@ export default function LandingPage() {
       const data = await res.json()
       window.location.href = `/share/${data.shareSlug}`
     } catch (err: any) {
-      setError(err?.message || "Something went wrong. Please try again.")
+      if (err.name === 'AbortError') {
+        setError("Report generation is taking longer than expected. Please try again or check the server logs.")
+      } else {
+        setError(err?.message || "Something went wrong. Please try again.")
+      }
     } finally {
       setLoading(false)
     }
