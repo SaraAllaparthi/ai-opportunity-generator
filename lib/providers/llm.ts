@@ -11,7 +11,7 @@ export async function llmGenerateJson(system: string, user: string, options?: Ge
   if (!apiKey) throw new Error('Missing OPENAI_API_KEY')
 
   const model = options?.model ?? 'gpt-4o-mini'
-  const timeoutMs = options?.timeoutMs ?? 60000
+  const timeoutMs = options?.timeoutMs ?? 120000 // 2 minutes default for complex JSON generation
   const url = 'https://api.openai.com/v1/chat/completions'
   const body = {
     model,
@@ -40,8 +40,12 @@ export async function llmGenerateJson(system: string, user: string, options?: Ge
 
   while (attempt < maxAttempts) {
     const controller = new AbortController()
-    const t = setTimeout(() => controller.abort(), timeoutMs)
+    const t = setTimeout(() => {
+      console.error(`[LLM] Request timeout after ${timeoutMs}ms, aborting...`)
+      controller.abort()
+    }, timeoutMs)
     try {
+      const startTime = Date.now()
       const res = await fetch(url, {
         method: 'POST',
         headers: {
@@ -51,12 +55,20 @@ export async function llmGenerateJson(system: string, user: string, options?: Ge
         body: JSON.stringify(body),
         signal: controller.signal
       })
+      const fetchTime = Date.now() - startTime
+      console.log(`[LLM] Fetch completed in ${fetchTime}ms, status: ${res.status}`)
+      
       if (!res.ok) {
+        clearTimeout(t)
         const errorText = await res.text()
         console.error('[LLM] Error response:', { status: res.status, statusText: res.statusText, body: errorText })
         throw new Error(`OpenAI error: ${res.status}`)
       }
+      
+      const readStartTime = Date.now()
       const json = await res.json()
+      const readTime = Date.now() - readStartTime
+      console.log(`[LLM] Response body read in ${readTime}ms`)
       clearTimeout(t)
       const content = json.choices?.[0]?.message?.content
       if (!content) {
@@ -76,13 +88,20 @@ export async function llmGenerateJson(system: string, user: string, options?: Ge
       
       return parsed
     } catch (err) {
+      clearTimeout(t) // Always clear timeout in case of error
       // If aborted, provide clearer message
       if ((err as any)?.name === 'AbortError') {
-        throw new Error('OpenAI request timed out')
+        const timeoutSeconds = timeoutMs / 1000
+        throw new Error(`OpenAI request timed out after ${timeoutSeconds} seconds. Try increasing the timeout or simplifying the request.`)
       }
       attempt += 1
-      if (attempt >= maxAttempts) throw err
-      await new Promise((r) => setTimeout(r, baseDelay * attempt))
+      if (attempt >= maxAttempts) {
+        console.error(`[LLM] Failed after ${maxAttempts} attempts:`, err)
+        throw err
+      }
+      const delay = baseDelay * attempt
+      console.log(`[LLM] Retrying in ${delay}ms (attempt ${attempt + 1}/${maxAttempts})...`)
+      await new Promise((r) => setTimeout(r, delay))
     }
   }
 
