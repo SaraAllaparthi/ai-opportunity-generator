@@ -206,16 +206,16 @@ export default function CompetitorComparison({ data }: { data: Brief }) {
   return (
     <div className="w-full">
       <div className="mb-4">
-        <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Peer Comparison: AI & Digital Maturity</h4>
+        <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Peer Comparison: AI & Digital Maturity</h4>
         <p className="text-xs text-gray-600 dark:text-gray-300">
           {hasCompetitors 
-            ? `How ${data.company.name} compares to key peers across critical capabilities`
+            ? `Visual representation of how ${data.company.name} compares against its competitors`
             : `Competitive positioning based on AI and digital maturity benchmarks`
           }
         </p>
       </div>
       
-      <div className="h-80 w-full">
+      <div className="h-[480px] w-full">
         {!R ? (
           <div className="text-sm text-gray-600 dark:text-gray-400">Loading chart…</div>
         ) : !hasCompetitors || !chartDataForDisplay ? (

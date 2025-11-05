@@ -110,6 +110,71 @@ type CompetitorCandidate = {
     return result
   }
 
+  /** Extract specialization keywords from company data (products, services, focus areas) */
+  function extractSpecializationTokens(
+    companySummary: string,
+    industryTokens: string[],
+    useCases?: any[]
+  ): string[] {
+    const tokens: Set<string> = new Set()
+    const combined = companySummary.toLowerCase()
+    
+    // Extract product/service keywords from summary
+    const specializationPatterns = [
+      // Manufacturing/process terms
+      /\b(custom|specialized|tailored|bespoke|precision|specialized)\s+([a-z]+(?:\s+[a-z]+){0,2})\b/gi,
+      // Service/product offerings
+      /\b(offers?|provides?|specializes?\s+in|focuses?\s+on|manufactures?|produces?)\s+([a-z]+(?:\s+[a-z]+){0,2})\b/gi,
+      // Technical focus areas
+      /\b(niche|specialization|expertise|core\s+competency|main\s+focus)\s+([a-z]+(?:\s+[a-z]+){0,2})\b/gi,
+      // Product/service types
+      /\b(solutions?|services?|products?|systems?)\s+(?:for|in|of)\s+([a-z]+(?:\s+[a-z]+){0,2})\b/gi,
+    ]
+    
+    specializationPatterns.forEach(pattern => {
+      const matches = combined.matchAll(pattern)
+      for (const match of matches) {
+        if (match[2] && match[2].length > 3 && match[2].length < 25) {
+          const term = match[2].toLowerCase().trim()
+          // Filter out generic words
+          if (!term.match(/^(the|and|for|with|from|this|that|these|those|company|business|customers?|clients?)$/)) {
+            tokens.add(term)
+          }
+        }
+      }
+    })
+    
+    // Extract from use cases if available
+    if (useCases && useCases.length > 0) {
+      useCases.forEach((uc: any) => {
+        const title = (uc.title || '').toLowerCase()
+        const desc = (uc.description || '').toLowerCase()
+        const combinedUC = `${title} ${desc}`
+        
+        // Extract key technical terms from use cases
+        const ucWords = combinedUC.split(/\s+/)
+        for (let i = 0; i < ucWords.length - 1; i++) {
+          const bigram = `${ucWords[i]} ${ucWords[i + 1]}`
+          if (bigram.length > 8 && bigram.length < 30) {
+            // Look for technical terms
+            if (bigram.match(/(quality|process|production|manufacturing|automation|monitoring|analytics|optimization|efficiency)/i)) {
+              tokens.add(bigram.toLowerCase())
+            }
+          }
+        }
+      })
+    }
+    
+    // Add industry tokens as specialization context
+    industryTokens.forEach(token => {
+      tokens.add(token.toLowerCase())
+    })
+    
+    const result = Array.from(tokens).slice(0, 8)
+    console.log('[Pipeline] Extracted specialization tokens:', result)
+    return result
+  }
+
   /** Extract location hierarchy from headquarters */
   function extractLocationHierarchy(headquarters?: string): {
     city?: string
@@ -162,13 +227,14 @@ type CompetitorCandidate = {
     }
   }
 
-  /** Build geo-anchored, sector-specific competitor queries using company industry, size, and location */
+  /** Build geo-anchored, sector-specific competitor queries using company industry, size, location, and specialization */
   function buildCompetitorQueries(
     companyName: string,
     industryTokens: string[],
     headquarters?: string,
     companyIndustry?: string,
-    companySize?: string
+    companySize?: string,
+    specializationTokens?: string[]
   ): string[] {
     const queries: string[] = []
     const location = extractLocationHierarchy(headquarters)
@@ -286,8 +352,21 @@ type CompetitorCandidate = {
         : `(${sizeTerms.slice(0, 1).join(' OR ')})`
       queries.push(`"${companyIndustry}" ${countryTerm} ${sizePart} (companies OR Unternehmen) ${hardExclusions}`)
     }
+    
+    // Query 7: Specialization-focused queries (if we have specialization tokens)
+    if (specializationTokens && specializationTokens.length > 0 && location.country) {
+      const countryTerm = location.country === 'Switzerland' ? 'Schweiz' : location.country
+      const topSpecializations = specializationTokens.slice(0, 3).filter(t => t.length > 5) // Filter out very short tokens
+      if (topSpecializations.length > 0) {
+        const specializationPart = topSpecializations.map(t => `"${t}"`).join(' OR ')
+        const sizePart = location.isDACH 
+          ? `(${sizeTermsGerman.slice(0, 1).join(' OR ')})`
+          : `(${sizeTerms.slice(0, 1).join(' OR ')})`
+        queries.push(`(${specializationPart}) ${countryTerm} ${sizePart} (companies OR Unternehmen OR Anbieter) ${hardExclusions}`)
+      }
+    }
 
-    console.log('[Pipeline] Built geo-anchored competitor queries using industry, size, and location:', queries)
+    console.log('[Pipeline] Built geo-anchored competitor queries using industry, size, location, and specialization:', queries)
     return queries
   }
 
@@ -375,7 +454,8 @@ function filterAndScoreCompetitorCandidates(
   companyWebsite: string,
   industryTokens: string[],
   headquarters?: string,
-  companySize?: string
+  companySize?: string,
+  specializationTokens?: string[]
 ): CompetitorCandidate[] {
   const company = (companyName || '').trim().toLowerCase()
   const companyDom = normalizeDomain(companyWebsite)
@@ -463,6 +543,25 @@ function filterAndScoreCompetitorCandidates(
       if (content.includes(token.toLowerCase())) industryMatch += 0.1
     })
     industryMatch = Math.min(1, industryMatch)
+    
+    // Score specialization match (products, services, focus areas)
+    let specializationMatch = 0.5 // Default neutral score
+    if (specializationTokens && specializationTokens.length > 0) {
+      let specializationMatches = 0
+      specializationTokens.forEach(token => {
+        const tokenLower = token.toLowerCase()
+        // Exact match
+        if (content.includes(` ${tokenLower} `) || content.includes(` ${tokenLower},`) || content.includes(` ${tokenLower}.`)) {
+          specializationMatches += 1
+        }
+        // Partial match (within phrase)
+        else if (content.includes(tokenLower)) {
+          specializationMatches += 0.5
+        }
+      })
+      // Calculate specialization match score (0-1)
+      specializationMatch = Math.min(1, 0.5 + (specializationMatches / Math.max(1, specializationTokens.length)) * 0.5)
+    }
 
     // Score geography match with hierarchy: city > country > region
     let geographyMatch = 0
@@ -590,13 +689,14 @@ function filterAndScoreCompetitorCandidates(
         geographyMatch,
         sizeEstimate,
         isReferenceMajor,
-        sizeMatchScore
-      } as CompetitorCandidate & { isReferenceMajor?: boolean; sizeMatchScore?: number })
+        sizeMatchScore,
+        specializationMatch
+      } as CompetitorCandidate & { isReferenceMajor?: boolean; sizeMatchScore?: number; specializationMatch?: number })
     }
   }
 
-  // Rank by: geography (headquarters region) > industry match > size proximity
-  // STRICT: Prioritize competitors from same headquarters region, same industry, similar size
+  // Rank by: geography (headquarters region) > industry match > specialization match > size proximity
+  // STRICT: Prioritize competitors from same headquarters region, same industry, similar specialization, similar size
   candidates.sort((a, b) => {
     // First, separate reference majors (limit to 1) - they go to bottom
     const aIsRef = (a as any).isReferenceMajor || false
@@ -614,6 +714,13 @@ function filterAndScoreCompetitorCandidates(
     // Priority 2: Industry match (must be same industry)
     if (Math.abs(a.industryMatch - b.industryMatch) > 0.15) {
       return b.industryMatch - a.industryMatch
+    }
+    
+    // Priority 2.5: Specialization match (products/services/focus areas)
+    const aSpecMatch = (a as any).specializationMatch || 0.5
+    const bSpecMatch = (b as any).specializationMatch || 0.5
+    if (Math.abs(aSpecMatch - bSpecMatch) > 0.15) {
+      return bSpecMatch - aSpecMatch
     }
     
     // Priority 3: Size proximity (use sizeMatchScore if available, otherwise estimate)
@@ -1247,13 +1354,18 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
   /* 5) Enhanced competitor search with industry tokens */
   console.log('[Pipeline] Starting enhanced competitor search...')
   
-  // Step 1: Extract industry tokens from company website snippets
+  // Step 1: Extract industry tokens and specialization from company website snippets
   const companySnippets = top.filter(s => {
     const url = s.url.toLowerCase()
     const domain = normalizeDomain(input.website)
     return url.includes(domain) || url.includes(input.name.toLowerCase().replace(/\s+/g, ''))
   })
   const industryTokens = extractIndustryTokens(companySnippets.length > 0 ? companySnippets : top.slice(0, 5), input.name)
+  const specializationTokens = extractSpecializationTokens(
+    parsed.company?.summary || '',
+    industryTokens,
+    parsed.use_cases
+  )
   
   // Step 2: Build focused competitor queries using company industry, size, and location
   const headquarters = parsed.company?.headquarters
@@ -1264,7 +1376,8 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
     industryTokens, 
     headquarters,
     companyIndustry,
-    companySize
+    companySize,
+    specializationTokens
   )
   
   // Step 3: Search for competitors with advanced depth (10-12 results per query)
@@ -1286,14 +1399,15 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
   )
   console.log(`[Pipeline] After deduplication: ${competitorSnippetsUnique.length} unique competitor snippets`)
 
-  // Step 4: Filter and score candidates using company size
+  // Step 4: Filter and score candidates using company size and specialization
   const candidates = filterAndScoreCompetitorCandidates(
     competitorSnippetsUnique,
     input.name,
     input.website,
     industryTokens,
     headquarters,
-    companySize
+    companySize,
+    specializationTokens
   )
 
   // Step 5: Enrich top candidates and return exactly 2-3
@@ -1372,7 +1486,8 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
       input.website,
       industryTokens,
       headquarters,
-      companySize
+      companySize,
+      specializationTokens
     )
 
     for (const candidate of moreCandidates.slice(0, 3 - enrichedCompetitors.length)) {

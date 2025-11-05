@@ -4,14 +4,9 @@ import { confidenceFromCount, getConfidenceColor } from '@/lib/utils/citations'
 import { motion } from 'framer-motion'
 
 function retitle(title: string, company: string, driver: string) {
-  const verbs: Record<string, string> = { revenue: 'Grow', cost: 'Automate', speed: 'Accelerate', risk: 'Reduce risk in' }
-  const v = verbs[driver] || 'Accelerate'
   const t = title.replace(/^\s+|\s+$/g, '')
-  // If title already starts with a verb, keep it and append company context
-  const withCompany = /^(Grow|Automate|Accelerate|Reduce|Personalize|Optimize|Streamline|Enhance|Improve)\b/i.test(t)
-    ? `${t} — for ${company}`
-    : `${v} ${t} — for ${company}`
-  return withCompany
+  // Return title as-is without company name or emoji
+  return t
 }
 
 function sum(values: Array<number | undefined>) {
@@ -31,10 +26,10 @@ export default function UseCasesCard({ data }: { data: Brief }) {
   return (
     <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-lg">
       <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Top 5 AI Use Cases (by fastest payback)</h3>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Top 5 AI Use Cases for {data.company.name}</h3>
         <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getConfidenceColor(confidence)}`}>Confidence {confidence}</span>
       </div>
-      <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">Sequence by payback; tailor delivery to {data.company.name}&apos;s products and client base.</p>
+      <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">Prioritised by ROI</p>
       <ol className="space-y-3 text-sm">
         {sorted.map((u, i) => {
           const roiPct = (typeof u.est_annual_benefit === 'number' && typeof u.est_one_time_cost === 'number')
@@ -43,19 +38,18 @@ export default function UseCasesCard({ data }: { data: Brief }) {
           const roiColor = roiPct === undefined ? 'bg-slate-500' : roiPct >= 200 ? 'bg-green-600' : roiPct >= 120 ? 'bg-amber-500' : 'bg-red-600'
           const maxPayback = Math.max(...sorted.map(s => s.payback_months || 0), 1)
           const progress = Math.min(100, Math.round(((u.payback_months || maxPayback) / maxPayback) * 100))
-          const driverIcon = ({ revenue: '💰', cost: '💸', risk: '🛡️', speed: '⚡' } as any)[u.value_driver]
           return (
           <motion.li key={i} className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-5 shadow-lg hover:shadow-blue-500/20 transition"
             initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
             <div className="flex items-center justify-between mb-2">
-              <div className="font-semibold text-gray-900 dark:text-white">{driverIcon} {retitle(u.title, data.company.name, u.value_driver)}</div>
+              <div className="font-semibold text-gray-900 dark:text-white">{retitle(u.title, data.company.name, u.value_driver)}</div>
               <div className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-2">
                 <span className={`rounded-full px-2 py-0.5 text-white text-[10px] font-medium ${roiColor}`}>{roiPct !== undefined ? `${roiPct}% ROI` : 'ROI est.'}</span>
                 <span>Payback: {u.payback_months ? `${u.payback_months} mo` : 'est.'}</span>
               </div>
             </div>
             <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">Value: {u.value_driver} • Complexity {u.complexity}/5 • Effort {u.effort}/5</div>
-            <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{u.description} Designed for {data.company.name}&apos;s clients and core offerings.</p>
+            <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{u.description}</p>
             <div className="mt-3 h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
               <div className="h-2 rounded-full bg-blue-600 dark:bg-blue-500" style={{ width: `${100 - progress}%` }}></div>
             </div>

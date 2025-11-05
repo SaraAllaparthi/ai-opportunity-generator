@@ -184,7 +184,7 @@ export default async function SharePage({ params }: { params: { slug: string } }
         </SectionWrapper>
 
         {/* Industry Trends */}
-        <SectionWrapper id="industry" className="pt-2">
+        <SectionWrapper id="industry" className="pt-0">
           <div className="mb-4">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">Industry Trends</h2>
             <p className="text-gray-600 dark:text-gray-300 text-sm">Key market dynamics and opportunities for {data.company.name}</p>
@@ -200,7 +200,7 @@ export default async function SharePage({ params }: { params: { slug: string } }
         </SectionWrapper>
 
         {/* Competitors */}
-        <SectionWrapper id="competitors" className="pt-2">
+        <SectionWrapper id="competitors" className="pt-0">
           <div className="mb-4">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">Competitive Landscape</h2>
             <p className="text-gray-600 dark:text-gray-300 text-sm">Market positioning relative to key peers</p>
@@ -212,7 +212,7 @@ export default async function SharePage({ params }: { params: { slug: string } }
         </SectionWrapper>
 
         {/* AI Opportunity Landscape */}
-        <SectionWrapper id="use-cases">
+        <SectionWrapper id="use-cases" className="pt-0">
           <div className="mb-4">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">AI Opportunity Landscape</h2>
             <p className="text-gray-600 dark:text-gray-300 text-sm">Five prioritized use cases with ROI analysis</p>
@@ -230,7 +230,7 @@ export default async function SharePage({ params }: { params: { slug: string } }
         </SectionWrapper>
 
         {/* Action Plan */}
-        <SectionWrapper id="action-plan">
+        <SectionWrapper id="action-plan" className="pt-0">
           <div className="mb-4">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">CEO Action Plan</h2>
             <p className="text-gray-600 dark:text-gray-300 text-sm">90-day roadmap for AI acceleration</p>
@@ -239,7 +239,7 @@ export default async function SharePage({ params }: { params: { slug: string } }
         </SectionWrapper>
 
         {/* Feasibility Scan */}
-        <SectionWrapper id="feasibility">
+        <SectionWrapper id="feasibility" className="pt-0">
           <div className="mb-4">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">Feasibility Scan</h2>
             <p className="text-gray-600 dark:text-gray-300 text-sm">Readiness assessment across key domains</p>
@@ -250,17 +250,16 @@ export default async function SharePage({ params }: { params: { slug: string } }
         {/* Footer */}
         <footer className="py-12 text-center text-sm text-gray-600 dark:text-gray-400 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm rounded-t-2xl border-t border-gray-200 dark:border-gray-800">
           <div className="max-w-6xl mx-auto px-6">
-            <p className="mb-4">Built by Maverick AI Group</p>
-            <div className="flex items-center justify-center gap-6 flex-wrap">
-              <span className="text-xs text-gray-500 dark:text-gray-500">Powered by</span>
-              <span className="text-xs text-gray-700 dark:text-gray-300 font-medium">Tavily</span>
-              <span className="text-gray-300 dark:text-gray-600">•</span>
-              <span className="text-xs text-gray-700 dark:text-gray-300 font-medium">OpenAI</span>
-              <span className="text-gray-300 dark:text-gray-600">•</span>
-              <span className="text-xs text-gray-700 dark:text-gray-300 font-medium">Supabase</span>
-              <span className="text-gray-300 dark:text-gray-600">•</span>
-              <span className="text-xs text-gray-700 dark:text-gray-300 font-medium">Vercel</span>
-            </div>
+            <p className="mb-4">
+              <a 
+                href="https://www.maverickaigroup.ai" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              >
+                Built by Maverick AI Group
+              </a>
+            </p>
           </div>
         </footer>
       </main>
