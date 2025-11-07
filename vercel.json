@@ -1,0 +1,12 @@
+{
+  "functions": {
+    "app/api/report/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/research/route.ts": {
+      "maxDuration": 300
+    }
+  },
+  "regions": ["iad1"]
+}
+

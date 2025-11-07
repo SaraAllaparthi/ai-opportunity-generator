@@ -17,10 +17,57 @@ import SectionWrapper from '@/components/SectionWrapper'
 // Briefs are static once created - cache the page indefinitely
 export const revalidate = false // Never revalidate since briefs are immutable once created
 
-export default async function SharePage({ params }: { params: { slug: string } }) {
-  const brief = await getBriefBySlug(params.slug)
-  await track('share_opened', { slug: params.slug, found: !!brief })
+export default async function SharePage({ params }: { params: Promise<{ slug: string }> }) {
+  // In Next.js 16, params is a Promise and must be awaited
+  const { slug } = await params
+  
+  if (!slug) {
+    console.error('[SharePage] No slug provided in params:', params)
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none"></div>
+        <div className="relative z-10">
+          <StickyHeader />
+          <main className="mx-auto max-w-6xl px-6 py-24">
+            <div className="text-center">
+              <div className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Maverick Lens</div>
+              <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 text-sm text-gray-600 dark:text-gray-300 shadow-lg">
+                Invalid report link. Please check the URL and try again.
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    )
+  }
+  
+  console.log('[SharePage] Fetching brief with slug:', slug)
+  
+  // Try fetching with cache first, then without cache if not found (for newly created briefs)
+  let brief = await getBriefBySlug(slug, false)
   if (!brief) {
+    // If not found in cache, try fetching directly (may be a newly created brief)
+    console.log('[SharePage] Brief not found in cache, trying direct fetch for:', slug)
+    brief = await getBriefBySlug(slug, true)
+  }
+  
+  // If still not found, wait a bit and retry (for race conditions with database writes)
+  if (!brief) {
+    console.log('[SharePage] Brief still not found, waiting 500ms and retrying:', slug)
+    await new Promise(resolve => setTimeout(resolve, 500))
+    brief = await getBriefBySlug(slug, true)
+    
+    // Final retry after another delay
+    if (!brief) {
+      console.log('[SharePage] Brief still not found after first retry, waiting 1s and retrying again:', slug)
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      brief = await getBriefBySlug(slug, true)
+    }
+  }
+  
+  await track('share_opened', { slug, found: !!brief })
+  if (!brief) {
+    console.error('[SharePage] Brief not found after all retries. Slug:', slug)
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none"></div>
@@ -253,8 +300,6 @@ export default async function SharePage({ params }: { params: { slug: string } }
             <p className="mb-4">Built by Maverick AI Group</p>
             <div className="flex items-center justify-center gap-6 flex-wrap">
               <span className="text-xs text-gray-500 dark:text-gray-500">Powered by</span>
-              <span className="text-xs text-gray-700 dark:text-gray-300 font-medium">Tavily</span>
-              <span className="text-gray-300 dark:text-gray-600">•</span>
               <span className="text-xs text-gray-700 dark:text-gray-300 font-medium">OpenAI</span>
               <span className="text-gray-300 dark:text-gray-600">•</span>
               <span className="text-xs text-gray-700 dark:text-gray-300 font-medium">Supabase</span>

@@ -45,8 +45,13 @@ export default function UseCasesCard({ data }: { data: Brief }) {
           const progress = Math.min(100, Math.round(((u.payback_months || maxPayback) / maxPayback) * 100))
           const driverIcon = ({ revenue: '💰', cost: '💸', risk: '🛡️', speed: '⚡' } as any)[u.value_driver]
           return (
-          <motion.li key={i} className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-5 shadow-lg hover:shadow-blue-500/20 transition"
-            initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+          <motion.li 
+            key={i} 
+            className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-5 shadow-lg hover:shadow-blue-500/20 transition"
+            initial={{ opacity: 0, y: 8 }} 
+            whileInView={{ opacity: 1, y: 0 }} 
+            viewport={{ once: true }}
+          >
             <div className="flex items-center justify-between mb-2">
               <div className="font-semibold text-gray-900 dark:text-white">{driverIcon} {retitle(u.title, data.company.name, u.value_driver)}</div>
               <div className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-2">

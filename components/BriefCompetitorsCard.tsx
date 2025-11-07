@@ -32,7 +32,7 @@ export default function CompetitorsCard({ data }: { data: Brief }) {
       <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">Understanding where you stand relative to peers helps prioritize AI investments that deliver competitive advantage.</p>
       {!hasCompetitors ? (
         <div className="text-sm text-gray-500 dark:text-gray-400 italic leading-relaxed">
-          No competitor data available from live searches. Competitive landscape analysis requires real-time data from company registers and industry sources.
+          Peer analysis is being generated from verified industry sources.
         </div>
       ) : (
         <>

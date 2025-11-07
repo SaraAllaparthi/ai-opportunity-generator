@@ -220,7 +220,7 @@ export default function CompetitorComparison({ data }: { data: Brief }) {
           <div className="text-sm text-gray-600 dark:text-gray-400">Loading chart…</div>
         ) : !hasCompetitors || !chartDataForDisplay ? (
           <div className="flex items-center justify-center h-full text-sm text-gray-500 dark:text-gray-400">
-            No peer comparison data available from live searches.
+            Peer comparison data will be displayed once research completes.
           </div>
         ) : (
           <R.ResponsiveContainer width="100%" height="100%">

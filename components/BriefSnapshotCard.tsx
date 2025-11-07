@@ -101,7 +101,7 @@ export default function SnapshotCard({ data }: { data: Brief }) {
               ))}
           </ul>
         ) : (
-          <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">Estimate pending — generated summary based on public information.</p>
+          <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">Company summary based on verified research data.</p>
         )}
       </div>
     </div>

@@ -6,8 +6,7 @@ Generate a company-specific AI Opportunity Brief with citations, 5 tailored use 
 - Next.js (App Router) + TypeScript
 - Tailwind CSS + shadcn/ui-style primitives (dark mode supported)
 - Supabase (Postgres) for persistence
-- Tavily API for research
-- OpenAI API for reasoning (JSON mode)
+- OpenAI API for research and reasoning (JSON mode)
 
 ## Setup
 1. Clone repository and install deps:
@@ -39,8 +38,8 @@ Open http://localhost:3000
 
 ## Flow Overview
 1. User submits company name + website
-2. API calls Tavily with 3–5 targeted queries; dedupes URLs and collects 10–15 snippets
-3. LLM (OpenAI) converts snippets to strict JSON per schema; validated with Zod; single retry on failure
+2. API uses OpenAI to research company information and generate structured data
+3. LLM (OpenAI) generates strict JSON per schema; validated with Zod; single retry on failure
 4. Brief is persisted to Supabase and can be opened via share slug
 
 ## Analytics
@@ -52,8 +51,33 @@ Lightweight event hooks are console-logged and can be toggled via `ENABLE_ANALYT
 - PII should not be included in public pages; keep content business-level
 
 ## Deployment
-- Target: Vercel. Add env vars in Vercel dashboard.
-- Ensure Supabase URL and Service Role Key are configured as Server Environment Variables only.
+
+### Vercel Deployment
+
+1. **Environment Variables**: Add all required environment variables in Vercel dashboard (Settings → Environment Variables):
+   - `OPENAI_API_KEY` (required)
+   - `SUPABASE_URL` (required)
+   - `SUPABASE_SERVICE_ROLE_KEY` (required)
+   - `ENABLE_ANALYTICS` (optional, set to "0" or "1")
+
+2. **Timeout Configuration**: 
+   - The research API route is configured for up to 300 seconds (5 minutes)
+   - **Important**: This requires a Vercel Pro plan. The Hobby plan has a 10-second timeout limit which is insufficient for this pipeline
+   - If you're on Hobby plan, you'll need to upgrade or optimize the pipeline to run faster
+
+3. **Runtime**: Uses Node.js runtime (not Edge) for better compatibility
+
+4. **Troubleshooting**:
+   - Check Vercel function logs for detailed error messages
+   - Verify all environment variables are set correctly
+   - If you see timeout errors, check your Vercel plan limits
+   - The `/api/health` endpoint can help verify configuration
+
+### Common Issues
+
+- **Timeout errors**: Upgrade to Vercel Pro plan or optimize pipeline
+- **Missing API keys**: Verify all environment variables are set in Vercel dashboard
+- **Database errors**: Check Supabase connection and table schema
 
 ## Notes
 - This is an MVP scaffold. TODOs are left where deeper logic/polish is needed.

@@ -11,7 +11,7 @@ export async function llmGenerateJson(system: string, user: string, options?: Ge
   if (!apiKey) throw new Error('Missing OPENAI_API_KEY')
 
   const model = options?.model ?? 'gpt-4o-mini'
-  const timeoutMs = options?.timeoutMs ?? 60000
+  const timeoutMs = options?.timeoutMs ?? 45000 // Reduced from 60s to 45s to prevent overall timeout
   const url = 'https://api.openai.com/v1/chat/completions'
   const body = {
     model,

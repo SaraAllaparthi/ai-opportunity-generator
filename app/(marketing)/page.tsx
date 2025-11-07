@@ -1,35 +1,105 @@
 "use client"
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import ThemeToggle from '@/components/ThemeToggle'
 
+const industries = [
+  "Financial Services",
+  "Manufacturing",
+  "Retail",
+  "Healthcare",
+  "Construction",
+  "Real Estate",
+  "Tourism & Hospitality",
+  "Logistics",
+  "Technology",
+  "Education",
+  "Energy & Utilities",
+  "Professional Services"
+]
+
 export default function LandingPage() {
+  const router = useRouter()
   const [name, setName] = useState("")
   const [website, setWebsite] = useState("")
+  const [industry, setIndustry] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [progress, setProgress] = useState<{ step: number; message: string } | null>(null)
+  const [elapsed, setElapsed] = useState(0)
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError(null)
+    setElapsed(0)
+    setProgress({ step: 1, message: `Researching ${name || 'your company'}...` })
+    
+    const startTime = Date.now()
+    const interval = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startTime) / 1000))
+    }, 100)
+
+    const progressInterval = setInterval(() => {
+      const currentElapsed = Math.floor((Date.now() - startTime) / 1000)
+      setProgress(prev => {
+        if (!prev) return prev
+        if (prev.step === 1 && currentElapsed >= 10) {
+          return { step: 2, message: `Synthesizing insights...` }
+        }
+        if (prev.step === 2 && currentElapsed >= 30) {
+          return { step: 3, message: `Generating executive report...` }
+        }
+        return prev
+      })
+    }, 1000)
+
     try {
       const res = await fetch("/api/research", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, website })
+        body: JSON.stringify({ companyName: name, website, industryHint: industry })
       })
       if (!res.ok) {
         let msg = "Failed to start research"
         try {
           const j = await res.json()
+          // Show detailed error in development, or user-friendly message in production
           msg = j.details || j.error || msg
+          // If there's a stack trace in development, append it
+          if (j.stack && typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+            msg = `${msg}\n\n${j.stack}`
+          }
         } catch {}
         throw new Error(msg)
       }
       const data = await res.json()
-      window.location.href = `/share/${data.shareSlug}`
+      clearInterval(interval)
+      clearInterval(progressInterval)
+      
+      // Get the slug from either shareSlug or reportId (for backwards compatibility)
+      const slug = data.shareSlug || data.reportId
+      if (!slug) {
+        throw new Error('No report ID received from server')
+      }
+      
+      console.log('[Frontend] Received share slug:', slug)
+      
+      setProgress({ step: 3, message: '✅ Ready to view insights.' })
+      
+      // Longer delay to ensure database write is complete and visible, then navigate
+      setTimeout(() => {
+        console.log('[Frontend] Navigating to share page:', `/share/${slug}`)
+        // Use Next.js router for client-side navigation (preserves state, no full page reload)
+        router.push(`/share/${slug}`)
+        // Force a scroll to top in case the page was scrolled
+        window.scrollTo(0, 0)
+      }, 2000) // Increased from 1000ms to 2000ms to ensure database is ready
     } catch (err: any) {
+      clearInterval(interval)
+      clearInterval(progressInterval)
       setError(err?.message || "Something went wrong. Please try again.")
+      setProgress(null)
     } finally {
       setLoading(false)
     }
@@ -171,6 +241,22 @@ export default function LandingPage() {
                   required
                 />
               </div>
+              <div>
+                <label className="text-xl block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Industry</label>
+                <select
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-3 text-base text-gray-900 dark:text-white outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-400/20 transition-all"
+                  value={industry}
+                  onChange={(e) => setIndustry(e.target.value)}
+                  required
+                >
+                  <option value="">Select an industry...</option>
+                  {industries.map((ind) => (
+                    <option key={ind} value={ind}>
+                      {ind}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 We&apos;ll analyze public data from this website to generate your comprehensive AI opportunity report.
               </p>
@@ -180,13 +266,33 @@ export default function LandingPage() {
                 type="submit"
               >
                 {loading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Generating Report...
-                  </span>
+                  <div className="w-full">
+                    <div className="flex items-center justify-center gap-2 mb-3">
+                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Generating Report...</span>
+                    </div>
+                    {progress && (
+                      <div className="w-full space-y-2">
+                        <div className="text-xs text-white/90 text-center">
+                          {progress.message} — Step {progress.step} of 3
+                        </div>
+                        <div className="w-full bg-white/20 rounded-full h-1.5">
+                          <div 
+                            className="bg-white h-1.5 rounded-full transition-all duration-300"
+                            style={{ width: `${Math.min(90, (progress.step / 3) * 100)}%` }}
+                          ></div>
+                        </div>
+                        {elapsed > 0 && (
+                          <div className="text-xs text-white/70 text-center">
+                            {elapsed}s / ~90s
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <>
                     <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

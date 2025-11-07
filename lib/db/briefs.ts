@@ -56,37 +56,44 @@ export async function listBriefs(): Promise<BriefRow[]> {
   return (data as any) || []
 }
 
-export async function getBriefBySlug(slug: string): Promise<BriefRow | null> {
-  // Use Next.js cache to ensure deterministic fetches - cache forever since briefs don't change
+export async function getBriefBySlug(slug: string, skipCache = false): Promise<BriefRow | null> {
+  const fetchBrief = async (slug: string) => {
+    const { data, error } = await supabase
+      .from('briefs')
+      .select('id, share_slug, created_at, data')
+      .eq('share_slug', slug)
+      .maybeSingle()
+    if (error) {
+      console.error('[DB] Error fetching brief:', error)
+      throw error
+    }
+    
+    if (data) {
+      // Log competitor data when reading from DB
+      const briefData = (data as any).data
+      console.log('[DB] Retrieved brief from database:', {
+        slug,
+        company: briefData?.company?.name,
+        competitorsCount: briefData?.competitors?.length || 0,
+        competitors: briefData?.competitors?.map((c: any) => ({
+          name: c.name,
+          hasAiMaturity: !!c.ai_maturity,
+          hasInnovationFocus: !!c.innovation_focus
+        })) || []
+      })
+    }
+    
+    return (data as any) || null
+  }
+
+  // If skipCache is true (e.g., for newly created briefs), fetch directly
+  if (skipCache) {
+    return fetchBrief(slug)
+  }
+
+  // Otherwise use Next.js cache to ensure deterministic fetches - cache forever since briefs don't change
   const getCachedBrief = unstable_cache(
-    async (slug: string) => {
-      const { data, error } = await supabase
-        .from('briefs')
-        .select('id, share_slug, created_at, data')
-        .eq('share_slug', slug)
-        .maybeSingle()
-      if (error) {
-        console.error('[DB] Error fetching brief:', error)
-        throw error
-      }
-      
-      if (data) {
-        // Log competitor data when reading from DB
-        const briefData = (data as any).data
-        console.log('[DB] Retrieved brief from database:', {
-          slug,
-          company: briefData?.company?.name,
-          competitorsCount: briefData?.competitors?.length || 0,
-          competitors: briefData?.competitors?.map((c: any) => ({
-            name: c.name,
-            hasAiMaturity: !!c.ai_maturity,
-            hasInnovationFocus: !!c.innovation_focus
-          })) || []
-        })
-      }
-      
-      return (data as any) || null
-    },
+    fetchBrief,
     ['brief-by-slug'],
     {
       tags: [`brief-${slug}`],
