@@ -3,7 +3,7 @@ import { z } from 'zod'
 export const UseCaseSchema = z.object({
   title: z.string(),
   description: z.string(),
-  value_driver: z.enum(['revenue', 'cost', 'risk', 'speed']),
+  value_driver: z.enum(['revenue', 'cost', 'risk', 'speed', 'quality']),
   complexity: z.number().int().min(1).max(5),
   effort: z.number().int().min(1).max(5),
   // New field names (preferred)
