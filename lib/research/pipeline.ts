@@ -6,7 +6,12 @@ import { dedupeUrls } from '@/lib/utils/citations'
 
 export type CompetitorStrict = Brief['competitors'][number]
 
-export type PipelineInput = { name: string; website: string }
+export type PipelineInput = {
+  name: string
+  website: string
+  headquartersHint?: string
+  industryHint?: string
+}
 
 export type ResearchSnippet = {
   title: string
