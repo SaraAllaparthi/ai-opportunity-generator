@@ -1,5 +1,6 @@
 import { tavilySearch } from '@/lib/providers/tavily'
 import { llmGenerateJson } from '@/lib/providers/llm'
+import { perplexitySearchCompetitors } from '@/lib/providers/perplexity'
 import { Brief, BriefSchema, BriefInputSchema, UseCase } from '@/lib/schema/brief'
 import { dedupeUrls } from '@/lib/utils/citations'
 
@@ -242,20 +243,24 @@ type CompetitorCandidate = {
     console.log('[Pipeline] Company industry:', companyIndustry)
     console.log('[Pipeline] Company size:', companySize)
 
-    // Build industry keywords - prioritize parsed industry, then tokens, then defaults
+    // Build industry keywords - MUST use parsed industry or tokens, NO generic defaults
     let coreIndustryTerms = ''
     if (companyIndustry && companyIndustry.trim()) {
-      // Use the parsed industry as primary term
+      // Use the parsed industry as primary term - be specific
       const industryClean = companyIndustry.replace(/"/g, '').trim()
       if (industryTokens.length > 0) {
-        coreIndustryTerms = `"${industryClean}" OR (${industryTokens.slice(0, 3).map(t => `"${t.replace(/"/g, '')}"`).join(' OR ')})`
+        // Combine specific industry with relevant tokens only
+        coreIndustryTerms = `"${industryClean}" AND (${industryTokens.slice(0, 3).map(t => `"${t.replace(/"/g, '')}"`).join(' OR ')})`
       } else {
         coreIndustryTerms = `"${industryClean}"`
       }
     } else if (industryTokens.length > 0) {
-      coreIndustryTerms = industryTokens.slice(0, 5).map(t => `"${t.replace(/"/g, '')}"`).join(' OR ')
+      // Use only the specific industry tokens - no generic terms
+      coreIndustryTerms = industryTokens.slice(0, 5).map(t => `"${t.replace(/"/g, '')}"`).join(' AND ')
     } else {
-      coreIndustryTerms = '"surface engineering" OR "coating" OR "beschichtung"'
+      // If no industry info, skip competitor search (don't use generic terms)
+      console.log('[Pipeline] No specific industry information available - skipping generic competitor search')
+      return []
     }
 
     // Parse company size to create size-specific queries
@@ -301,60 +306,74 @@ type CompetitorCandidate = {
     // Hard exclusions (add to every query)
     const hardExclusions = '-market-research -report -news -press -SaaS -software -agency -advertising -retail -jobs -recruiting -Wikipedia -LinkedIn -CBInsights -Owler -G2 -ZoomInfo -directories-only -Oerlikon -voestalpine -Bühler'
     
-    // Query 1: Industry + competitors + city (most specific)
-    if (location.city) {
+    // Query 1: Industry + competitors + city + size (most specific - REQUIRES headquarters and size)
+    if (location.city && companySize) {
       const sizePart = location.isDACH 
         ? `(${sizeTermsGerman.slice(0, 2).join(' OR ')})`
         : `(${sizeTerms.slice(0, 2).join(' OR ')})`
       queries.push(`(${coreIndustryTerms}) (competitors OR Unternehmen OR Anbieter OR Hersteller) ${location.city} ${sizePart} ${hardExclusions}`)
+      console.log(`[Pipeline] Query 1: Using city (${location.city}) and size (${companySize})`)
     }
     
-    // Query 2: Industry + competitors + country (broader geographic)
-    if (location.country) {
+    // Query 2: Industry + competitors + country + size (broader geographic - REQUIRES headquarters and size)
+    if (location.country && companySize) {
       const countryTerm = location.country === 'Switzerland' ? 'Schweiz' : location.country
       const sizePart = location.isDACH 
         ? `(${sizeTermsGerman.slice(0, 2).join(' OR ')})`
         : `(${sizeTerms.slice(0, 2).join(' OR ')})`
       queries.push(`(${coreIndustryTerms}) (competitors OR Unternehmen OR Anbieter) ${countryTerm} ${sizePart} ${hardExclusions}`)
+      console.log(`[Pipeline] Query 2: Using country (${countryTerm}) and size (${companySize})`)
     }
     
-    // Query 3: Industry + size-specific + country (focus on similar size)
-    if (location.country) {
+    // Query 2b: Industry + competitors + country (if size not available, still use headquarters)
+    if (location.country && !companySize) {
+      const countryTerm = location.country === 'Switzerland' ? 'Schweiz' : location.country
+      queries.push(`(${coreIndustryTerms}) (competitors OR Unternehmen OR Anbieter) ${countryTerm} ${hardExclusions}`)
+      console.log(`[Pipeline] Query 2b: Using country (${countryTerm}) without size filter`)
+    }
+    
+    // Query 3: Industry + size-specific + country (focus on similar size - REQUIRES both)
+    if (location.country && companySize) {
       const countryTerm = location.country === 'Switzerland' ? 'Schweiz' : location.country
       if (location.isDACH) {
         queries.push(`(${coreIndustryTerms}) (${sizeTermsGerman.join(' OR ')}) ${countryTerm} ${hardExclusions}`)
       } else {
         queries.push(`(${coreIndustryTerms}) (${sizeTerms.join(' OR ')}) ${location.country} ${hardExclusions}`)
       }
+      console.log(`[Pipeline] Query 3: Using country (${countryTerm}) and size-specific terms`)
     }
     
-    // Query 4: Industry-specific service terms + location + size
-    if (location.isDACH && location.country) {
+    // Query 4: Industry-specific service terms + location + size (REQUIRES both)
+    if (location.isDACH && location.country && companySize) {
       const countryTerm = location.country === 'Switzerland' ? 'Schweiz' : location.country
       queries.push(`(${coreIndustryTerms}) (Dienstleister OR Lohnbeschichtung OR Auftragsfertigung) ${countryTerm} (${sizeTermsGerman.slice(0, 2).join(' OR ')}) ${hardExclusions}`)
-    } else if (location.country) {
+      console.log(`[Pipeline] Query 4: Using DACH location (${countryTerm}) and size`)
+    } else if (location.country && companySize) {
       queries.push(`(${coreIndustryTerms}) (services OR solutions OR manufacturing) ${location.country} (${sizeTerms.slice(0, 2).join(' OR ')}) ${hardExclusions}`)
+      console.log(`[Pipeline] Query 4: Using country (${location.country}) and size`)
     }
     
-    // Query 5: Adjacent regions for border areas (within 150km, same language)
-    if (location.isDACH && location.city) {
+    // Query 5: Adjacent regions for border areas (within 150km, same language) - REQUIRES size
+    if (location.isDACH && location.city && companySize) {
       // For Swiss companies, also check Germany/Austria border regions
       if (location.country === 'Switzerland') {
         queries.push(`(${coreIndustryTerms}) (Unternehmen OR Anbieter) (Baden-Württemberg OR Bayern OR Vorarlberg) (${sizeTermsGerman.slice(0, 2).join(' OR ')}) ${hardExclusions}`)
+        console.log(`[Pipeline] Query 5: Using adjacent DACH regions with size filter`)
       }
     }
     
-    // Query 6: Industry name directly if we have a specific industry
-    if (companyIndustry && companyIndustry.trim() && location.country) {
+    // Query 6: Industry name directly if we have a specific industry - REQUIRES headquarters and size
+    if (companyIndustry && companyIndustry.trim() && location.country && companySize) {
       const countryTerm = location.country === 'Switzerland' ? 'Schweiz' : location.country
       const sizePart = location.isDACH 
         ? `(${sizeTermsGerman.slice(0, 1).join(' OR ')})`
         : `(${sizeTerms.slice(0, 1).join(' OR ')})`
       queries.push(`"${companyIndustry}" ${countryTerm} ${sizePart} (companies OR Unternehmen) ${hardExclusions}`)
+      console.log(`[Pipeline] Query 6: Using specific industry (${companyIndustry}), country (${countryTerm}), and size`)
     }
     
-    // Query 7: Specialization-focused queries (if we have specialization tokens)
-    if (specializationTokens && specializationTokens.length > 0 && location.country) {
+    // Query 7: Specialization-focused queries (if we have specialization tokens) - REQUIRES headquarters and size
+    if (specializationTokens && specializationTokens.length > 0 && location.country && companySize) {
       const countryTerm = location.country === 'Switzerland' ? 'Schweiz' : location.country
       const topSpecializations = specializationTokens.slice(0, 3).filter(t => t.length > 5) // Filter out very short tokens
       if (topSpecializations.length > 0) {
@@ -363,6 +382,7 @@ type CompetitorCandidate = {
           ? `(${sizeTermsGerman.slice(0, 1).join(' OR ')})`
           : `(${sizeTerms.slice(0, 1).join(' OR ')})`
         queries.push(`(${specializationPart}) ${countryTerm} ${sizePart} (companies OR Unternehmen OR Anbieter) ${hardExclusions}`)
+        console.log(`[Pipeline] Query 7: Using specialization (${topSpecializations.join(', ')}), country (${countryTerm}), and size`)
       }
     }
 
@@ -511,38 +531,39 @@ function filterAndScoreCompetitorCandidates(
         company.includes(candidateName.toLowerCase())) continue
     if (url.includes(companyDom)) continue
 
-    // Score industry match - must be in surface engineering/coatings domain
-    const industryKeywords = [
-      'surface engineering', 'surface treatment', 'coating', 'beschichtung',
-      'oberflächenbeschichtung', 'oberflächenbehandlung', 'pvd', 'galvanic',
-      'galvanisier', 'electroplating', 'functional surfaces', 'thin film',
-      'dünnschicht', 'surface finishing', 'metallization'
-    ]
-    
+    // Score industry match - MUST match specific industry tokens, not generic terms
+    // Require at least 2 industry token matches to ensure relevance
     let industryMatch = 0
-    let hasCoreIndustryMatch = false
+    let industryTokenMatches = 0
     
-    industryKeywords.forEach(keyword => {
-      if (content.includes(keyword.toLowerCase())) {
-        industryMatch += 1
-        if (['coating', 'beschichtung', 'surface engineering', 'oberflächenbeschichtung', 'pvd', 'galvanic'].includes(keyword.toLowerCase())) {
-          hasCoreIndustryMatch = true
+    // Check for matches with specific industry tokens (required)
+    if (industryTokens.length > 0) {
+      industryTokens.forEach(token => {
+        const tokenLower = token.toLowerCase().trim()
+        if (tokenLower.length > 3) { // Only check meaningful tokens
+          // Exact word match (higher weight)
+          if (content.includes(` ${tokenLower} `) || 
+              content.includes(` ${tokenLower},`) || 
+              content.includes(` ${tokenLower}.`) ||
+              content.includes(` ${tokenLower}`)) {
+            industryTokenMatches += 1
+          }
         }
+      })
+      
+      // Require at least 2 industry token matches for relevance
+      if (industryTokenMatches < 2) {
+        industryMatch = 0 // Not a true competitor - doesn't match specific industry
+        console.log(`[Pipeline] Rejecting ${candidateName} - insufficient industry token matches (${industryTokenMatches}/${industryTokens.length})`)
+      } else {
+        // Score based on token matches
+        industryMatch = Math.min(1, industryTokenMatches / Math.max(2, industryTokens.length))
       }
-    })
-    
-    // Must have at least one core industry match
-    if (!hasCoreIndustryMatch && industryMatch < 2) {
-      industryMatch = 0 // Not a true competitor
     } else {
-      industryMatch = Math.min(1, industryMatch / Math.max(3, industryKeywords.length))
+      // If no industry tokens, cannot determine relevance - reject
+      industryMatch = 0
+      console.log(`[Pipeline] Rejecting ${candidateName} - no industry tokens available for matching`)
     }
-    
-    // Bonus for industry token matches
-    industryTokens.forEach(token => {
-      if (content.includes(token.toLowerCase())) industryMatch += 0.1
-    })
-    industryMatch = Math.min(1, industryMatch)
     
     // Score specialization match (products, services, focus areas)
     let specializationMatch = 0.5 // Default neutral score
@@ -666,12 +687,13 @@ function filterAndScoreCompetitorCandidates(
 
     // STRICT FILTERING: Must have clear industry match AND geography match AND size constraint
     // Only keep if:
-    // 1. Clear industry match (surface engineering/coatings)
+    // 1. Clear industry match (MUST match at least 2 industry tokens - industryMatch > 0)
     // 2. Same geography (headquarters region)
     // 3. Size estimate is ≤500 employees (or unknown, but never >500 unless reference major)
     const isValidSize = !sizeEstimate || sizeEstimate <= 500 || isReferenceMajor
     
-    if (industryMatch > 0.2 && hasCoreIndustryMatch && geographyMatch > 0.3 && isValidSize) {
+    // Require industryMatch > 0 (which means at least 2 industry token matches)
+    if (industryMatch > 0 && geographyMatch > 0.3 && isValidSize) {
       // Extract clean website URL
       let websiteUrl: string | undefined = undefined
       try {
@@ -695,8 +717,8 @@ function filterAndScoreCompetitorCandidates(
     }
   }
 
-  // Rank by: geography (headquarters region) > industry match > specialization match > size proximity
-  // STRICT: Prioritize competitors from same headquarters region, same industry, similar specialization, similar size
+  // Rank by: geography (headquarters region) > size match > industry match > specialization match
+  // STRICT: Prioritize competitors from same headquarters region, similar size, same industry, similar specialization
   candidates.sort((a, b) => {
     // First, separate reference majors (limit to 1) - they go to bottom
     const aIsRef = (a as any).isReferenceMajor || false
@@ -705,25 +727,14 @@ function filterAndScoreCompetitorCandidates(
     if (aIsRef && !bIsRef) return 1
     if (!aIsRef && bIsRef) return -1
     
-    // Priority 1: Geography match (headquarters region)
+    // Priority 1: Geography match (headquarters region) - MOST IMPORTANT
     // Same city (1.0) > same country (0.8) > same region (0.6) > broader region (0.4)
-    if (Math.abs(a.geographyMatch - b.geographyMatch) > 0.2) {
+    if (Math.abs(a.geographyMatch - b.geographyMatch) > 0.15) {
       return b.geographyMatch - a.geographyMatch
     }
     
-    // Priority 2: Industry match (must be same industry)
-    if (Math.abs(a.industryMatch - b.industryMatch) > 0.15) {
-      return b.industryMatch - a.industryMatch
-    }
-    
-    // Priority 2.5: Specialization match (products/services/focus areas)
-    const aSpecMatch = (a as any).specializationMatch || 0.5
-    const bSpecMatch = (b as any).specializationMatch || 0.5
-    if (Math.abs(aSpecMatch - bSpecMatch) > 0.15) {
-      return bSpecMatch - aSpecMatch
-    }
-    
-    // Priority 3: Size proximity (use sizeMatchScore if available, otherwise estimate)
+    // Priority 2: Size proximity - SECOND MOST IMPORTANT (after geography)
+    // Prefer competitors with similar size to the input company
     const aSizeScore = (a as any).sizeMatchScore
     const bSizeScore = (b as any).sizeMatchScore
     
@@ -742,18 +753,29 @@ function filterAndScoreCompetitorCandidates(
       
       // If both have size estimates, prefer closer to ideal
       if (a.sizeEstimate && b.sizeEstimate) {
-        return aSizeDiff - bSizeDiff
+        if (Math.abs(aSizeDiff - bSizeDiff) > 50) {
+          return aSizeDiff - bSizeDiff
+        }
       }
       // Prefer known size over unknown
       if (a.sizeEstimate && !b.sizeEstimate) return -1
       if (!a.sizeEstimate && b.sizeEstimate) return 1
-      
-      // If both unknown, prefer higher industry match
+    }
+    
+    // Priority 3: Industry match (must be same industry)
+    if (Math.abs(a.industryMatch - b.industryMatch) > 0.15) {
       return b.industryMatch - a.industryMatch
     }
     
-    // Default: prefer higher industry match
-    return b.industryMatch - a.industryMatch
+    // Priority 4: Specialization match (products/services/focus areas)
+    const aSpecMatch = (a as any).specializationMatch || 0.5
+    const bSpecMatch = (b as any).specializationMatch || 0.5
+    if (Math.abs(aSpecMatch - bSpecMatch) > 0.15) {
+      return bSpecMatch - aSpecMatch
+    }
+    
+    // Default: prefer higher geography match (headquarters location)
+    return b.geographyMatch - a.geographyMatch
   })
 
   // Limit reference majors to at most 1
@@ -798,7 +820,25 @@ async function enrichCompetitor(
     website = `https://${website}`
   }
 
-  if (!website) return null
+  // Validate website is parseable (not example.com or invalid)
+  if (!website) {
+    console.log(`[Pipeline] No website found for ${candidate.name}, rejecting competitor`)
+    return null
+  }
+  
+  try {
+    const urlObj = new URL(website)
+    // Reject example.com or invalid domains
+    if (urlObj.hostname.includes('example.com') || urlObj.hostname.includes('localhost')) {
+      console.log(`[Pipeline] Invalid website domain for ${candidate.name}: ${urlObj.hostname}`)
+      return null
+    }
+    // Normalize to origin
+    website = `${urlObj.protocol}//${urlObj.hostname}`
+  } catch (err) {
+    console.log(`[Pipeline] Website URL not parseable for ${candidate.name}: ${website}`, err)
+    return null
+  }
 
   // Collect evidence pages from company domain (homepage + services/about/team)
   const domain = normalizeDomain(website)
@@ -830,16 +870,10 @@ async function enrichCompetitor(
     }
   }
 
-  // Prefer at least 2 evidence pages, but allow with just homepage if needed
-  if (evidencePages.length < 1) {
-    console.log(`[Pipeline] No evidence pages found for ${candidate.name}`)
+  // Require at least 2 evidence pages from the domain
+  if (evidencePages.length < 2) {
+    console.log(`[Pipeline] Insufficient evidence pages (${evidencePages.length}) for ${candidate.name}, rejecting competitor`)
     return null
-  }
-  
-  // If we only have homepage, try to add it twice to meet minimum requirement
-  if (evidencePages.length === 1) {
-    console.log(`[Pipeline] Only found homepage for ${candidate.name}, using it as both evidence pages`)
-    evidencePages.push(website) // Add homepage again to meet minimum
   }
 
   const allContent = allEvidenceContent.toLowerCase()
@@ -896,15 +930,13 @@ async function enrichCompetitor(
     } catch {}
   }
 
-  // If no employee size found, use a reasonable estimate based on industry/company type
+  // Require employee size - no fallbacks
   if (!employeeBand) {
-    console.log(`[Pipeline] No employee size found for ${candidate.name}, using fallback estimate`)
-    // Use a conservative estimate: "50-200 employees" for small companies
-    // This is better than rejecting the competitor entirely
-    employeeBand = '50-200 employees (estimated)'
+    console.log(`[Pipeline] No employee size found for ${candidate.name}, rejecting competitor`)
+    return null
   }
 
-  // Extract geo_fit (country/region match)
+  // Extract geo_fit (country/region match) - require valid location
   const location = extractLocationHierarchy(headquarters)
   let geoFit = ''
   if (location.country) {
@@ -915,7 +947,14 @@ async function enrichCompetitor(
   } else if (location.region) {
     geoFit = location.region
   } else {
-    geoFit = 'Unknown'
+    // Use input company HQ as fallback only if API missing
+    geoFit = headquarters || ''
+  }
+  
+  // Require geo_fit - no "Unknown" fallbacks
+  if (!geoFit || geoFit.trim() === '') {
+    console.log(`[Pipeline] No geo_fit found for ${candidate.name}, rejecting competitor`)
+    return null
   }
 
   // Extract positioning - plain sentence: what they do and for whom
@@ -931,16 +970,13 @@ async function enrichCompetitor(
     positioning = positioningSentences[0].replace(/\s+/g, ' ').substring(0, 180).trim()
   }
 
-  // If positioning is too short, generate a basic one from company name
+  // Require positioning - no fallbacks
   if (!positioning || positioning.length < 20) {
-    console.log(`[Pipeline] Positioning too short for ${candidate.name}, generating fallback`)
-    const industryText = industryTokens && industryTokens.length > 0 
-      ? industryTokens.join(' and ') 
-      : 'industry'
-    positioning = `${candidate.name} provides services in the ${industryText} sector.`
+    console.log(`[Pipeline] Positioning too short or missing for ${candidate.name}, rejecting competitor`)
+    return null
   }
 
-  // Extract AI maturity
+  // Extract AI maturity - require from content, no fallbacks
   let aiMaturity = ''
   if (allContent.match(/(predictive\s+maintenance|digital\s+process\s+monitoring|mes\s+analytics)/i)) {
     aiMaturity = 'Uses digital process monitoring and predictive maintenance'
@@ -950,11 +986,15 @@ async function enrichCompetitor(
     aiMaturity = 'Uses digital process monitoring and data analytics'
   } else if (allContent.match(/(automation|digital|software|system)/i)) {
     aiMaturity = 'Some digital transformation initiatives'
-  } else {
-    aiMaturity = 'Basic automation' // Minimal fallback for validation
+  }
+  
+  // Require AI maturity - no fallbacks
+  if (!aiMaturity || aiMaturity.trim() === '') {
+    console.log(`[Pipeline] No AI maturity found for ${candidate.name}, rejecting competitor`)
+    return null
   }
 
-  // Extract innovation focus
+  // Extract innovation focus - require from content, no fallbacks
   let innovationFocus = ''
   if (allContent.match(/(quality\s+analytics|customer-specific|custom\s+coatings|tailored)/i)) {
     innovationFocus = 'Quality analytics and customer-specific coatings'
@@ -964,8 +1004,12 @@ async function enrichCompetitor(
     innovationFocus = 'Process efficiency'
   } else if (allContent.match(/(sustainability|environmental|green)/i)) {
     innovationFocus = 'Sustainability and environmental compliance'
-  } else {
-    innovationFocus = 'Process efficiency' // Minimal fallback for validation
+  }
+  
+  // Require innovation focus - no fallbacks
+  if (!innovationFocus || innovationFocus.trim() === '') {
+    console.log(`[Pipeline] No innovation focus found for ${candidate.name}, rejecting competitor`)
+    return null
   }
 
   return {
@@ -1033,10 +1077,16 @@ function filterCompetitors(
       ? citationsRaw.filter((c): c is string => typeof c === 'string')
       : []
 
-    // Apply removal rules
+    // Apply removal rules - exclude self
     const lowerN = name.toLowerCase()
-    if (company && lowerN.includes(company)) continue
-    if (website && companyDom && website.includes(companyDom)) continue
+    const normalizedCompany = company.toLowerCase().trim()
+    // Exclude if name matches company name (case/space-insensitive)
+    if (normalizedCompany && (lowerN.includes(normalizedCompany) || normalizedCompany.includes(lowerN))) continue
+    // Exclude if domain (eTLD+1) matches input company domain
+    if (website && companyDom) {
+      const competitorDomain = normalizeDomain(website)
+      if (competitorDomain === companyDom) continue
+    }
     if (defunctNames.some(rx => rx.test(name))) continue
     if (website && junkDomains.some(rx => rx.test(website))) continue
     if (minNameLength) {
@@ -1180,8 +1230,8 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
     'company: { name, website, summary (required, 100+ chars), size?, industry?, headquarters?, founded?, ceo?, market_position?, latest_news? } (summary: comprehensive 4-8 sentence overview covering business model, key products/services, market position, operations, and strategic focus; size: employee count in format "X employees" or "X-Y employees" or revenue estimate if employees not found - prioritize employee count from snippets; industry: primary sector; headquarters: city/country; founded: format as "Founded in YYYY" using company registration/founding year from snippets; ceo: CEO/founder name extracted from snippets; market_position: market leadership/position info; latest_news: one recent news/announcement point)',
     'industry: { summary (required, under 50 words), trends: string[] (4-5 items, each max 15 words) } (summary: one paragraph summarizing how intelligent automation, data analytics, and AI adoption are changing the industry - focus on business transformation, not technical details; trends: 4-5 AI/ML/data-driven technology trends that directly reference AI or emerging tech like predictive maintenance, smart factories, AI forecasting, sustainability analytics - each trend must clearly connect business impact and technology value in one short sentence)',
     'strategic_moves: [{ title, dateISO?, impact?, citations: string[] }] (citations defaults to [] if not provided)',
-    'competitors: [{ name (required), website?, positioning?, ai_maturity?, innovation_focus?, citations: string[] }] (name is required; identify 2-3 real companies in same industry/geography with <500 employees or similar business models; ai_maturity: brief description of their AI/digital maturity; innovation_focus: brief description of their innovation focus; citations defaults to [] if not provided)',
-    'use_cases: EXACTLY 5 items - THIS IS CRITICAL, MUST BE EXACTLY 5, NO MORE NO LESS; each { title, description, value_driver (revenue|cost|risk|speed), complexity (1..5), effort (1..5), est_annual_benefit (required number), est_one_time_cost (required number), est_ongoing_cost (required number), payback_months (required number), data_requirements? (string, use "TBD" if not available - NEVER null), risks? (string, use "TBD" if not available - NEVER null), next_steps? (string, use "TBD" if not available - NEVER null), citations: string[] } (all numeric fields MUST be present - use 0 if uncertain; string fields must be strings, not null; citations defaults to [] if not provided)',
+    'competitors: [] (ALWAYS return empty array - competitors are sourced from live search only, not LLM generation)',
+    'use_cases: EXACTLY 5 items - THIS IS CRITICAL, MUST BE EXACTLY 5, NO MORE NO LESS; each { title, description, value_driver (MUST be one of: revenue|cost|risk|speed|quality - NO OTHER VALUES ALLOWED), complexity (1..5), effort (1..5), est_annual_benefit (required number), est_one_time_cost (required number), est_ongoing_cost (required number), payback_months (required number), data_requirements? (string, use "TBD" if not available - NEVER null), risks? (string, use "TBD" if not available - NEVER null), next_steps? (string, use "TBD" if not available - NEVER null), citations: string[] } (all numeric fields MUST be present - use 0 if uncertain; string fields must be strings, not null; citations defaults to [] if not provided)',
     'citations: string[] of URLs used anywhere in the brief',
     'Return ONLY a JSON object. No markdown, no prose.'
   ]
@@ -1198,7 +1248,7 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
     'use_cases: CRITICAL - You MUST return EXACTLY 5 use cases. Count them carefully. If you have fewer than 5, create additional realistic use cases based on the company and industry. If you somehow have more than 5, return only the first 5. This is a hard requirement - the array must contain exactly 5 elements.',
     'All use_cases MUST include ALL numeric fields (est_annual_benefit, est_one_time_cost, est_ongoing_cost, payback_months); use 0 or reasonable estimates when uncertain. Every use case must have all four numeric fields present.',
     'data_requirements, risks, and next_steps must be strings (not null). If you don\'t have specific values, use "TBD" as the string value. These fields cannot be null.',
-    'Competitors: MUST return exactly 2-3 real, named companies from the same industry and headquarters geography (country/region) with ≤500 employees. Anchor search to company headquarters location (city/country/region). Use industry-accurate tokens (product/process/category terms) to match sector. Exclude agencies, retailers, directories, unrelated entities. For each peer, return ALL five fields: name (required string), website (required string - homepage URL), positioning (required - one plain sentence: what they do and for whom), ai_maturity (required - one short phrase, e.g., "Basic automation", "Digital process monitoring", "Predictive quality analytics"), innovation_focus (required - one short phrase, e.g., "Process efficiency", "Customer-specific solutions", "Sustainability analytics"). NO placeholders, NO "industry average", NO generics. Return strict JSON array under key "competitors" with exactly 2-3 items. Citations optional (defaults to []).',
+    'Competitors: ALWAYS return empty array []. Competitors are sourced from live search results only, not from LLM generation. Do not generate competitor data.',
     'Strategic moves: citations array is optional and defaults to [] if not provided.',
     'Produce STRICT JSON matching schema_rules. No extra text.'
   ].join(' ')
@@ -1213,7 +1263,7 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
       'Include citations arrays (URLs) for each claim in sections. Citations default to [] if not provided.',
       'Industry summary: MUST be one paragraph (MAXIMUM 300 characters, approximately 50 words) summarizing how intelligent automation, data analytics, and AI adoption are transforming the company\'s industry. Focus on business transformation and competitive advantage - strategic and business-oriented, not technical. CRITICAL: Count characters - the summary must be exactly 300 characters or less.',
       'industry.trends: MUST provide 4-5 AI/ML/data-driven technology trends (max 15 words each) that directly reference AI or emerging tech. Each trend must clearly connect business impact and technology value. Examples: predictive maintenance, smart factories, AI forecasting, sustainability analytics. Focus on what SMB leaders can act on now or in the near future.',
-      'competitors: MUST return exactly 2-3 real, named companies from same industry and headquarters geography (≤500 employees). All five fields required: name (string), website (string - homepage URL), positioning (one sentence), ai_maturity (one short phrase), innovation_focus (one short phrase). No placeholders, no generics, no industry average. Citations optional (defaults to []).',
+      'competitors: ALWAYS return empty array []. Competitors are sourced from live search only, not LLM generation.',
       'strategic_moves: citations array defaults to [] if not provided.',
       'use_cases: CRITICAL REQUIREMENT - You MUST return EXACTLY 5 use cases in the array. Count them before returning. This is a hard validation requirement - the array must have exactly 5 elements, no more, no less. Every use case must have ALL numeric fields present: est_annual_benefit, est_one_time_cost, est_ongoing_cost, payback_months (use 0 if uncertain).',
       'If a section lacks evidence, return [] for that section (no filler).'
@@ -1247,10 +1297,10 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
                 'Include company facts (size: PRIORITIZE employee count - search snippets for "employees", "employee count", "workforce", "staffing", "headcount" and format as "X employees" or "X-Y employees"; estimate from revenue if needed; industry, headquarters, founded as "Founded in YYYY" from registration year, ceo: PRIORITIZE LinkedIn profiles and company register entries - extract from search results looking for "CEO", "Chief Executive Officer", "Geschäftsführer", "Vorstand", "founder", "managing director" in both English and German sources, market_position, latest_news) if available in snippets',
                 'industry.summary is REQUIRED - one paragraph (MAXIMUM 300 characters, approximately 50 words) summarizing how intelligent automation, data analytics, and AI adoption are transforming the industry. Focus on business transformation, not technical details. CRITICAL: The summary must be 300 characters or less - verify the character count before returning.',
                 'industry.trends: 4-5 AI/ML/data-driven trends (max 15 words each) that directly reference AI or emerging tech. Each must connect business impact and technology value. Focus on what SMB leaders can act on now or near future.',
-                'competitors: Return exactly 2-3 real, named companies from same industry and headquarters geography (≤500 employees). All five fields required: name (string), website (string - homepage URL), positioning (one sentence), ai_maturity (one short phrase), innovation_focus (one short phrase). No placeholders, no generics. Citations optional (defaults to [])',
+                'competitors: ALWAYS return empty array []. Competitors are sourced from live search only, not LLM generation.',
                 'strategic_moves: citations defaults to [] if not provided',
                 'use_cases: CRITICAL - MUST have EXACTLY 5 items in the array. Count them. This is a hard requirement. If you returned fewer, create additional realistic use cases. If more, keep only the first 5.',
-                'Each use case must have: value_driver in [revenue|cost|risk|speed], complexity (integer 1..5), effort (integer 1..5)',
+                'Each use case must have: value_driver MUST be exactly one of [revenue|cost|risk|speed|quality] - NO OTHER VALUES. If unsure, use "cost" for cost reduction, "revenue" for revenue growth, "risk" for risk mitigation, "speed" for process acceleration, or "quality" for quality improvement. complexity (integer 1..5), effort (integer 1..5)',
                 'ALL numeric fields MUST be present for EVERY use case: est_annual_benefit (number), est_one_time_cost (number), est_ongoing_cost (number), payback_months (number). Use 0 if uncertain, but all four must be present.',
                 'data_requirements, risks, and next_steps MUST be strings (not null). Use "TBD" if value is not available, but they must be strings.',
                 'Verify: use_cases.length === 5 before returning JSON'
@@ -1327,11 +1377,19 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
       json.industry.summary = json.industry.summary.substring(0, 297).trim() + '...'
     }
     
+    // Ignore any LLM-generated competitors - always set to empty array
+    if (json.competitors && Array.isArray(json.competitors) && json.competitors.length > 0) {
+      console.log(`[Pipeline] LLM returned ${json.competitors.length} competitors - ignoring (using live search only)`)
+      json.competitors = []
+    }
+    
     // Use BriefInputSchema for initial validation (competitors will be enriched later)
     const result = BriefInputSchema.safeParse(json)
     if (result.success) {
       console.log('[Pipeline] Schema validation PASSED')
       parsed = result.data
+      // Ensure competitors array is empty (live search will populate it)
+      parsed.competitors = []
       break
     } else {
       console.error('[Pipeline] Schema validation FAILED:', result.error.errors)
@@ -1351,208 +1409,178 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
     throw new Error(`Failed to validate model output after 2 attempts. ${errorDetails}`)
   }
 
-  /* 5) Enhanced competitor search with industry tokens */
-  console.log('[Pipeline] Starting enhanced competitor search...')
+  /* 5) Simplified competitor search using Perplexity */
+  console.log('[Pipeline] Starting simplified competitor search with Perplexity...')
   
-  // Step 1: Extract industry tokens and specialization from company website snippets
-  const companySnippets = top.filter(s => {
-    const url = s.url.toLowerCase()
-    const domain = normalizeDomain(input.website)
-    return url.includes(domain) || url.includes(input.name.toLowerCase().replace(/\s+/g, ''))
-  })
-  const industryTokens = extractIndustryTokens(companySnippets.length > 0 ? companySnippets : top.slice(0, 5), input.name)
-  const specializationTokens = extractSpecializationTokens(
-    parsed.company?.summary || '',
-    industryTokens,
-    parsed.use_cases
-  )
-  
-  // Step 2: Build focused competitor queries using company industry, size, and location
   const headquarters = parsed.company?.headquarters
   const companyIndustry = parsed.company?.industry
   const companySize = parsed.company?.size
-  const competitorQueries = buildCompetitorQueries(
-    input.name, 
-    industryTokens, 
-    headquarters,
-    companyIndustry,
-    companySize,
-    specializationTokens
-  )
   
-  // Step 3: Search for competitors with advanced depth (10-12 results per query)
-  const competitorSnippets: ResearchSnippet[] = []
-  for (let i = 0; i < competitorQueries.length; i++) {
-    const q = competitorQueries[i]
-    console.log(`[Pipeline] Searching competitors [${i + 1}/${competitorQueries.length}]:`, q)
-    const res = await tavilySearch(q, {
-      maxResults: 12,
-      searchDepth: 'advanced'
+  // Require at least industry and headquarters for competitor search (size is optional)
+  if (!headquarters || !companyIndustry) {
+    console.warn('[Pipeline] Missing required parameters for competitor search:', {
+      hasHeadquarters: !!headquarters,
+      hasIndustry: !!companyIndustry,
+      hasSize: !!companySize,
+      companyName: input.name
     })
-    console.log(`[Pipeline] Competitor search returned ${res.length} results`)
-    competitorSnippets.push(...res)
-  }
-  
-  // Deduplicate by URL
-  const competitorSnippetsUnique = Array.from(
-    new Map(competitorSnippets.map(s => [s.url, s])).values()
-  )
-  console.log(`[Pipeline] After deduplication: ${competitorSnippetsUnique.length} unique competitor snippets`)
-
-  // Step 4: Filter and score candidates using company size and specialization
-  const candidates = filterAndScoreCompetitorCandidates(
-    competitorSnippetsUnique,
-    input.name,
-    input.website,
-    industryTokens,
-    headquarters,
-    companySize,
-    specializationTokens
-  )
-
-  // Step 5: Enrich top candidates and return exactly 2-3
-  const enrichedCompetitors: CompetitorStrict[] = []
-  const targetCount = Math.min(3, Math.max(2, candidates.length)) // Exactly 2-3
-  
-  for (const candidate of candidates.slice(0, 5)) { // Check up to 5 to ensure we get 2-3 valid ones
-    if (enrichedCompetitors.length >= targetCount) break
-    
-    console.log(`[Pipeline] Enriching competitor ${enrichedCompetitors.length + 1}/${targetCount}: ${candidate.name}`)
-    const enriched = await enrichCompetitor(candidate, industryTokens, headquarters)
-    if (enriched && enriched.name && enriched.name.trim()) {
-      // Validate essential fields (website and name are required, others can have fallbacks)
-      if (enriched.website && enriched.name && enriched.name.trim()) {
-        // Ensure all fields have values (enrichCompetitor should provide fallbacks)
-        if (!enriched.positioning || enriched.positioning.length < 20) {
-          enriched.positioning = `${enriched.name} operates in the ${industryTokens.join(' and ') || 'industry'} sector.`
-        }
-        if (!enriched.ai_maturity || enriched.ai_maturity.length < 10) {
-          enriched.ai_maturity = 'Digital transformation initiatives'
-        }
-        if (!enriched.innovation_focus || enriched.innovation_focus.length < 10) {
-          enriched.innovation_focus = 'Process optimization'
-        }
-        if (!enriched.employee_band) {
-          enriched.employee_band = '50-200 employees (estimated)'
-        }
-        if (!enriched.geo_fit) {
-          enriched.geo_fit = headquarters || 'Unknown'
-        }
-        if (!enriched.evidence_pages || enriched.evidence_pages.length < 2) {
-          // Ensure at least homepage is included twice
-          enriched.evidence_pages = [enriched.website, enriched.website]
-        }
-        
-        enrichedCompetitors.push(enriched)
-        console.log(`[Pipeline] Added competitor ${enriched.name} with fallback values where needed`)
+    parsed.competitors = []
+  } else {
+    // Use a default size if not provided
+    const searchSize = companySize || '50-200 employees (estimated)'
+    console.log('[Pipeline] Competitor search parameters:', {
+      companyName: input.name,
+      industry: companyIndustry,
+      headquarters: headquarters,
+      size: searchSize
+    })
+    try {
+      // Search for competitors using Perplexity
+      const perplexityResults = await perplexitySearchCompetitors(
+        input.name,
+        companyIndustry,
+        headquarters,
+        searchSize
+      )
+      
+      console.log(`[Pipeline] Perplexity returned ${perplexityResults.length} competitors`)
+      console.log('[Pipeline] Perplexity results:', JSON.stringify(perplexityResults, null, 2))
+      
+      if (perplexityResults.length === 0) {
+        console.warn('[Pipeline] Perplexity returned no competitors - check Perplexity logs above')
+        parsed.competitors = []
       } else {
-        console.log(`[Pipeline] Skipping ${enriched?.name || 'unknown'} - missing essential fields:`, {
-          hasWebsite: !!enriched?.website,
-          hasName: !!enriched?.name
-        })
-      }
-    }
-  }
-
-  // If we didn't get enough, try German queries for DACH region
-  if (enrichedCompetitors.length < 2 && /switzerland|schweiz|germany|dach/i.test(headquarters || '')) {
-    console.log('[Pipeline] Few competitors found, trying German queries (Oberflächenbehandlung / PVD Beschichtung / Galvanik)...')
-    const germanQueries = [
-      'Oberflächenbehandlung Wettbewerber Schweiz',
-      'Oberflächenbehandlung Mitbewerber DACH',
-      'PVD Beschichtung Wettbewerber Schweiz',
-      'PVD Beschichtung Mitbewerber Europa',
-      'Galvanik Wettbewerber Schweiz',
-      'Galvanotechnik Mitbewerber DACH'
-    ]
-    
-    const moreCompetitorSnippets: ResearchSnippet[] = []
-    for (const q of germanQueries) {
-      const res = await tavilySearch(q, {
-        maxResults: 12,
-        searchDepth: 'advanced'
-      })
-      moreCompetitorSnippets.push(...res)
-    }
-    
-    // Deduplicate
-    const allCompetitorSnippets = Array.from(
-      new Map([...competitorSnippetsUnique, ...moreCompetitorSnippets].map(s => [s.url, s])).values()
-    )
-
-    const moreCandidates = filterAndScoreCompetitorCandidates(
-      allCompetitorSnippets,
-      input.name,
-      input.website,
-      industryTokens,
-      headquarters,
-      companySize,
-      specializationTokens
-    )
-
-    for (const candidate of moreCandidates.slice(0, 3 - enrichedCompetitors.length)) {
-      if (enrichedCompetitors.some(c => c.name.toLowerCase() === candidate.name.toLowerCase())) continue
-      console.log(`[Pipeline] Enriching additional competitor: ${candidate.name}`)
-      const enriched = await enrichCompetitor(candidate, industryTokens, headquarters)
-      if (enriched && enriched.name && enriched.name.trim()) {
-        // Validate essential fields (same as above - allow fallbacks)
-        if (enriched.website && enriched.name && enriched.name.trim()) {
-          // Ensure all fields have values with fallbacks
-          if (!enriched.positioning || enriched.positioning.length < 20) {
-            enriched.positioning = `${enriched.name} operates in the ${industryTokens.join(' and ') || 'industry'} sector.`
-          }
-          if (!enriched.ai_maturity || enriched.ai_maturity.length < 10) {
-            enriched.ai_maturity = 'Digital transformation initiatives'
-          }
-          if (!enriched.innovation_focus || enriched.innovation_focus.length < 10) {
-            enriched.innovation_focus = 'Process optimization'
-          }
-          if (!enriched.employee_band) {
-            enriched.employee_band = '50-200 employees (estimated)'
-          }
-          if (!enriched.geo_fit) {
-            enriched.geo_fit = headquarters || 'Unknown'
-          }
-          if (!enriched.evidence_pages || enriched.evidence_pages.length < 2) {
-            enriched.evidence_pages = [enriched.website, enriched.website]
+        // Transform Perplexity results to CompetitorStrict format
+        const competitors: CompetitorStrict[] = []
+        
+        for (const result of perplexityResults.slice(0, 3)) {
+          console.log(`[Pipeline] Processing competitor result:`, JSON.stringify(result, null, 2))
+          
+          // Validate name
+          if (!result.name || !result.name.trim()) {
+            console.log(`[Pipeline] Skipping competitor - missing name:`, result)
+            continue
           }
           
-          enrichedCompetitors.push(enriched)
-          if (enrichedCompetitors.length >= 3) break
-        } else {
-          console.log(`[Pipeline] Skipping ${enriched?.name || 'unknown'} - missing essential fields`)
+          // Validate website URL - normalize if needed
+          let website = result.website
+          if (!website) {
+            console.log(`[Pipeline] Skipping ${result.name} - missing website`)
+            continue
+          }
+          
+          // Normalize website URL
+          website = website.trim()
+          if (!website.startsWith('http://') && !website.startsWith('https://')) {
+            // Add https:// if missing
+            if (website.startsWith('www.')) {
+              website = `https://${website}`
+            } else {
+              website = `https://${website}`
+            }
+            console.log(`[Pipeline] Normalized website for ${result.name}: ${website}`)
+          }
+        
+        // Normalize website to origin
+        try {
+          const urlObj = new URL(website)
+          website = `${urlObj.protocol}//${urlObj.hostname}`
+        } catch (e) {
+          console.log(`[Pipeline] Skipping ${result.name} - unparseable website: ${website}`)
+          continue
         }
+        
+        // Exclude self
+        const competitorDomain = normalizeDomain(website)
+        const companyDomain = normalizeDomain(input.website)
+        if (competitorDomain === companyDomain) {
+          console.log(`[Pipeline] Skipping ${result.name} - same domain as input company`)
+          continue
+        }
+        
+        // Get evidence pages (homepage + about if available)
+        const evidencePages = [website]
+        if (result.source && result.source.startsWith('http')) {
+          const sourceDomain = normalizeDomain(result.source)
+          if (sourceDomain === competitorDomain && !evidencePages.includes(result.source)) {
+            evidencePages.push(result.source)
+          }
+        }
+        // Ensure at least 2 evidence pages (use homepage twice if needed)
+        if (evidencePages.length < 2) {
+          evidencePages.push(website)
+        }
+        
+        // Use geo_fit from Perplexity result or fallback to input company HQ
+        const geoFit = result.headquarters || headquarters
+        
+        // Build competitor object
+        const competitor: CompetitorStrict = {
+          name: result.name.trim(),
+          website: website,
+          positioning: result.positioning && result.positioning.length >= 20 
+            ? result.positioning.substring(0, 200).trim()
+            : `${result.name} operates in the ${companyIndustry} sector.`,
+          ai_maturity: result.ai_maturity && result.ai_maturity.trim()
+            ? result.ai_maturity.trim()
+            : 'Digital transformation initiatives',
+          innovation_focus: result.innovation_focus && result.innovation_focus.trim()
+            ? result.innovation_focus.trim()
+            : 'Process optimization',
+          employee_band: companySize, // Use input company size as estimate
+          geo_fit: geoFit,
+          evidence_pages: evidencePages.slice(0, 5),
+          citations: result.source ? [result.source] : []
+        }
+        
+          competitors.push(competitor)
+          console.log(`[Pipeline] Added competitor: ${competitor.name} (${normalizeDomain(competitor.website)})`)
+        }
+        
+        console.log(`[Pipeline] Transformed ${competitors.length} competitors from Perplexity results`)
+        
+        // Deduplicate by normalized name + domain
+      const seen = new Set<string>()
+      const dedupedCompetitors = competitors.filter(c => {
+        const key = `${c.name.toLowerCase().trim()}|${normalizeDomain(c.website)}`
+        if (seen.has(key)) {
+          console.log(`[Pipeline] Deduplicating competitor: ${c.name}`)
+          return false
+        }
+        seen.add(key)
+        return true
+      })
+      
+      // Rank by locality: same city/country > same region > other
+      const inputLocation = extractLocationHierarchy(headquarters)
+      const rankedCompetitors = dedupedCompetitors.sort((a, b) => {
+        const aLoc = extractLocationHierarchy(a.geo_fit)
+        const bLoc = extractLocationHierarchy(b.geo_fit)
+        
+        const aScore = aLoc.city === inputLocation.city ? 3 :
+                       aLoc.country === inputLocation.country ? 2 :
+                       aLoc.region === inputLocation.region ? 1 : 0
+        const bScore = bLoc.city === inputLocation.city ? 3 :
+                       bLoc.country === inputLocation.country ? 2 :
+                       bLoc.region === inputLocation.region ? 1 : 0
+        
+        if (aScore !== bScore) return bScore - aScore
+        return a.name.localeCompare(b.name)
+      })
+      
+        parsed.competitors = rankedCompetitors.slice(0, 3)
+        
+        console.log(`[Pipeline] Final competitors (${parsed.competitors.length}):`, 
+          parsed.competitors.map((c: CompetitorStrict) => ({ name: c.name, website: normalizeDomain(c.website), geo_fit: c.geo_fit }))
+        )
       }
+      
+    } catch (err) {
+      console.error('[Pipeline] Error searching competitors with Perplexity:', err)
+      console.error('[Pipeline] Error details:', err instanceof Error ? err.message : String(err))
+      console.error('[Pipeline] Error stack:', err instanceof Error ? err.stack : 'No stack trace')
+      parsed.competitors = []
     }
-  }
-
-  // Use ONLY enriched competitors from live searches - no LLM fallbacks
-  console.log(`[Pipeline] Found ${enrichedCompetitors.length} enriched competitors from live searches`)
-  
-  // Use enriched competitors (with fallbacks applied above)
-  // Only filter out those missing essential fields (name and website)
-  const validCompetitors = enrichedCompetitors.filter(c => 
-    c.name && c.name.trim() && c.website
-  )
-  
-  // If we still don't have enough competitors, try using LLM-generated ones as fallback
-  if (validCompetitors.length === 0 && parsed.competitors && parsed.competitors.length > 0) {
-    console.log(`[Pipeline] No enriched competitors found, using LLM-generated competitors as fallback`)
-    // Convert LLM competitors to the enriched format with minimal data
-    const fallbackCompetitors = parsed.competitors.slice(0, 3).map((c: any) => ({
-      name: c.name,
-      website: c.website || 'https://example.com',
-      positioning: c.positioning || `${c.name} operates in the ${industryTokens.join(' and ') || 'industry'} sector.`,
-      ai_maturity: c.ai_maturity || 'Digital transformation initiatives',
-      innovation_focus: c.innovation_focus || 'Process optimization',
-      employee_band: '50-200 employees (estimated)',
-      geo_fit: headquarters || 'Unknown',
-      evidence_pages: [c.website || 'https://example.com', c.website || 'https://example.com'],
-      citations: c.citations || []
-    }))
-    parsed.competitors = fallbackCompetitors
-  } else {
-    parsed.competitors = validCompetitors.slice(0, 3)
   }
   
   if (parsed.competitors.length === 0) {

@@ -4,9 +4,35 @@ import { runResearchPipeline } from '@/lib/research/pipeline'
 import { createBrief } from '@/lib/db/briefs'
 import { NextRequest } from 'next/server'
 
+// Normalize website URL - add https:// if missing
+function normalizeWebsite(url: string): string {
+  if (!url) return url
+  let normalized = url.trim()
+  
+  // Remove trailing slashes for consistency
+  normalized = normalized.replace(/\/+$/, '')
+  
+  // Remove leading www. if present (but keep it if it's part of the domain)
+  // Actually, let's keep www. and just ensure protocol
+  // Add https:// if no protocol
+  if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
+    normalized = `https://${normalized}`
+  }
+  
+  // Validate it's a proper URL
+  try {
+    const urlObj = new URL(normalized)
+    // Return without trailing slash for consistency
+    return urlObj.toString().replace(/\/+$/, '')
+  } catch (e) {
+    // If URL parsing fails, return as-is (Zod will catch it)
+    return normalized
+  }
+}
+
 const InputSchema = z.object({
   name: z.string().min(1),
-  website: z.string().url()
+  website: z.string().min(1).transform((val) => normalizeWebsite(val)).pipe(z.string().url())
 })
 
 export async function POST(req: NextRequest) {

@@ -17,9 +17,33 @@ import SectionWrapper from '@/components/SectionWrapper'
 // Briefs are static once created - cache the page indefinitely
 export const revalidate = false // Never revalidate since briefs are immutable once created
 
-export default async function SharePage({ params }: { params: { slug: string } }) {
-  const brief = await getBriefBySlug(params.slug)
-  await track('share_opened', { slug: params.slug, found: !!brief })
+export default async function SharePage({ params }: { params: Promise<{ slug: string }> }) {
+  // In Next.js 16, params is a Promise and must be awaited
+  const { slug } = await params
+  
+  if (!slug) {
+    console.error('[SharePage] No slug provided in params')
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none"></div>
+        <div className="relative z-10">
+          <StickyHeader />
+          <main className="mx-auto max-w-6xl px-6 py-24">
+            <div className="text-center">
+              <div className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Maverick Lens</div>
+              <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 text-sm text-gray-600 dark:text-gray-300 shadow-lg">
+                Invalid report link. Please check the URL and try again.
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    )
+  }
+  
+  console.log('[SharePage] Fetching brief with slug:', slug)
+  const brief = await getBriefBySlug(slug)
+  await track('share_opened', { slug, found: !!brief })
   if (!brief) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative">

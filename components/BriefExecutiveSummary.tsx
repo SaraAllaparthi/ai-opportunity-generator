@@ -52,7 +52,8 @@ function getValueDriverDescription(driver: string): string {
     revenue: 'revenue growth',
     cost: 'cost reduction',
     risk: 'risk mitigation',
-    speed: 'process acceleration'
+    speed: 'process acceleration',
+    quality: 'quality improvement'
   }
   return descriptions[driver] || driver
 }

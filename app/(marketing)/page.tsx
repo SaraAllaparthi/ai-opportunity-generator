@@ -8,15 +8,41 @@ export default function LandingPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Normalize website URL - add https:// if missing
+  function normalizeWebsite(url: string): string {
+    if (!url) return url
+    let normalized = url.trim()
+    
+    // Remove trailing slashes for consistency
+    normalized = normalized.replace(/\/+$/, '')
+    
+    // Add https:// if no protocol
+    if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
+      normalized = `https://${normalized}`
+    }
+    
+    // Validate it's a proper URL
+    try {
+      const urlObj = new URL(normalized)
+      // Return without trailing slash for consistency
+      return urlObj.toString().replace(/\/+$/, '')
+    } catch (e) {
+      // If URL parsing fails, return as-is (server will catch it)
+      return normalized
+    }
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError(null)
     try {
+      // Normalize website URL before sending
+      const normalizedWebsite = normalizeWebsite(website)
       const res = await fetch("/api/research", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, website })
+        body: JSON.stringify({ name, website: normalizedWebsite })
       })
       if (!res.ok) {
         let msg = "Failed to start research"
@@ -29,7 +55,15 @@ export default function LandingPage() {
       const data = await res.json()
       window.location.href = `/share/${data.shareSlug}`
     } catch (err: any) {
-      setError(err?.message || "Something went wrong. Please try again.")
+      // Handle different types of errors
+      if (err?.name === 'TypeError' && err?.message?.includes('fetch')) {
+        setError("Network error: Could not connect to server. Please check your connection and try again.")
+      } else if (err?.name === 'AbortError') {
+        setError("Request timed out. The research process may take a while. Please try again.")
+      } else {
+        setError(err?.message || "Something went wrong. Please try again.")
+      }
+      console.error('[LandingPage] Error submitting form:', err)
     } finally {
       setLoading(false)
     }
