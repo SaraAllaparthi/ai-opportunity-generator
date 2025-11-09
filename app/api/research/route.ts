@@ -33,11 +33,11 @@ function normalizeWebsite(url: string): string {
 }
 
 const InputSchema = z.object({
-  companyName: z.string().min(1).optional(),
+  companyName: z.string().min(1),
   name: z.string().min(1).optional(), // Legacy field
   website: z.string().min(1).transform((val) => normalizeWebsite(val)).pipe(z.string().url()),
-  headquartersHint: z.string().optional(),
-  industryHint: z.string().optional(),
+  headquartersHint: z.string().min(1), // REQUIRED: Must include city, region, and country
+  industryHint: z.string().min(1), // REQUIRED
   industry: z.string().optional() // Legacy field
 })
 
@@ -60,6 +60,9 @@ export async function POST(req: NextRequest) {
     if (!process.env.OPENAI_API_KEY) {
       throw new Error('Missing OPENAI_API_KEY environment variable')
     }
+    if (!process.env.TAVILY_API_KEY) {
+      throw new Error('Missing TAVILY_API_KEY environment variable')
+    }
     
     const body = await req.json()
     const parsed = InputSchema.parse(body)
@@ -70,8 +73,24 @@ export async function POST(req: NextRequest) {
     const headquartersHint = parsed.headquartersHint
     const industryHint = parsed.industryHint || parsed.industry
 
-    if (!companyName) {
+    // STRICT PREREQUISITE CHECKS: All three required
+    if (!companyName || companyName.trim().length === 0) {
       throw new Error('Company name is required')
+    }
+    if (!industryHint || industryHint.trim().length === 0) {
+      throw new Error('Industry is required for competitor search')
+    }
+    if (!headquartersHint || headquartersHint.trim().length === 0) {
+      throw new Error('Headquarters location (city, region, country) is required for competitor search')
+    }
+
+    // Validate headquarters contains location information (city, region, country)
+    const hqLower = headquartersHint.toLowerCase()
+    const hasCity = /^[^,]+/.test(headquartersHint.trim())
+    const hasCountry = /(switzerland|schweiz|germany|deutschland|austria|österreich|france|italy|italia|spain|españa|united\s+kingdom|uk|britain|poland|polska|netherlands|nederland)/i.test(hqLower)
+    
+    if (!hasCity || !hasCountry) {
+      throw new Error('Headquarters must include city and country (e.g., "Zurich, Switzerland" or "Berlin, Germany")')
     }
 
     await track('brief_started', { name: companyName, website, industry: industryHint })
@@ -156,14 +175,16 @@ export async function POST(req: NextRequest) {
     // In production/Vercel, provide more helpful error messages
     let userMessage = message
     if (!isDevelopment) {
-      if (message.includes('Missing') || message.includes('API_KEY')) {
+      if (message.includes('Missing') || message.includes('API_KEY') || message.includes('TAVILY_API_KEY') || message.includes('PERPLEXITY_API_KEY') || message.includes('OPENAI_API_KEY')) {
         userMessage = 'Configuration error: API keys are missing. Please check server configuration.'
       } else if (message.includes('Insufficient competitors') || message.includes('competitors')) {
         userMessage = 'Unable to find enough competitors for this company. Please try again or adjust the industry selection.'
-      } else if (message.includes('timeout') || message.includes('timed out') || message.includes('Pipeline timeout')) {
+      } else if (message.includes('timeout') || message.includes('timed out') || message.includes('Pipeline timeout') || message.includes('Tavily request timed out')) {
         userMessage = 'The request took too long to complete. The pipeline is being optimized to run faster. Please try again with a simpler company name or contact support.'
-      } else if (message.includes('Validation failed')) {
+      } else if (message.includes('Validation failed') || message.includes('validation')) {
         userMessage = 'Failed to generate valid brief data. Please try again with a different company or verify the website URL.'
+      } else if (message.includes('Tavily error')) {
+        userMessage = 'Search service error. Please try again in a moment.'
       } else {
         userMessage = 'Failed to generate brief. Please try again.'
       }
@@ -173,18 +194,21 @@ export async function POST(req: NextRequest) {
       ? { 
           error: 'Failed to generate brief', 
           details: message,
-          stack: stack ? stack.split('\n').slice(0, 5).join('\n') : undefined,
+          stack: stack ? stack.split('\n').slice(0, 10).join('\n') : undefined,
           isVercel,
           vercelEnv: process.env.VERCEL_ENV,
-          nodeEnv: process.env.NODE_ENV
+          nodeEnv: process.env.NODE_ENV,
+          errorName: err?.name,
+          errorCode: err?.code
         }
       : { 
           error: userMessage,
           // Include error code for debugging in production (without sensitive details)
-          code: message.includes('Missing') ? 'CONFIG_ERROR' :
-                (message.includes('timeout') || message.includes('Pipeline timeout')) ? 'TIMEOUT_ERROR' :
-                message.includes('Validation') ? 'VALIDATION_ERROR' :
+          code: message.includes('Missing') || message.includes('API_KEY') ? 'CONFIG_ERROR' :
+                (message.includes('timeout') || message.includes('timed out') || message.includes('Pipeline timeout') || message.includes('Tavily request timed out')) ? 'TIMEOUT_ERROR' :
+                message.includes('Validation') || message.includes('validation') ? 'VALIDATION_ERROR' :
                 message.includes('competitors') ? 'COMPETITOR_ERROR' :
+                message.includes('Tavily error') ? 'SEARCH_SERVICE_ERROR' :
                 'UNKNOWN_ERROR'
         }
     return new Response(JSON.stringify(payload), { status: 400 })

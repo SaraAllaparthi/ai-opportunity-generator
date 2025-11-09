@@ -2,36 +2,60 @@
 type PerplexitySearchResult = {
   name: string
   website: string
-  headquarters?: string
-  positioning?: string
-  ai_maturity?: string
-  innovation_focus?: string
+  headquarters: string // REQUIRED - no optional
+  positioning: string // REQUIRED - no optional
+  ai_maturity: string // REQUIRED - no optional
+  innovation_focus: string // REQUIRED - no optional
   source?: string
+}
+
+type LocationHierarchy = {
+  city?: string
+  country?: string
+  region?: string
+  isDACH?: boolean
+  isEurope?: boolean
 }
 
 export async function perplexitySearchCompetitors(
   companyName: string,
   industry: string,
   headquarters: string,
-  size: string
+  size: string,
+  location: LocationHierarchy
 ): Promise<PerplexitySearchResult[]> {
   const apiKey = process.env.PERPLEXITY_API_KEY
   if (!apiKey) throw new Error('Missing PERPLEXITY_API_KEY')
 
+  // Build location context for query
+  const locationContext = [
+    location.city ? `City: ${location.city}` : null,
+    location.country ? `Country: ${location.country}` : null,
+    location.region ? `Region: ${location.region}` : null
+  ].filter(Boolean).join(', ')
+
   const query = `Find 2-3 local competitors for ${companyName} in the ${industry} industry. 
 Company details:
-- Headquarters: ${headquarters}
+- Headquarters: ${headquarters} (${locationContext})
 - Size: ${size}
 
-For each competitor, provide:
-- Company name
-- Official website URL
-- Headquarters location (city, country)
-- Brief positioning (one sentence: what they do and for whom)
-- Digital/AI focus (one short phrase)
-- One source link
+CRITICAL REQUIREMENTS - For each competitor, you MUST provide ALL of the following:
+- Company name (required)
+- Official website URL with http:// or https:// (required)
+- Headquarters location in format "City, Country" (required)
+- Brief positioning: one sentence describing what they do and for whom (required, minimum 20 characters)
+- Digital/AI focus: one short phrase describing their AI/digital maturity (required)
+- Innovation focus: one short phrase describing their innovation focus (required)
+- One source link (optional but preferred)
 
-Return only companies with valid website URLs and at least one source link. Exclude the company itself (${companyName}).`
+Return only companies that:
+1. Are in the same industry (${industry})
+2. Are located in the same geographic area (${locationContext})
+3. Have similar size (${size})
+4. Have valid website URLs
+5. Are NOT the company itself (${companyName})
+
+Return your response as a valid JSON array. Each competitor object MUST include: name, website, headquarters, positioning, ai_maturity, innovation_focus, and source (if available).`
 
   console.log('[Perplexity] Searching competitors:', {
     companyName,
@@ -46,7 +70,7 @@ Return only companies with valid website URLs and at least one source link. Excl
     messages: [
     {
       role: 'system',
-      content: 'You are a helpful assistant that finds local competitors for companies. You MUST return your response as a valid JSON array of competitor objects. Each object must have: name (string), website (string with http:// or https://), headquarters (string, optional), positioning (string, optional), ai_maturity (string, optional), innovation_focus (string, optional), source (string, optional). Do not include any markdown formatting, just the raw JSON array.'
+      content: 'You are a helpful assistant that finds local competitors for companies. You MUST return your response as a valid JSON array of competitor objects. Each object MUST have ALL of the following REQUIRED fields: name (string), website (string with http:// or https://), headquarters (string in format "City, Country"), positioning (string, minimum 20 characters), ai_maturity (string), innovation_focus (string). Optional field: source (string). Do not include any markdown formatting, just the raw JSON array. If you cannot find all required fields for a competitor, do not include that competitor in the results.'
     },
       {
         role: 'user',
@@ -151,7 +175,7 @@ Return only companies with valid website URLs and at least one source link. Excl
       
       console.log('[Perplexity] Extracted', competitors.length, 'competitors before validation')
 
-      // Filter and validate results - normalize URLs that are missing protocol
+      // Filter and validate results - STRICT validation, no fallbacks
       const validCompetitors = competitors.map((c: any) => {
         // Normalize website URL - add https:// if missing
         let website = c.website
@@ -176,9 +200,19 @@ Return only companies with valid website URLs and at least one source link. Excl
         }
         return c
       }).filter((c: any) => {
+        // STRICT validation - all fields required
         const hasName = c.name && typeof c.name === 'string' && c.name.trim().length > 0
         const hasWebsite = c.website && typeof c.website === 'string' && 
                           (c.website.startsWith('http://') || c.website.startsWith('https://'))
+        const hasHeadquarters = c.headquarters && typeof c.headquarters === 'string' && 
+                               c.headquarters.trim().length > 0 &&
+                               /,/.test(c.headquarters) // Must have city, country format
+        const hasPositioning = c.positioning && typeof c.positioning === 'string' && 
+                             c.positioning.trim().length >= 20
+        const hasAiMaturity = c.ai_maturity && typeof c.ai_maturity === 'string' && 
+                             c.ai_maturity.trim().length > 0
+        const hasInnovationFocus = c.innovation_focus && typeof c.innovation_focus === 'string' && 
+                                  c.innovation_focus.trim().length > 0
         const notSelf = !c.name.toLowerCase().includes(companyName.toLowerCase()) &&
                        !companyName.toLowerCase().includes(c.name.toLowerCase())
         
@@ -186,24 +220,33 @@ Return only companies with valid website URLs and at least one source link. Excl
           console.log('[Perplexity] Rejecting competitor - missing name:', c)
         } else if (!hasWebsite) {
           console.log('[Perplexity] Rejecting competitor - invalid website:', c.name, c.website)
+        } else if (!hasHeadquarters) {
+          console.log('[Perplexity] Rejecting competitor - missing or invalid headquarters:', c.name, c.headquarters)
+        } else if (!hasPositioning) {
+          console.log('[Perplexity] Rejecting competitor - missing or invalid positioning:', c.name, c.positioning?.length || 0, 'chars')
+        } else if (!hasAiMaturity) {
+          console.log('[Perplexity] Rejecting competitor - missing AI maturity:', c.name)
+        } else if (!hasInnovationFocus) {
+          console.log('[Perplexity] Rejecting competitor - missing innovation focus:', c.name)
         } else if (!notSelf) {
           console.log('[Perplexity] Rejecting competitor - is self:', c.name)
         }
         
-        return hasName && hasWebsite && notSelf
+        return hasName && hasWebsite && hasHeadquarters && hasPositioning && hasAiMaturity && hasInnovationFocus && notSelf
       }).slice(0, 3) // Limit to 3
 
       console.log('[Perplexity] Returning', validCompetitors.length, 'valid competitors out of', competitors.length, 'total')
       if (validCompetitors.length > 0) {
         console.log('[Perplexity] Valid competitors:', validCompetitors.map(c => ({ name: c.name, website: c.website })))
       }
+      // All fields are required at this point (filtered above)
       return validCompetitors.map((c: any) => ({
-        name: String(c.name || '').trim(),
-        website: String(c.website || '').trim(),
-        headquarters: c.headquarters ? String(c.headquarters).trim() : undefined,
-        positioning: c.positioning ? String(c.positioning).trim() : undefined,
-        ai_maturity: c.ai_maturity || c['ai_maturity'] || c['digital/AI focus'] ? String(c.ai_maturity || c['ai_maturity'] || c['digital/AI focus']).trim() : undefined,
-        innovation_focus: c.innovation_focus || c['innovation_focus'] ? String(c.innovation_focus || c['innovation_focus']).trim() : undefined,
+        name: String(c.name).trim(),
+        website: String(c.website).trim(),
+        headquarters: String(c.headquarters).trim(), // REQUIRED
+        positioning: String(c.positioning).trim(), // REQUIRED
+        ai_maturity: String(c.ai_maturity || c['ai_maturity'] || c['digital/AI focus'] || '').trim(), // REQUIRED
+        innovation_focus: String(c.innovation_focus || c['innovation_focus'] || '').trim(), // REQUIRED
         source: c.source || c['source link'] ? String(c.source || c['source link']).trim() : undefined
       }))
     } catch (err) {

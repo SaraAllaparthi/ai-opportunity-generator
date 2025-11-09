@@ -23,6 +23,7 @@ export default function LandingPage() {
   const [name, setName] = useState("")
   const [website, setWebsite] = useState("")
   const [industry, setIndustry] = useState("")
+  const [headquarters, setHeadquarters] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [progress, setProgress] = useState<{ step: number; message: string } | null>(null)
@@ -84,7 +85,12 @@ export default function LandingPage() {
       const res = await fetch("/api/research", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ companyName: name, website: normalizedWebsite, industryHint: industry })
+        body: JSON.stringify({ 
+          companyName: name, 
+          website: normalizedWebsite, 
+          industryHint: industry,
+          headquartersHint: headquarters 
+        })
       })
       if (!res.ok) {
         let msg = "Failed to start research"
@@ -290,6 +296,19 @@ export default function LandingPage() {
                     </option>
                   ))}
                 </select>
+              </div>
+              <div>
+                <label className="text-xl block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Headquarters Location</label>
+                <input
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-3 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-400/20 transition-all"
+                  placeholder="e.g., Zurich, Switzerland"
+                  value={headquarters}
+                  onChange={(e) => setHeadquarters(e.target.value)}
+                  required
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Format: City, Country (e.g., "Berlin, Germany" or "Zurich, Switzerland")
+                </p>
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 We&apos;ll analyze public data from this website to generate your comprehensive AI opportunity report.

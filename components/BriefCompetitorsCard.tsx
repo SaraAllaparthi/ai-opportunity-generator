@@ -20,7 +20,8 @@ function generateStrategicComparison(data: Brief): string {
 
 export default function CompetitorsCard({ data }: { data: Brief }) {
   const competitors = (data.competitors || []).filter(c => c && c.name && c.name.trim())
-  const confidence = confidenceFromCount(competitors.reduce((a,c)=>a+(c.citations?.length||0),0))
+  // Use evidence_pages count for confidence instead of citations
+  const confidence = confidenceFromCount(competitors.reduce((a,c)=>a+(c.evidence_pages?.length||0),0))
   const hasCompetitors = competitors.length > 0
   
   return (
@@ -52,22 +53,7 @@ export default function CompetitorsCard({ data }: { data: Brief }) {
                 ? `the ${data.company.industry.toLowerCase()} sector`
                 : 'your industry'
               
-              let maturityText = ''
-              const maturityParts = competitors
-                .map(c => {
-                  if (!c.ai_maturity && !c.innovation_focus) return null
-                  const parts = []
-                  if (c.ai_maturity) parts.push(c.ai_maturity)
-                  if (c.innovation_focus) parts.push(`focusing on ${c.innovation_focus}`)
-                  return parts.length > 0 ? `${c.name} is ${parts.join(', ')}` : null
-                })
-                .filter(Boolean)
-              
-              if (maturityParts.length > 0) {
-                maturityText = ' ' + maturityParts.join('; ') + '.'
-              }
-              
-              return `${data.company.name} competes alongside ${competitorText} in ${industryText}.${maturityText}`
+              return `${data.company.name} competes alongside ${competitorText} in ${industryText}.`
             })()}
           </div>
           <ul className="space-y-3 text-sm">
@@ -82,26 +68,18 @@ export default function CompetitorsCard({ data }: { data: Brief }) {
                       </a>
                     )}
                   </div>
-                  {c.employee_band && (
-                    <div className="text-xs text-gray-500 dark:text-gray-400 ml-4">{c.employee_band}</div>
-                  )}
                 </div>
                 {c.positioning && (
                   <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">{c.positioning}</div>
                 )}
-                {c.geo_fit && (
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">📍 {c.geo_fit}</div>
-                )}
-                {c.ai_maturity && (
-                  <div className="text-xs text-gray-700 dark:text-gray-300 mb-1">
-                    <span className="font-medium">AI/Digital Maturity:</span> {c.ai_maturity}
-                  </div>
-                )}
-                {c.innovation_focus && (
-                  <div className="text-xs text-gray-700 dark:text-gray-300">
-                    <span className="font-medium">Innovation Focus:</span> {c.innovation_focus}
-                  </div>
-                )}
+                <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                  {c.hq && (
+                    <span>📍 {c.hq}</span>
+                  )}
+                  {c.size_band && (
+                    <span>👥 {c.size_band}</span>
+                  )}
+                </div>
               </li>
             ))}
           </ul>

@@ -52,15 +52,13 @@ export const BriefSchema = z.object({
   })).min(3).max(5).default([]),
   competitors: z.array(z.object({
     name: z.string(),
-    website: z.string().url(),
-    positioning: z.string(),
-    ai_maturity: z.string(),
-    innovation_focus: z.string(),
-    employee_band: z.string(), // e.g., "50-200 employees"
-    geo_fit: z.string().default('Switzerland'), // Country/region match (HQ location)
-    evidence_pages: z.array(z.string().url()).min(2), // At least 2 URLs on company domain
-    citations: z.array(z.string().url()).default([])
-  })).min(2).max(6), // 2-6 competitors required (minimum 2)
+    website: z.string().url(), // Absolute URL, normalized to origin
+    hq: z.string().optional(), // "City, Country" if available
+    size_band: z.string().optional(), // e.g., "10–50", "50–250", "250–1000", "1000+", "Unknown"
+    positioning: z.string().optional(), // ≤140 chars: what they do / for whom; no slogans
+    evidence_pages: z.array(z.string().url()).min(1), // Min 1, prefer 2: [origin, origin + /about] if resolvable
+    source_url: z.string().url().optional() // The page used to infer positioning, if different from website
+  })).min(0).max(6), // 0-6 competitors (prefer 2-3, but allow 0 if none pass validation)
   use_cases: z.array(UseCaseSchema).length(5),
   citations: z.array(z.string().url()).default([]),
   roi: z.object({
@@ -101,14 +99,12 @@ export const BriefInputSchema = z.object({
   competitors: z.array(z.object({
     name: z.string(),
     website: z.string().url(),
-    positioning: z.string(),
-    ai_maturity: z.string(),
-    innovation_focus: z.string(),
-    employee_band: z.string().optional(), // Added during enrichment
-    geo_fit: z.string().optional().default('Switzerland'), // Added during enrichment
-    evidence_pages: z.array(z.string().url()).optional(), // Added during enrichment
-    citations: z.array(z.string().url()).default([])
-  })).min(2).max(6),
+    hq: z.string().optional(),
+    size_band: z.string().optional(),
+    positioning: z.string().optional(),
+    evidence_pages: z.array(z.string().url()).optional(),
+    source_url: z.string().url().optional()
+  })).min(0).max(6), // Will be enriched during pipeline
   use_cases: z.array(UseCaseSchema).length(5),
   citations: z.array(z.string().url()).default([])
 })
