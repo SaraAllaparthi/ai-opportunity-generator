@@ -99,16 +99,8 @@ export default function RoiDonut({ data }: { data: Brief }) {
     return 0
   }
   
-  if (!data?.use_cases || data.use_cases.length === 0) {
-    return (
-      <div className="h-48 w-full flex items-center justify-center">
-        <div className="text-sm text-gray-500 dark:text-gray-400">No use cases data available</div>
-      </div>
-    )
-  }
-  
-  // Prepare data
-  const items = data.use_cases.map(u => ({ 
+  // Prepare data - must be done before early returns
+  const items = (data?.use_cases || []).map(u => ({ 
     name: u.title || 'Untitled', 
     value: normalizeNum(
       (u as any).est_annual_benefit ??
@@ -119,18 +111,11 @@ export default function RoiDonut({ data }: { data: Brief }) {
   }))
   
   const validItems = items.filter(item => item.value > 0)
-  
-  if (validItems.length === 0) {
-    return (
-      <div className="h-48 w-full flex items-center justify-center">
-        <div className="text-sm text-gray-500 dark:text-gray-400">No ROI data available</div>
-      </div>
-    )
-  }
-
-  // Calculate pie chart segments
   const total = validItems.reduce((sum, item) => sum + item.value, 0)
+
+  // Calculate pie chart segments - must be called before any early returns
   const chartData = useMemo(() => {
+    if (validItems.length === 0) return []
     let currentAngle = 0
     return validItems.map((item, index) => {
       const percentage = item.value / total
@@ -148,6 +133,22 @@ export default function RoiDonut({ data }: { data: Brief }) {
       }
     })
   }, [validItems, total])
+  
+  if (!data?.use_cases || data.use_cases.length === 0) {
+    return (
+      <div className="h-48 w-full flex items-center justify-center">
+        <div className="text-sm text-gray-500 dark:text-gray-400">No use cases data available</div>
+      </div>
+    )
+  }
+  
+  if (validItems.length === 0) {
+    return (
+      <div className="h-48 w-full flex items-center justify-center">
+        <div className="text-sm text-gray-500 dark:text-gray-400">No ROI data available</div>
+      </div>
+    )
+  }
 
   const width = 400
   const height = 200
