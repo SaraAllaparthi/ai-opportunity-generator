@@ -19,7 +19,31 @@ function generateStrategicComparison(data: Brief): string {
 }
 
 export default function CompetitorsCard({ data }: { data: Brief }) {
+  // Debug: Log what we receive
+  console.log('[CompetitorsCard] Received data:')
+  console.log('  Has competitors field:', 'competitors' in data)
+  console.log('  Competitors type:', Array.isArray(data.competitors) ? 'array' : typeof data.competitors)
+  console.log('  Competitors length:', data.competitors?.length || 0)
+  console.log('  Competitors raw:', JSON.stringify(data.competitors || [], null, 2))
+  if (data.competitors && data.competitors.length > 0) {
+    console.log('  First competitor:', JSON.stringify(data.competitors[0], null, 2))
+  }
+  
   const competitors = (data.competitors || []).filter(c => c && c.name && c.name.trim())
+  
+  // Debug: Log after filtering
+  console.log('[CompetitorsCard] After filtering:')
+  console.log('  Original count:', (data.competitors || []).length)
+  console.log('  Filtered count:', competitors.length)
+  if (competitors.length > 0) {
+    console.log('  Filtered competitors:', JSON.stringify(competitors.map(c => ({ name: c.name, website: c.website })), null, 2))
+  } else {
+    console.log('  ⚠️ All competitors filtered out!')
+    if ((data.competitors || []).length > 0) {
+      console.log('  Why filtered out? Sample competitor:', JSON.stringify((data.competitors || [])[0], null, 2))
+    }
+  }
+  
   // Use evidence_pages count for confidence instead of citations
   const confidence = confidenceFromCount(competitors.reduce((a,c)=>a+(c.evidence_pages?.length||0),0))
   const hasCompetitors = competitors.length > 0

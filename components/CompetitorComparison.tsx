@@ -48,10 +48,11 @@ function calculateCompanyScores(data: Brief): { dimension: string; value: number
 
 // Estimate competitor scores based on their descriptions
 function estimateCompetitorScores(competitor: Brief['competitors'][number], baseScores: { dimension: string; value: number }[]): { dimension: string; value: number }[] {
-  // Use positioning and size_band for scoring (no AI maturity/innovation focus)
+  // Use all available competitor data: positioning, size_band, hq for scoring
   const positioning = competitor.positioning || ''
   const sizeBand = competitor.size_band || ''
-  const combined = `${positioning} ${sizeBand}`.toLowerCase()
+  const hq = competitor.hq || ''
+  const combined = `${positioning} ${sizeBand} ${hq}`.toLowerCase()
   
   // Adjust scores based on competitor descriptions
   const adjustments: Record<string, number> = {}

@@ -60,9 +60,6 @@ export async function POST(req: NextRequest) {
     if (!process.env.OPENAI_API_KEY) {
       throw new Error('Missing OPENAI_API_KEY environment variable')
     }
-    if (!process.env.TAVILY_API_KEY) {
-      throw new Error('Missing TAVILY_API_KEY environment variable')
-    }
     
     const body = await req.json()
     const parsed = InputSchema.parse(body)
@@ -175,15 +172,15 @@ export async function POST(req: NextRequest) {
     // In production/Vercel, provide more helpful error messages
     let userMessage = message
     if (!isDevelopment) {
-      if (message.includes('Missing') || message.includes('API_KEY') || message.includes('TAVILY_API_KEY') || message.includes('PERPLEXITY_API_KEY') || message.includes('OPENAI_API_KEY')) {
+      if (message.includes('Missing') || message.includes('API_KEY') || message.includes('PERPLEXITY_API_KEY') || message.includes('OPENAI_API_KEY')) {
         userMessage = 'Configuration error: API keys are missing. Please check server configuration.'
       } else if (message.includes('Insufficient competitors') || message.includes('competitors')) {
         userMessage = 'Unable to find enough competitors for this company. Please try again or adjust the industry selection.'
-      } else if (message.includes('timeout') || message.includes('timed out') || message.includes('Pipeline timeout') || message.includes('Tavily request timed out')) {
+      } else if (message.includes('timeout') || message.includes('timed out') || message.includes('Pipeline timeout') || message.includes('OpenAI request timed out')) {
         userMessage = 'The request took too long to complete. The pipeline is being optimized to run faster. Please try again with a simpler company name or contact support.'
       } else if (message.includes('Validation failed') || message.includes('validation')) {
         userMessage = 'Failed to generate valid brief data. Please try again with a different company or verify the website URL.'
-      } else if (message.includes('Tavily error')) {
+      } else if (message.includes('OpenAI error') || message.includes('search service error')) {
         userMessage = 'Search service error. Please try again in a moment.'
       } else {
         userMessage = 'Failed to generate brief. Please try again.'
@@ -205,10 +202,10 @@ export async function POST(req: NextRequest) {
           error: userMessage,
           // Include error code for debugging in production (without sensitive details)
           code: message.includes('Missing') || message.includes('API_KEY') ? 'CONFIG_ERROR' :
-                (message.includes('timeout') || message.includes('timed out') || message.includes('Pipeline timeout') || message.includes('Tavily request timed out')) ? 'TIMEOUT_ERROR' :
+                (message.includes('timeout') || message.includes('timed out') || message.includes('Pipeline timeout') || message.includes('OpenAI request timed out')) ? 'TIMEOUT_ERROR' :
                 message.includes('Validation') || message.includes('validation') ? 'VALIDATION_ERROR' :
                 message.includes('competitors') ? 'COMPETITOR_ERROR' :
-                message.includes('Tavily error') ? 'SEARCH_SERVICE_ERROR' :
+                (message.includes('OpenAI error') || message.includes('search service error')) ? 'SEARCH_SERVICE_ERROR' :
                 'UNKNOWN_ERROR'
         }
     return new Response(JSON.stringify(payload), { status: 400 })

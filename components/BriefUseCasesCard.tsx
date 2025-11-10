@@ -32,8 +32,10 @@ export default function UseCasesCard({ data }: { data: Brief }) {
       <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">Prioritised by ROI</p>
       <ol className="space-y-3 text-sm">
         {sorted.map((u, i) => {
-          const roiPct = (typeof u.est_annual_benefit === 'number' && typeof u.est_one_time_cost === 'number')
-            ? Math.round((u.est_annual_benefit - (u.est_ongoing_cost || 0)) / (u.est_one_time_cost || 1) * 100)
+          // Calculate ROI using consistent formula: (Benefit - Investment) / Investment * 100
+          const investment = (u.est_one_time_cost || 0) + (u.est_ongoing_cost || 0)
+          const roiPct = (typeof u.est_annual_benefit === 'number' && investment > 0)
+            ? Math.round(((u.est_annual_benefit - investment) / investment) * 100)
             : undefined
           const roiColor = roiPct === undefined ? 'bg-slate-500' : roiPct >= 200 ? 'bg-green-600' : roiPct >= 120 ? 'bg-amber-500' : 'bg-red-600'
           const maxPayback = Math.max(...sorted.map(s => s.payback_months || 0), 1)
@@ -83,8 +85,10 @@ export default function UseCasesCard({ data }: { data: Brief }) {
             </thead>
             <tbody>
               {sorted.map((u, i) => {
-                const roi = (typeof u.est_annual_benefit === 'number' && typeof u.est_one_time_cost === 'number')
-                  ? Math.round((u.est_annual_benefit - (u.est_ongoing_cost || 0)) / (u.est_one_time_cost || 1) * 100) + '%'
+                // Calculate ROI using consistent formula: (Benefit - Investment) / Investment * 100
+                const investment = (u.est_one_time_cost || 0) + (u.est_ongoing_cost || 0)
+                const roi = (typeof u.est_annual_benefit === 'number' && investment > 0)
+                  ? Math.round(((u.est_annual_benefit - investment) / investment) * 100) + '%'
                   : 'Estimate'
                 const confRaw = confidenceFromCount(u.citations?.length || 0)
                 const conf = confRaw === 'Low' ? 'Medium' : confRaw
@@ -108,9 +112,11 @@ export default function UseCasesCard({ data }: { data: Brief }) {
             const totalBenefit = sum(sorted.map(u => u.est_annual_benefit))
             const totalOneTime = sum(sorted.map(u => u.est_one_time_cost))
             const totalOngoing = sum(sorted.map(u => u.est_ongoing_cost))
+            const totalInvestment = totalOneTime + totalOngoing
             const avgPayback = avg(sorted.map(u => u.payback_months))
-            const roiOverall = (totalOneTime > 0)
-              ? Math.round(((totalBenefit - totalOngoing) / totalOneTime) * 100) + '%'
+            // Calculate ROI using consistent formula: (Benefit - Investment) / Investment * 100
+            const roiOverall = (totalInvestment > 0)
+              ? Math.round(((totalBenefit - totalInvestment) / totalInvestment) * 100) + '%'
               : 'Estimate'
             const fmt = (n?: number) => (typeof n === 'number' ? n.toLocaleString() : 'Estimate')
             return `Totals — Benefit: CHF ${fmt(totalBenefit)}; Investment: CHF ${fmt(totalOneTime + totalOngoing)}; Avg payback: ${typeof avgPayback === 'number' ? `${avgPayback} mo` : 'Estimate'}; Overall ROI: ${roiOverall}.`

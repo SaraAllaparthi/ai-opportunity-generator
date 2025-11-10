@@ -69,7 +69,7 @@ Return ONLY the JSON object, no markdown, no explanations.`
   try {
     const response = await llmGenerateJson(system, userPrompt, {
       model: 'gpt-4o-mini',
-      timeoutMs: 45000 // Reduced to prevent overall timeout
+      timeoutMs: 25000 // Reduced to 25s for speed optimization
     })
 
     // Handle JSON object responses (OpenAI with json_object format returns an object)

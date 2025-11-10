@@ -42,7 +42,7 @@ export const BriefSchema = z.object({
     summary: z.string()
       .min(20, 'Industry summary must be at least 20 characters')
       .max(300, 'Industry summary must be under 50 words (approximately 300 characters)'),
-    trends: z.array(z.string().max(200, 'Each trend must be max 15 words')).min(4).max(6)
+    trends: z.array(z.string().max(200, 'Each trend must be max 200 characters')).min(4).max(6)
   }),
   strategic_moves: z.array(z.object({
     move: z.string(),
@@ -88,7 +88,7 @@ export const BriefInputSchema = z.object({
     summary: z.string()
       .min(20, 'Industry summary must be at least 20 characters')
       .max(300, 'Industry summary must be under 50 words (approximately 300 characters)'),
-    trends: z.array(z.string().max(200, 'Each trend must be max 15 words')).min(4).max(6)
+    trends: z.array(z.string().max(200, 'Each trend must be max 200 characters')).min(4).max(6)
   }),
   strategic_moves: z.array(z.object({
     move: z.string(),

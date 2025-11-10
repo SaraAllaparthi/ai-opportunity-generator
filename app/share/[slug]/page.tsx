@@ -87,6 +87,18 @@ export default async function SharePage({ params }: { params: Promise<{ slug: st
   }
 
   const data = brief.data
+  
+  // Debug: Log competitor data when rendering page
+  console.log('[SharePage] Rendering page with data:')
+  console.log('  Company:', data.company?.name)
+  console.log('  Competitors count:', data.competitors?.length || 0)
+  console.log('  Competitors array:', JSON.stringify(data.competitors || [], null, 2))
+  if (data.competitors && data.competitors.length > 0) {
+    console.log('  First competitor:', JSON.stringify(data.competitors[0], null, 2))
+  } else {
+    console.log('  ⚠️ No competitors in data!')
+  }
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative">
       {/* Subtle background pattern */}

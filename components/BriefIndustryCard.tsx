@@ -10,16 +10,25 @@ const TREND_COLORS = [
   '#f59e0b', // amber-500
 ]
 
-// Extract actionable part (e.g., "AI predictive maintenance") and rest of text
+// Extract trend name and value-add from format "Trend Name: value-add description"
 function parseTrend(trend: string): { actionable: string; rest: string } {
-  // Look for common patterns: AI/ML/technology name followed by action verb
-  // Pattern 1: "AI predictive maintenance reduces..." -> actionable = "AI predictive maintenance"
-  // Pattern 2: "Smart factories use..." -> actionable = "Smart factories"
+  // Check if trend follows "Trend Name: value-add" format
+  const colonIndex = trend.indexOf(':')
   
+  if (colonIndex > 0 && colonIndex < trend.length - 1) {
+    // Split at colon: trend name before, value-add after
+    const trendName = trend.substring(0, colonIndex).trim()
+    const valueAdd = trend.substring(colonIndex + 1).trim()
+    
+    return {
+      actionable: trendName,
+      rest: valueAdd
+    }
+  }
+  
+  // Fallback: If no colon, try to find action verbs or natural breaks
   const words = trend.split(' ')
-  
-  // Find where the actionable phrase ends (usually before a verb like "reduces", "improves", etc.)
-  const actionVerbs = ['reduces', 'improves', 'increases', 'enhances', 'optimizes', 'enables', 'helps', 'allows', 'uses', 'provides']
+  const actionVerbs = ['reduces', 'improves', 'increases', 'enhances', 'optimizes', 'enables', 'helps', 'allows', 'uses', 'provides', 'cuts', 'saves', 'boosts']
   let actionableEnd = -1
   
   for (let i = 0; i < words.length; i++) {
@@ -37,8 +46,7 @@ function parseTrend(trend: string): { actionable: string; rest: string } {
     return { actionable, rest }
   }
   
-  // Fallback: If no clear action verb, take first 3-4 words as actionable
-  // But try to split at natural boundaries (periods, dashes, etc.)
+  // Fallback: split at natural boundaries
   const separators = /[.—]|—/
   if (separators.test(trend)) {
     const parts = trend.split(separators)
@@ -48,7 +56,7 @@ function parseTrend(trend: string): { actionable: string; rest: string } {
     }
   }
   
-  // Last resort: first 3-4 words
+  // Last resort: first 3-4 words as trend name
   const mainWords = Math.min(4, Math.floor(words.length * 0.4))
   return {
     actionable: words.slice(0, mainWords).join(' '),
