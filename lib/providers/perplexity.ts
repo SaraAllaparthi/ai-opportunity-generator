@@ -593,7 +593,7 @@ Return your response as a valid JSON array. Each competitor object should have: 
     if (competitors.length === 0) {
       const jsonArrayMatches = content.match(/\[[\s\S]{10,}?\]/g)
       if (jsonArrayMatches) {
-        const sortedMatches = jsonArrayMatches.sort((a, b) => b.length - a.length)
+        const sortedMatches = jsonArrayMatches.sort((a: string, b: string) => b.length - a.length)
         for (const match of sortedMatches) {
           try {
             const parsed = JSON.parse(match)
