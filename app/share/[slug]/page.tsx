@@ -22,7 +22,7 @@ export default async function SharePage({ params }: { params: Promise<{ slug: st
   const { slug } = await params
   
   if (!slug) {
-    console.error('[SharePage] No slug provided in params:', params)
+    console.error('[SharePage] No slug provided in params')
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none"></div>

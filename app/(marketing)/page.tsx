@@ -23,10 +23,35 @@ export default function LandingPage() {
   const [name, setName] = useState("")
   const [website, setWebsite] = useState("")
   const [industry, setIndustry] = useState("")
+  const [headquarters, setHeadquarters] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [progress, setProgress] = useState<{ step: number; message: string } | null>(null)
   const [elapsed, setElapsed] = useState(0)
+
+  // Normalize website URL - add https:// if missing
+  function normalizeWebsite(url: string): string {
+    if (!url) return url
+    let normalized = url.trim()
+    
+    // Remove trailing slashes for consistency
+    normalized = normalized.replace(/\/+$/, '')
+    
+    // Add https:// if no protocol
+    if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
+      normalized = `https://${normalized}`
+    }
+    
+    // Validate it's a proper URL
+    try {
+      const urlObj = new URL(normalized)
+      // Return without trailing slash for consistency
+      return urlObj.toString().replace(/\/+$/, '')
+    } catch (e) {
+      // If URL parsing fails, return as-is (server will catch it)
+      return normalized
+    }
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -55,10 +80,17 @@ export default function LandingPage() {
     }, 1000)
 
     try {
+      // Normalize website URL before sending
+      const normalizedWebsite = normalizeWebsite(website)
       const res = await fetch("/api/research", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ companyName: name, website, industryHint: industry })
+        body: JSON.stringify({ 
+          companyName: name, 
+          website: normalizedWebsite, 
+          industryHint: industry,
+          headquartersHint: headquarters 
+        })
       })
       if (!res.ok) {
         let msg = "Failed to start research"
@@ -98,7 +130,15 @@ export default function LandingPage() {
     } catch (err: any) {
       clearInterval(interval)
       clearInterval(progressInterval)
-      setError(err?.message || "Something went wrong. Please try again.")
+      // Handle different types of errors
+      if (err?.name === 'TypeError' && err?.message?.includes('fetch')) {
+        setError("Network error: Could not connect to server. Please check your connection and try again.")
+      } else if (err?.name === 'AbortError') {
+        setError("Request timed out. The research process may take a while. Please try again.")
+      } else {
+        setError(err?.message || "Something went wrong. Please try again.")
+      }
+      console.error('[LandingPage] Error submitting form:', err)
       setProgress(null)
     } finally {
       setLoading(false)
@@ -256,6 +296,19 @@ export default function LandingPage() {
                     </option>
                   ))}
                 </select>
+              </div>
+              <div>
+                <label className="text-xl block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Headquarters Location</label>
+                <input
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-3 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-400/20 transition-all"
+                  placeholder="e.g., Zurich, Switzerland"
+                  value={headquarters}
+                  onChange={(e) => setHeadquarters(e.target.value)}
+                  required
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Format: City, Country (e.g., "Berlin, Germany" or "Zurich, Switzerland")
+                </p>
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 We&apos;ll analyze public data from this website to generate your comprehensive AI opportunity report.

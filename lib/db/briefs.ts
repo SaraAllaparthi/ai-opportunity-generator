@@ -22,8 +22,9 @@ export async function createBrief(data: Brief): Promise<{ id: string; share_slug
     count: data.competitors?.length || 0,
     competitors: data.competitors?.map(c => ({
       name: c.name,
-      hasAiMaturity: !!c.ai_maturity,
-      hasInnovationFocus: !!c.innovation_focus
+      hasHq: !!c.hq,
+      hasSizeBand: !!c.size_band,
+      hasPositioning: !!c.positioning
     })) || []
   })
   
@@ -77,8 +78,9 @@ export async function getBriefBySlug(slug: string, skipCache = false): Promise<B
         competitorsCount: briefData?.competitors?.length || 0,
         competitors: briefData?.competitors?.map((c: any) => ({
           name: c.name,
-          hasAiMaturity: !!c.ai_maturity,
-          hasInnovationFocus: !!c.innovation_focus
+          hasHq: !!c.hq,
+          hasSizeBand: !!c.size_band,
+          hasPositioning: !!c.positioning
         })) || []
       })
     }

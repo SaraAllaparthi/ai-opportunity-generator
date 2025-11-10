@@ -1,181 +1,222 @@
 "use client"
 import { Brief } from '@/lib/schema/brief'
-import { useEffect, useState } from 'react'
-import { formatCHF } from '@/lib/utils/currency'
+import { useMemo, useState, useEffect, useRef } from 'react'
 
-const CustomTooltip = ({ active, payload }: any) => {
-  if (!active || !payload || !payload.length) return null
-  const data = payload[0]
-  const value = typeof data.value === 'number' ? formatCHF(data.value) : data.value
+const COLORS = ['#2563eb','#16a34a','#f59e0b','#ef4444','#7c3aed']
+
+// Tooltip component matching the design system
+const Tooltip = ({ 
+  name, 
+  value, 
+  x, 
+  y 
+}: { 
+  name: string
+  value: number
+  x: number
+  y: number
+}) => {
+  const formattedValue = new Intl.NumberFormat('en-CH', { 
+    style: 'currency', 
+    currency: 'CHF', 
+    maximumFractionDigits: 0 
+  }).format(value)
+  
   return (
-    <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2 shadow-lg z-50">
-      <p className="text-xs font-medium text-gray-900 dark:text-white mb-1">{data.name}</p>
-      <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold">{value}</p>
+    <div 
+      className="absolute pointer-events-none z-50 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2 shadow-lg"
+      style={{
+        left: `${x}px`,
+        top: `${y}px`,
+        transform: 'translate(-50%, -100%)',
+        marginTop: '-8px'
+      }}
+    >
+      <p className="text-xs font-medium text-gray-900 dark:text-white mb-1">{name}</p>
+      <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold">{formattedValue}</p>
     </div>
   )
 }
 
-export default function RoiDonut({ data }: { data: Brief }) {
-  const [mounted, setMounted] = useState(false)
-  const [Recharts, setRecharts] = useState<any>(null)
+// Helper function to create SVG path for donut slice
+function createDonutSlice(
+  centerX: number,
+  centerY: number,
+  outerRadius: number,
+  innerRadius: number,
+  startAngle: number,
+  endAngle: number
+): string {
+  // Calculate all four corner points
+  const x1 = centerX + outerRadius * Math.cos((startAngle - 90) * Math.PI / 180)
+  const y1 = centerY + outerRadius * Math.sin((startAngle - 90) * Math.PI / 180)
+  const x2 = centerX + outerRadius * Math.cos((endAngle - 90) * Math.PI / 180)
+  const y2 = centerY + outerRadius * Math.sin((endAngle - 90) * Math.PI / 180)
+  const x3 = centerX + innerRadius * Math.cos((endAngle - 90) * Math.PI / 180)
+  const y3 = centerY + innerRadius * Math.sin((endAngle - 90) * Math.PI / 180)
+  const x4 = centerX + innerRadius * Math.cos((startAngle - 90) * Math.PI / 180)
+  const y4 = centerY + innerRadius * Math.sin((startAngle - 90) * Math.PI / 180)
   
+  // Determine large arc flag
+  const angleDiff = endAngle - startAngle
+  const largeArc = Math.abs(angleDiff) > 180 ? 1 : 0
+  
+  // Build path: start at outer start -> outer arc -> line to inner -> inner arc back -> close
+  return `M ${x1} ${y1} A ${outerRadius} ${outerRadius} 0 ${largeArc} 1 ${x2} ${y2} L ${x3} ${y3} A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${x4} ${y4} Z`
+}
+
+function polarToCartesian(centerX: number, centerY: number, radius: number, angleInDegrees: number) {
+  const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0
+  return {
+    x: centerX + (radius * Math.cos(angleInRadians)),
+    y: centerY + (radius * Math.sin(angleInRadians))
+  }
+}
+
+export default function RoiDonut({ data }: { data: Brief }) {
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null)
+  const [mounted, setMounted] = useState(false)
+  const svgRef = useRef<SVGSVGElement>(null)
+
   useEffect(() => {
     setMounted(true)
-    import('recharts').then((mod) => {
-      setRecharts(mod)
-    }).catch((err) => {
-      console.error('[RoiDonut] Failed to load recharts:', err)
-    })
   }, [])
-  
-  // Calculate ROI from use_cases directly (support both field name conventions)
-  const useCases = data?.use_cases || []
-  const totals = {
-    benefit: useCases.reduce((s: number, u: any) => s + (u.benefit || u.annual_benefit || 0), 0),
-    oneTime: useCases.reduce((s: number, u: any) => s + (u.one_time || u.one_time_cost || 0), 0),
-    ongoing: useCases.reduce((s: number, u: any) => s + (u.ongoing || u.ongoing_cost || 0), 0)
-  }
 
-  const investment = totals.oneTime + totals.ongoing
-  const roiPct = investment > 0 ? ((totals.benefit - investment) / investment) * 100 : 0
-
-  // Compute weighted payback months
-  const withPositives = useCases.filter((u: any) => {
-    const benefit = u.benefit || u.annual_benefit || 0
-    const payback = u.payback_months || 0
-    return benefit > 0 && payback > 0
-  })
-
-  let weightedPaybackMonths: number | null = null
-  if (withPositives.length > 0) {
-    const denom = withPositives.reduce((s: number, u: any) => s + (u.benefit || u.annual_benefit || 0), 0)
-    if (denom > 0) {
-      const num = withPositives.reduce((s: number, u: any) => {
-        const benefit = u.benefit || u.annual_benefit || 0
-        const payback = u.payback_months || 0
-        return s + (benefit * payback)
-      }, 0)
-      weightedPaybackMonths = Math.round(num / denom)
+  // Normalize numeric values
+  const normalizeNum = (v: any): number => {
+    if (typeof v === 'number' && Number.isFinite(v) && v >= 0) return v
+    
+    if (typeof v === 'string') {
+      const cleaned = v
+        .replace(/[A-Za-z€$£₣]|CHF/gi, '')
+        .replace(/[\u202F\u00A0\s]/g, '')
+        .replace(/[''`,]/g, '')
+        .trim()
+      const n = Number(cleaned)
+      return Number.isFinite(n) && n >= 0 ? n : 0
     }
+    return 0
+  }
+  
+  // Prepare data - must be done before early returns
+  const items = (data?.use_cases || []).map(u => ({ 
+    name: u.title || 'Untitled', 
+    value: normalizeNum(
+      (u as any).est_annual_benefit ??
+      (u as any).annual_benefit ??
+      (u as any).benefit ??
+      0
+    )
+  }))
+  
+  const validItems = items.filter(item => item.value > 0)
+  const total = validItems.reduce((sum, item) => sum + item.value, 0)
+
+  // Calculate pie chart segments - must be called before any early returns
+  const chartData = useMemo(() => {
+    if (validItems.length === 0) return []
+    let currentAngle = 0
+    return validItems.map((item, index) => {
+      const percentage = item.value / total
+      const angle = percentage * 360
+      const startAngle = currentAngle
+      const endAngle = currentAngle + angle
+      currentAngle = endAngle
+      
+      return {
+        ...item,
+        percentage,
+        startAngle,
+        endAngle,
+        color: COLORS[index % COLORS.length]
+      }
+    })
+  }, [validItems, total])
+  
+  if (!data?.use_cases || data.use_cases.length === 0) {
+    return (
+      <div className="h-48 w-full flex items-center justify-center">
+        <div className="text-sm text-gray-500 dark:text-gray-400">No use cases data available</div>
+      </div>
+    )
+  }
+  
+  if (validItems.length === 0) {
+    return (
+      <div className="h-48 w-full flex items-center justify-center">
+        <div className="text-sm text-gray-500 dark:text-gray-400">No ROI data available</div>
+      </div>
+    )
   }
 
-  // Prepare chart data: Investment and Net Gain
-  const netGain = Math.max(0, totals.benefit - investment)
-  const chartData = [
-    { name: 'Investment', value: investment },
-    { name: 'Net Value', value: netGain }
-  ].filter(item => item.value > 0)
+  const width = 400
+  const height = 200
+  const centerX = width / 2
+  const centerY = height / 2
+  const outerRadius = 80
+  const innerRadius = 50
 
-  const COLORS = ['#ef4444', '#16a34a'] // Red for investment, green for net gain
-  
-  // If not mounted, show loading
   if (!mounted) {
     return (
-      <div className="h-48 w-full flex items-center justify-center border border-dashed border-gray-300 dark:border-gray-600 rounded">
+      <div className="h-48 w-full flex items-center justify-center">
         <div className="text-sm text-gray-600 dark:text-gray-400">Loading chart…</div>
       </div>
     )
   }
-  
-  // If recharts not loaded yet
-  if (!Recharts) {
-    return (
-      <div className="h-48 w-full flex items-center justify-center border border-dashed border-gray-300 dark:border-gray-600 rounded">
-        <div className="text-sm text-gray-600 dark:text-gray-400">Loading chart library…</div>
-      </div>
-    )
+
+  const handleMouseMove = (e: React.MouseEvent<SVGPathElement>, index: number) => {
+    if (svgRef.current) {
+      const rect = svgRef.current.getBoundingClientRect()
+      setTooltipPos({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      })
+    }
+    setHoveredIndex(index)
   }
-  
-  // If no ROI data, show empty state
-  if (totals.benefit === 0 && investment === 0) {
-    return (
-      <div className="h-48 w-full flex items-center justify-center border border-dashed border-gray-300 dark:border-gray-600 rounded">
-        <div className="text-sm text-gray-600 dark:text-gray-400 text-center">
-          Awaiting estimates
-        </div>
-      </div>
-    )
+
+  const handleMouseLeave = () => {
+    setHoveredIndex(null)
+    setTooltipPos(null)
   }
-  
-  const { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } = Recharts
-  
+
   return (
-    <div className="h-48 w-full relative" style={{ minHeight: '192px', width: '100%' }}>
-      <div style={{ width: '100%', height: '192px', position: 'relative' }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie 
-              data={chartData} 
-              dataKey="value" 
-              nameKey="name" 
-              innerRadius="60%" 
-              outerRadius="90%" 
-              paddingAngle={2}
-              cx="50%"
-              cy="50%"
-              startAngle={90}
-              endAngle={-270}
-              stroke="#ffffff"
+    <div className="h-48 w-full flex items-center justify-center relative">
+      <svg 
+        ref={svgRef}
+        width={width} 
+        height={height} 
+        className="overflow-visible"
+      >
+        {chartData.map((segment, index) => {
+          const path = createDonutSlice(centerX, centerY, outerRadius, innerRadius, segment.startAngle, segment.endAngle)
+          const isHovered = hoveredIndex === index
+          
+          return (
+            <path
+              key={index}
+              d={path}
+              fill={segment.color}
+              opacity={isHovered ? 0.8 : 1}
+              stroke="white"
               strokeWidth={2}
-            >
-              {chartData.map((entry, i) => (
-                <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip 
-              content={({ active, payload }: any) => {
-                if (!active || !payload || !payload.length) return null
-                const investment = payload.find((p: any) => p.name === 'Investment')
-                const netValue = payload.find((p: any) => p.name === 'Net Value')
-                return (
-                  <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 shadow-lg z-50">
-                    {investment && (
-                      <p className="text-xs mb-1">
-                        <span className="font-medium text-gray-900 dark:text-white">Investment: </span>
-                        <span className="text-red-600 dark:text-red-400 font-semibold">{formatCHF(investment.value)}</span>
-                      </p>
-                    )}
-                    {netValue && (
-                      <p className="text-xs mb-1">
-                        <span className="font-medium text-gray-900 dark:text-white">Net Value: </span>
-                        <span className="text-green-600 dark:text-green-400 font-semibold">{formatCHF(netValue.value)}</span>
-                      </p>
-                    )}
-                    <p className="text-xs">
-                      <span className="font-medium text-gray-900 dark:text-white">Benefit: </span>
-                      <span className="text-blue-600 dark:text-blue-400 font-semibold">{formatCHF(totals.benefit)}</span>
-                    </p>
-                  </div>
-                )
-              }} 
+              onMouseEnter={(e) => handleMouseMove(e, index)}
+              onMouseMove={(e) => handleMouseMove(e, index)}
+              onMouseLeave={handleMouseLeave}
+              style={{ cursor: 'pointer', transition: 'opacity 0.2s' }}
             />
-            <Legend 
-              verticalAlign="bottom" 
-              height={36}
-              formatter={(value: string) => value}
-            />
-            {/* Center label showing ROI */}
-            <text
-              x="50%"
-              y="50%"
-              textAnchor="middle"
-              dominantBaseline="middle"
-              className="text-sm font-semibold"
-              fill={roiPct >= 0 ? '#16a34a' : '#ef4444'}
-            >
-              <tspan x="50%" dy="-0.8em" className="font-bold">ROI</tspan>
-              <tspan x="50%" dy="1.2em">
-                {investment > 0 ? `${roiPct >= 0 ? '+' : ''}${roiPct.toFixed(0)}%` : '—'}
-              </tspan>
-              {weightedPaybackMonths !== null && (
-                <tspan x="50%" dy="1.2em" className="text-xs opacity-75">
-                  Payback ~{weightedPaybackMonths} mo
-                </tspan>
-              )}
-            </text>
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
+          )
+        })}
+      </svg>
+      {hoveredIndex !== null && tooltipPos && (
+        <Tooltip
+          name={chartData[hoveredIndex].name}
+          value={chartData[hoveredIndex].value}
+          x={tooltipPos.x}
+          y={tooltipPos.y}
+        />
+      )}
     </div>
   )
 }

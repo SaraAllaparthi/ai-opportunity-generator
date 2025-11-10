@@ -48,10 +48,10 @@ function calculateCompanyScores(data: Brief): { dimension: string; value: number
 
 // Estimate competitor scores based on their descriptions
 function estimateCompetitorScores(competitor: Brief['competitors'][number], baseScores: { dimension: string; value: number }[]): { dimension: string; value: number }[] {
-  const aiMaturity = competitor.ai_maturity || ''
-  const innovationFocus = competitor.innovation_focus || ''
+  // Use positioning and size_band for scoring (no AI maturity/innovation focus)
   const positioning = competitor.positioning || ''
-  const combined = `${aiMaturity} ${innovationFocus} ${positioning}`.toLowerCase()
+  const sizeBand = competitor.size_band || ''
+  const combined = `${positioning} ${sizeBand}`.toLowerCase()
   
   // Adjust scores based on competitor descriptions
   const adjustments: Record<string, number> = {}
@@ -206,11 +206,11 @@ export default function CompetitorComparison({ data }: { data: Brief }) {
   return (
     <div className="w-full">
       <div className="mb-4">
-        <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Peer Comparison: AI & Digital Maturity</h4>
+        <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Peer Comparison</h4>
         <p className="text-xs text-gray-600 dark:text-gray-300">
           {hasCompetitors 
             ? `Visual representation of how ${data.company.name} compares against its competitors`
-            : `Competitive positioning based on AI and digital maturity benchmarks`
+            : `Competitive positioning based on market analysis`
           }
         </p>
       </div>
