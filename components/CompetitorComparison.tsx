@@ -567,7 +567,7 @@ export default function CompetitorComparison({ data }: { data: Brief }) {
                         dataKey="dimension" 
                         tick={{ fontSize: 12, fill: 'currentColor', fontWeight: 500 }} 
                         tickLine={false}
-                        tickFormatter={(value) => value}
+                        tickFormatter={(value: string) => value}
                       />
                       <PolarRadiusAxis 
                         angle={90} 
