@@ -358,7 +358,7 @@ export async function searchCompetitors(query: CompetitorQuery): Promise<Competi
         competitor: c,
         score: scoreCompetitor(c, query.hq_hint, targetDomain)
       }))
-      .sort((a, b) => b.score - a.score)
+      .sort((a: { competitor: Competitor; score: number }, b: { competitor: Competitor; score: number }) => b.score - a.score)
       .slice(0, 3)
       .map(item => item.competitor)
     

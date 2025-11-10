@@ -893,7 +893,7 @@ Return your response as a valid JSON array of use case objects. Each object must
         est_ongoing_cost: Math.max(0, Math.round(uc.est_ongoing_cost)),
         payback_months: Math.max(1, Math.round(uc.payback_months))
       }))
-      .sort((a, b) => a.payback_months - b.payback_months) // Sort by fastest payback
+      .sort((a: { payback_months: number }, b: { payback_months: number }) => a.payback_months - b.payback_months) // Sort by fastest payback
       .slice(0, 7) // Top 7
 
     console.log('[Perplexity] ✅ Returning', validUseCases.length, 'valid AI use cases')
@@ -1065,7 +1065,7 @@ Find at least 3-5 competitors if possible. Focus on finding real, active compani
     if (competitors.length === 0) {
       const jsonArrayMatches = content.match(/\[[\s\S]{20,}?\]/g)
       if (jsonArrayMatches) {
-        const sortedMatches = jsonArrayMatches.sort((a, b) => b.length - a.length)
+        const sortedMatches = jsonArrayMatches.sort((a: string, b: string) => b.length - a.length)
         for (const match of sortedMatches) {
           try {
             const parsed = JSON.parse(match)

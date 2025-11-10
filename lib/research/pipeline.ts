@@ -94,7 +94,7 @@ function selectTopSnippets(all: ResearchSnippet[], input: PipelineInput, cap = 1
   for (const r of all) if (!byUrl.has(r.url)) byUrl.set(r.url, r)
 
   const unique = Array.from(byUrl.values())
-  unique.sort((a, b) => scoreSnippet(b, input) - scoreSnippet(a, input))
+  unique.sort((a: ResearchSnippet, b: ResearchSnippet) => scoreSnippet(b, input) - scoreSnippet(a, input))
 
   const seenHost = new Set<string>()
   const picked: ResearchSnippet[] = []

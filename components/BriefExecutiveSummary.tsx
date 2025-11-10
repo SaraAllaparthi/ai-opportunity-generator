@@ -42,7 +42,7 @@ function getTopValueDrivers(useCases: Brief['use_cases'], count: number = 2): st
     counts[u.value_driver] = (counts[u.value_driver] || 0) + 1
   }
   return Object.entries(counts)
-    .sort((a, b) => b[1] - a[1])
+    .sort((a: [string, number], b: [string, number]) => b[1] - a[1])
     .slice(0, count)
     .map(([driver]) => driver)
 }
@@ -61,7 +61,7 @@ function getValueDriverDescription(driver: string): string {
 function getFastestPaybackUseCase(useCases: Brief['use_cases']) {
   return useCases
     .filter(u => typeof u.payback_months === 'number' && u.payback_months > 0)
-    .sort((a, b) => (a.payback_months || 999) - (b.payback_months || 999))[0]
+    .sort((a: Brief['use_cases'][number], b: Brief['use_cases'][number]) => (a.payback_months || 999) - (b.payback_months || 999))[0]
 }
 
 function generateExecutiveSummary(data: Brief): string {
@@ -172,7 +172,7 @@ export default function BriefExecutiveSummary({ data }: { data: Brief }) {
   const topValueDriver = (() => {
     const counts: Record<string, number> = {}
     for (const u of data.use_cases) counts[u.value_driver] = (counts[u.value_driver] || 0) + 1
-    return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'value'
+    return Object.entries(counts).sort((a: [string, number], b: [string, number]) => b[1] - a[1])[0]?.[0] || 'value'
   })()
   
   const summaryText = generateExecutiveSummary(data)

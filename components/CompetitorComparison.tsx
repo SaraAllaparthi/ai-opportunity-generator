@@ -117,7 +117,7 @@ function generateStrategicInsight(
       return { dimension: s.dimension, gap: compAvg - s.value, companyScore: s.value, compAvg }
     })
     .filter(d => d.gap > 0.2)
-    .sort((a, b) => b.gap - a.gap)
+    .sort((a: { dimension: string; gap: number; companyScore: number; compAvg: number }, b: { dimension: string; gap: number; companyScore: number; compAvg: number }) => b.gap - a.gap)
   
   if (weakDimensions.length > 0) {
     const topGap = weakDimensions[0]
@@ -154,7 +154,7 @@ function generateStrategicInsight(
       return { dimension: s.dimension, lead: s.value - compAvg }
     })
     .filter(d => d.lead > 0.2)
-    .sort((a, b) => b.lead - a.lead)
+    .sort((a: { dimension: string; lead: number }, b: { dimension: string; lead: number }) => b.lead - a.lead)
   
   if (strongDimensions.length > 0) {
     const topStrength = strongDimensions[0]
