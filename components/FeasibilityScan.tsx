@@ -14,7 +14,7 @@ const getLevelColor = (level: string) => {
 }
 
 function generateFeasibilityItems(data: Brief): Array<{ name: string; level: string; rationale: string }> {
-  const industry = data.industry?.name || 'Professional Services'
+  const industry = data.company?.industry || 'Professional Services'
   const companySize = data.company?.size || ''
   const useCases = data.use_cases || []
   
@@ -81,7 +81,7 @@ export default function FeasibilityScan({ _data }: { _data: Brief }) {
     <section className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-lg">
       <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">Feasibility Scan</h3>
       <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
-        Readiness assessment for {_data.company?.name || 'your company'} in the {_data.industry?.name || 'industry'} sector.
+        Readiness assessment for {_data.company?.name || 'your company'} in the {_data.company?.industry || 'industry'} sector.
       </p>
       <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
         {items.map((i) => (
