@@ -1,5 +1,5 @@
-// OpenAI-based research module to replace Tavily
-// Returns the same ResearchSnippet structure for compatibility
+// OpenAI-based research module (replaces Tavily - not currently used)
+// Returns structured ResearchSnippet format for compatibility
 
 import { llmGenerateJson } from '@/lib/providers/llm'
 
@@ -17,7 +17,7 @@ type SearchOptions = {
 }
 
 /**
- * OpenAI-based search that returns structured snippets matching Tavily's format
+ * OpenAI-based search that returns structured research snippets
  * Uses GPT-4o-mini to generate research results based on web knowledge
  */
 export async function openaiSearch(
@@ -101,7 +101,7 @@ Return ONLY the JSON object, no markdown, no explanations.`
     return snippets
   } catch (err: any) {
     console.error('[OpenAI Research] Error:', err?.message || String(err))
-    // Return empty array on error to match Tavily behavior
+    // Return empty array on error for graceful degradation
     return []
   }
 }
@@ -138,23 +138,24 @@ export async function openaiCompanyResearch(
     trends: string[]
   }
 }> {
-  const system = `You are a business research analyst. Provide factual, structured information about companies.
-Base all information on real, verifiable sources. Never fabricate URLs or company details.
-Return ONLY valid JSON matching the required schema.`
+  const system = `You are a business research analyst writing for the CEO of ${companyName} (${website}).
+Provide factual, structured information about ${companyName} based on real, verifiable sources.
+Never fabricate URLs or company details. Return ONLY valid JSON matching the required schema.
+Do NOT use generic fallback information - if specific information is not available, omit that field.`
 
   const userPrompt = `Research company: ${companyName} (${website})
 
-Provide comprehensive research in this JSON structure:
+You are writing an executive brief for the CEO of ${companyName}. Provide comprehensive research SPECIFIC to ${companyName} in this JSON structure:
 {
   "company": {
-    "summary": "Comprehensive 4-8 sentence overview (minimum 100 characters) covering: business model, products/services, target markets, market position, operations, strategic focus",
-    "size": "Employee count in format 'X employees' or 'X-Y employees' (if available)",
-    "industry": "Primary industry sector",
-    "headquarters": "City, Country",
-    "founded": "Founded in YYYY" format (if available)",
-    "ceo": "CEO/Founder name (if available)",
-    "market_position": "Market position/leadership info (if available)",
-    "latest_news": "One recent news point (if available)"
+    "summary": "Comprehensive 4-8 sentence executive overview (minimum 100 characters) specifically about ${companyName}. Cover: business model, products/services, target markets, market position, operations, strategic focus. Be specific to ${companyName}, not generic industry information.",
+    "size": "Employee count in format 'X employees' or 'X-Y employees' (ONLY if explicitly found - do NOT estimate)",
+    "industry": "Primary industry sector for ${companyName} (if explicitly stated)",
+    "headquarters": "City, Country for ${companyName} (if explicitly stated)",
+    "founded": "Founded in YYYY format (ONLY if explicit year found - do NOT infer)",
+    "ceo": "CEO/Founder name (ONLY if explicitly stated with title - do NOT infer)",
+    "market_position": "Market position/leadership info for ${companyName} (if explicitly stated)",
+    "latest_news": "One recent news point about ${companyName} (if available)"
   },
   "competitors": [
     {
@@ -168,7 +169,7 @@ Provide comprehensive research in this JSON structure:
     }
   ],
   "industry": {
-    "summary": "One paragraph (20-300 characters) summarizing how intelligent automation, data analytics, and AI adoption are transforming the industry. Focus on business transformation, not technical details.",
+    "summary": "One paragraph (20-300 characters) for the CEO of ${companyName} explaining how intelligent automation, data analytics, and AI adoption are transforming ${companyName}'s specific industry niche. Focus on business transformation relevant to ${companyName}'s operations, not generic industry statements.",
     "trends": [
       "AI-driven predictive maintenance reduces downtime by 20%",
       "Smart factories use ML to optimize production schedules",
@@ -179,20 +180,21 @@ Provide comprehensive research in this JSON structure:
   }
 }
 
-Requirements:
-- company.summary: MUST be ≥100 characters
-- industry.summary: MUST be 20-300 characters
-- industry.trends: MUST be exactly 4-5 items (max 15 words each)
+CRITICAL REQUIREMENTS:
+- company.summary: MUST be ≥100 characters, SPECIFIC to ${companyName}
+- industry.summary: MUST be 20-300 characters, SPECIFIC to ${companyName}'s industry niche
+- industry.trends: MUST be exactly 4-5 items (max 15 words each), SPECIFIC to ${companyName}'s industry
 - competitors: Return 2-3 real companies from same industry/geography (≤500 employees). All must have valid website URLs.
 - Never fabricate URLs - use real company websites
 - Focus on SMB/mid-market companies (≤500 employees)
+- Do NOT use generic fallback information - if specific information is not available, omit that field
 
 Return ONLY the JSON object, no markdown, no explanations.`
 
   try {
     const response = await llmGenerateJson(system, userPrompt, {
       model: 'gpt-4o-mini',
-      timeoutMs: 60000 // Reduced from 90s to 60s to prevent overall timeout
+      timeoutMs: 120000 // 2 minutes for research queries
     })
 
     // Validate response structure
@@ -236,26 +238,9 @@ Return ONLY the JSON object, no markdown, no explanations.`
       }
     }
 
-    // Ensure minimum lengths
-    if (result.company.summary.length < 100) {
-      result.company.summary = result.company.summary + ' ' + 
-        'The company focuses on delivering quality solutions to its customers while maintaining operational excellence and continuous improvement in its market segment.'
-    }
-
-    if (result.industry.summary.length < 20) {
-      result.industry.summary = 'The industry is being reshaped by AI, automation, and data analytics, improving efficiency, quality, and speed while enabling smarter operations and faster decisions.'
-    }
-
-    if (result.industry.trends.length < 4) {
-      const defaultTrends = [
-        'AI-driven predictive maintenance reduces downtime',
-        'Smart factories use ML to optimize production',
-        'AI forecasting improves inventory accuracy',
-        'Sustainability analytics help meet compliance',
-        'Digital twins enable real-time process optimization'
-      ]
-      result.industry.trends = [...result.industry.trends, ...defaultTrends].slice(0, 5)
-    }
+    // CRITICAL: Do NOT add generic fallback information
+    // If summary is too short or trends are missing, the pipeline will handle it
+    // We want specific information only, not generic placeholders
 
     return result
   } catch (err: any) {

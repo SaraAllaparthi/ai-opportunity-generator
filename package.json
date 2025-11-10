@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "2.45.4",
-    "cheerio": "^1.1.2",
+    "cheerio": "^0.22.0",
     "clsx": "2.1.1",
     "framer-motion": "^12.23.24",
     "next": "^16.0.1",

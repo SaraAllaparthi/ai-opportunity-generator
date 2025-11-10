@@ -1,5 +1,6 @@
 import * as cheerio from 'cheerio'
 import { llmGenerateJson } from '@/lib/providers/llm'
+import { normalizeWebsite, normalizeToOrigin } from '@/lib/utils/url'
 
 export interface CrawledCompanyData {
   ceo?: string
@@ -29,14 +30,9 @@ export async function crawlCompanyWebsite(
   }
 
   try {
-    // Normalize website URL
-    let baseUrl = website.trim()
-    if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
-      baseUrl = `https://${baseUrl}`
-    }
-
-    const urlObj = new URL(baseUrl)
-    const domain = urlObj.origin
+    // Normalize website URL using shared utility
+    const baseUrl = normalizeWebsite(website)
+    const domain = normalizeToOrigin(baseUrl)
 
     // Pages to crawl (in priority order) - expanded for better CEO extraction
     const pagesToCrawl = [
@@ -63,14 +59,14 @@ export async function crawlCompanyWebsite(
 
     const crawledPages: Array<{ url: string; content: string }> = []
 
-    // Crawl pages in parallel (with timeout)
-    const crawlPromises = pagesToCrawl.slice(0, 8).map(async (path) => {
+    // Crawl pages in parallel (with timeout) - reduced to 5 most important pages for speed
+    const crawlPromises = pagesToCrawl.slice(0, 5).map(async (path) => {
       try {
         const pageUrl = `${domain}${path}`
         console.log(`[Crawler] Fetching: ${pageUrl}`)
         
         const controller = new AbortController()
-        const timeout = setTimeout(() => controller.abort(), 10000) // 10s per page
+        const timeout = setTimeout(() => controller.abort(), 8000) // 8s per page (optimized for speed)
 
         const response = await fetch(pageUrl, {
           signal: controller.signal,
@@ -162,6 +158,55 @@ export async function crawlCompanyWebsite(
       .join('\n\n')
       .substring(0, 50000) // Limit total content to 50k chars
 
+    // Simple text search for CEO name in crawled content (before LLM extraction)
+    // This provides a fallback if LLM misses it
+    const ceoPatterns = [
+      /(?:Group\s+)?CEO[:\s,]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/g,
+      /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)[,\s]+(?:Group\s+)?CEO/gi,
+      /CEO\s+and\s+Founder[:\s,]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/gi,
+      /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)[,\s]+CEO\s+and\s+Founder/gi,
+      /Chief\s+Executive\s+Officer[:\s,]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/gi,
+      /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)[,\s]+Chief\s+Executive\s+Officer/gi
+    ]
+    
+    let simpleCeoName: string | null = null
+    for (const pattern of ceoPatterns) {
+      const matches = [...combinedContent.matchAll(pattern)]
+      if (matches && matches.length > 0) {
+        // Check each match and prioritize CURRENT CEOs over former ones
+        for (const match of matches) {
+          const nameMatch = match[0].match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/)
+          if (nameMatch && nameMatch[1]) {
+            const candidateName = nameMatch[1].trim()
+            const lowerCandidate = candidateName.toLowerCase()
+            
+            // Validate it's not a placeholder
+            const isPlaceholder = lowerCandidate.match(/^(john doe|jane doe|test|example|sample|placeholder|demo)$/i)
+            if (isPlaceholder) continue
+            
+            // Check context around the match - look for "former", "ex-", etc. in surrounding text
+            const matchIndex = match.index || 0
+            const contextStart = Math.max(0, matchIndex - 100) // 100 chars before
+            const contextEnd = Math.min(combinedContent.length, matchIndex + match[0].length + 100) // 100 chars after
+            const context = combinedContent.substring(contextStart, contextEnd).toLowerCase()
+            
+            // Check if context indicates this is a former/ex-CEO
+            const isFormerCEO = context.match(/(former|ex-|previous|retired|past|prior|outgoing|departed|stepped down|resigned|left|was|had been).*ceo|ceo.*(former|ex-|previous|retired|past|prior|outgoing|departed|stepped down|resigned|left|was|had been)/i)
+            
+            if (!isFormerCEO && candidateName.split(/\s+/).length >= 2) {
+              // This looks like a current CEO - use it
+              simpleCeoName = candidateName
+              console.log(`[Crawler] ✅ Found CURRENT CEO name via simple text search: ${simpleCeoName}`)
+              break
+            } else if (isFormerCEO) {
+              console.log(`[Crawler] ⚠️ Skipping former/ex-CEO: ${candidateName} (found in context: ${context.substring(0, 50)}...)`)
+            }
+          }
+        }
+        if (simpleCeoName) break
+      }
+    }
+
     // Use LLM to extract structured information from crawled content
     const extractionPrompt = `Extract structured information about ${companyName} from the following website content crawled from ${domain}.
 
@@ -169,10 +214,12 @@ Website Content:
 ${combinedContent}
 
 Extract the following information (ONLY if explicitly stated in the content):
-1. CEO name - CRITICAL: Look carefully for CEO information. Search for:
+1. CEO name - CRITICAL: Look carefully for CURRENT CEO information. Search for:
    - "Group CEO", "CEO", "Chief Executive Officer", "Geschäftsführer", "Managing Director" followed by a person's full name
    - Patterns like: "John Smith, Group CEO" or "Group CEO: John Smith" or "John Smith, CEO" or "CEO John Smith"
    - Look in leadership sections, team pages, about pages, management sections
+   - IMPORTANT: Only extract if the person is described as the CURRENT, ACTIVE CEO. Do NOT extract if you see words like "former", "ex-", "previous", "retired", "past", "prior", "outgoing", "departed", "stepped down", "resigned", or "left" near the name.
+   - If you see multiple CEO mentions, prioritize the one that is clearly CURRENT/ACTIVE (not marked as former/ex/previous)
    - Return ONLY the full name (first name + last name) if found, not just the title
    - Priority: Group CEO > CEO > Chief Executive Officer > Geschäftsführer > Managing Director
 2. Founded year - Look for "founded", "established", "incorporated", "registered" followed by a year (YYYY). Return in format "Founded in YYYY" if found.
@@ -227,15 +274,54 @@ Return your response as a JSON object with these exact keys:
         businessDescription: extracted.businessDescription ? 'Found' : 'Not found'
       })
 
-      // Validate and assign extracted data
+      // Validate and assign extracted data (prioritize LLM extraction, fallback to simple search)
+      let finalCeoName: string | null = null
+      
       if (extracted.ceo && typeof extracted.ceo === 'string' && extracted.ceo.trim().length > 0) {
-        const ceoName = extracted.ceo.trim()
-        // Reject placeholder names
+        let ceoName = extracted.ceo.trim()
+        
+        // Clean up common prefixes/suffixes
+        ceoName = ceoName.replace(/^(Group\s+)?CEO[:\s,]+/i, '')
+        ceoName = ceoName.replace(/[,\s]+(Group\s+)?CEO.*$/i, '')
+        ceoName = ceoName.replace(/^(Chief\s+Executive\s+Officer)[:\s,]+/i, '')
+        ceoName = ceoName.replace(/[,\s]+Chief\s+Executive\s+Officer.*$/i, '')
+        ceoName = ceoName.trim()
+        
+        // Validate CEO name - reject placeholder names, titles, and former/ex-CEOs
         const lowerName = ceoName.toLowerCase()
-        if (!lowerName.match(/^(john doe|jane doe|test user|test name|example name|sample name|placeholder|demo|test|user|name|ceo name|company ceo|the ceo|our ceo)$/i) &&
-            ceoName.split(/\s+/).length >= 2) {
-          result.ceo = ceoName
+        const isPlaceholder = lowerName.match(/^(john doe|jane doe|test user|test name|example name|sample name|placeholder|demo|test|user|name|ceo name|company ceo|the ceo|our ceo|ceo|group ceo|chief executive officer|geschäftsführer|managing director)$/i)
+        
+        // Check if the name itself contains former/ex indicators
+        const nameHasFormerIndicator = lowerName.match(/(former|ex-|previous|retired|past|prior|outgoing|departed|stepped down|resigned|left)/i)
+        
+        // Also check the original extracted string for context
+        const originalLower = extracted.ceo.toLowerCase()
+        const originalHasFormerIndicator = originalLower.match(/(former|ex-|previous|retired|past|prior|outgoing|departed|stepped down|resigned|left|was|had been).*ceo|ceo.*(former|ex-|previous|retired|past|prior|outgoing|departed|stepped down|resigned|left|was|had been)/i)
+        
+        const isFormerCEO = nameHasFormerIndicator || originalHasFormerIndicator
+        const hasMultipleWords = ceoName.split(/\s+/).length >= 2
+        const hasValidNamePattern = /^[A-Z][a-z]+(\s+[A-Z][a-z]+)+/.test(ceoName) // At least FirstName LastName format
+        
+        if (!isPlaceholder && !isFormerCEO && hasMultipleWords && hasValidNamePattern) {
+          finalCeoName = ceoName
+          console.log(`[Crawler] ✅ Found CURRENT CEO name from LLM extraction: ${finalCeoName}`)
+        } else {
+          if (isFormerCEO) {
+            console.log(`[Crawler] ⚠️ Rejected former/ex-CEO name: ${ceoName} (indicator found in name or context)`)
+          } else {
+            console.log(`[Crawler] ⚠️ Rejected invalid CEO name from LLM: ${ceoName}`)
+          }
         }
+      }
+      
+      // Fallback to simple text search if LLM didn't find valid name
+      if (!finalCeoName && simpleCeoName) {
+        finalCeoName = simpleCeoName
+        console.log(`[Crawler] ✅ Using CEO name from simple text search: ${finalCeoName}`)
+      }
+      
+      if (finalCeoName) {
+        result.ceo = finalCeoName
       }
 
       if (extracted.founded && typeof extracted.founded === 'string') {

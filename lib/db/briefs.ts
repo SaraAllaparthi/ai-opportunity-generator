@@ -17,25 +17,67 @@ export async function ensureSchema() {
 export async function createBrief(data: Brief): Promise<{ id: string; share_slug: string }> {
   const shareSlug = crypto.randomUUID().slice(0, 8)
   
-  // Log competitor data before saving
+  // Validate competitor data structure before saving
+  const competitors = data.competitors || []
   console.log('[DB] Creating brief with competitors:', {
-    count: data.competitors?.length || 0,
-    competitors: data.competitors?.map(c => ({
+    count: competitors.length,
+    competitors: competitors.map(c => ({
       name: c.name,
+      website: c.website,
       hasHq: !!c.hq,
       hasSizeBand: !!c.size_band,
-      hasPositioning: !!c.positioning
-    })) || []
+      hasPositioning: !!c.positioning,
+      evidencePagesCount: c.evidence_pages?.length || 0,
+      hasSourceUrl: !!c.source_url
+    }))
   })
+  
+  // Validate each competitor has required fields
+  const invalidCompetitors = competitors.filter(c => {
+    const hasName = c.name && typeof c.name === 'string' && c.name.trim().length > 0
+    const hasWebsite = c.website && typeof c.website === 'string' && c.website.trim().length > 0
+    const hasEvidencePages = Array.isArray(c.evidence_pages) && c.evidence_pages.length > 0
+    return !hasName || !hasWebsite || !hasEvidencePages
+  })
+  
+  if (invalidCompetitors.length > 0) {
+    console.warn('[DB] ⚠️ Some competitors have missing required fields:', invalidCompetitors.map(c => ({
+      name: c.name || 'MISSING',
+      hasWebsite: !!c.website,
+      evidencePagesCount: c.evidence_pages?.length || 0
+    })))
+  }
+  
+  // Ensure data structure matches schema exactly
+  const briefData: Brief = {
+    ...data,
+    competitors: competitors.map(c => ({
+      name: String(c.name).trim(),
+      website: String(c.website).trim(),
+      hq: c.hq ? String(c.hq).trim() : undefined,
+      size_band: c.size_band ? String(c.size_band).trim() : undefined,
+      positioning: c.positioning ? String(c.positioning).trim().substring(0, 140) : undefined,
+      evidence_pages: Array.isArray(c.evidence_pages) && c.evidence_pages.length > 0
+        ? c.evidence_pages.map(url => String(url).trim())
+        : [c.website], // Fallback to website if evidence_pages is missing
+      source_url: c.source_url ? String(c.source_url).trim() : undefined
+    }))
+  }
   
   const { data: row, error } = await supabase
     .from('briefs')
-    .insert({ share_slug: shareSlug, data })
+    .insert({ share_slug: shareSlug, data: briefData })
     .select('id, share_slug')
     .single()
   
   if (error) {
     console.error('[DB] Error creating brief:', error)
+    console.error('[DB] Error details:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint
+    })
     throw error
   }
   
@@ -44,7 +86,25 @@ export async function createBrief(data: Brief): Promise<{ id: string; share_slug
     throw new Error('Failed to create brief')
   }
   
-  console.log('[DB] Brief created successfully:', { id: row.id, share_slug: row.share_slug })
+  // Verify the data was saved correctly by checking competitors
+  const { data: verifyRow } = await supabase
+    .from('briefs')
+    .select('data')
+    .eq('share_slug', shareSlug)
+    .single()
+  
+  if (verifyRow) {
+    const savedCompetitors = (verifyRow.data as any)?.competitors || []
+    console.log('[DB] ✅ Brief created successfully:', { 
+      id: row.id, 
+      share_slug: row.share_slug,
+      competitorsSaved: savedCompetitors.length,
+      competitorNames: savedCompetitors.map((c: any) => c.name)
+    })
+  } else {
+    console.warn('[DB] ⚠️ Brief created but verification query returned no data')
+  }
+  
   return { id: String(row.id), share_slug: String(row.share_slug) }
 }
 

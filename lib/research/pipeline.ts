@@ -1,9 +1,10 @@
 import { openaiSearch } from '@/lib/research/openaiResearch'
 import { llmGenerateJson } from '@/lib/providers/llm'
-import { perplexitySearchCompanyFacts, perplexitySearchCompetitorsSimple, perplexityResearchAIUseCases, findLocalCompetitors } from '@/lib/providers/perplexity'
+import { perplexitySearchCompanyFacts, perplexityResearchAIUseCases, findLocalCompetitors } from '@/lib/providers/perplexity'
 import { crawlCompanyWebsite } from '@/lib/research/crawler'
 import { Brief, BriefSchema, BriefInputSchema, UseCase } from '@/lib/schema/brief'
-import { dedupeUrls } from '@/lib/utils/citations'
+import { dedupeUrls, getDomain } from '@/lib/utils/citations'
+import { normalizeDomain, normalizeWebsite } from '@/lib/utils/url'
 
 export type CompetitorStrict = Brief['competitors'][number]
 
@@ -29,28 +30,12 @@ function stripProtocol(url: string) {
   return url.replace(/^https?:\/\//, '').replace(/\/$/, '')
 }
 
-function hostFromUrl(u: string): string {
-  try {
-    const h = new URL(u).hostname.toLowerCase()
-    return h.replace(/^www\./, '')
-  } catch {
-    return stripProtocol(u).toLowerCase().split('/')[0]
-  }
-}
-
-function normalizeDomain(url?: string) {
-    if (!url) return ''
-    try {
-      const u = new URL(url.startsWith('http') ? url : `https://${url}`)
-      return u.hostname.replace(/^www\./, '')
-    } catch {
-      return stripProtocol(url)
-    }
-  }
+// Use shared utility for hostname extraction
+const hostFromUrl = getDomain
 
   /** Optimized query builder - reduced to essential queries only */
   function buildQueries({ name, website }: PipelineInput): string[] {
-    const domain = stripProtocol(website)
+    const domain = normalizeDomain(website)
   
     return [
       // Essential company information (combined queries for speed)
@@ -113,8 +98,8 @@ function selectTopSnippets(all: ResearchSnippet[], input: PipelineInput, cap = 1
    ========================= */
 export async function runResearchPipeline(input: PipelineInput): Promise<{ brief: Brief; citations: string[] }> {
   const startTime = Date.now()
-  const PIPELINE_TIMEOUT_MS = 85000 // 85s timeout (5s buffer for final processing)
-  console.log('[Pipeline] Starting optimized research pipeline (90s target) for:', input)
+  const PIPELINE_TIMEOUT_MS = 90000 // 90 seconds timeout - optimized for speed
+  console.log('[Pipeline] Starting research pipeline (90s timeout) for:', input)
   
   // Create overall timeout promise
   const timeoutPromise = new Promise<never>((_, reject) => 
@@ -131,9 +116,9 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
     console.log('[Pipeline] Running all searches in parallel...')
     const searchPromises = queries.map(q => 
       openaiSearch(q, {
-        maxResults: 3,  // Reduced from 5 to 3 for speed
+        maxResults: 2,  // Reduced to 2 for speed
         searchDepth: 'basic',  // Changed from advanced to basic for speed
-        timeoutMs: 25000  // 25s max per search
+        timeoutMs: 15000  // 15s max per search (reduced for speed)
       }).catch(err => {
         console.error(`[Pipeline] Search failed for "${q}":`, err)
         return [] // Return empty on error - no fallbacks
@@ -141,8 +126,8 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
     )
     
     // Run Perplexity company facts search, website crawler, and AI use cases research in parallel with OpenAI searches
-    // Pass headquarters/country location for better CEO search
-    const perplexityFactsPromise = perplexitySearchCompanyFacts(input.name, input.website, input.headquartersHint)
+    // Pass company name, website, headquarters, and industry for comprehensive CEO search
+    const perplexityFactsPromise = perplexitySearchCompanyFacts(input.name, input.website, input.headquartersHint, input.industryHint)
       .catch(err => {
         console.error('[Pipeline] Perplexity company facts search failed:', err)
         return {} // Return empty on error - no fallbacks
@@ -154,30 +139,39 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
         return { pagesCrawled: [] } // Return empty on error - no fallbacks
       })
     
+    const searchStartTime = Date.now()
     const [searchResults, perplexityFacts, crawledData] = await Promise.all([
       Promise.all(searchPromises),
       perplexityFactsPromise,
       crawlerPromise
     ])
+    const searchDuration = Date.now() - searchStartTime
+    console.log(`[Pipeline] ⏱️ Parallel searches completed in ${searchDuration}ms (${(searchDuration / 1000).toFixed(1)}s)`)
     
     // Research industry-specific AI use cases using Perplexity (after we have industry info)
+    // SKIPPED for speed optimization - LLM can generate use cases from crawled data and context
+    // This saves ~20s and helps us hit the 90s target
     let perplexityUseCases: any[] = []
-    const useCaseIndustry = ('industry' in crawledData && crawledData.industry) ? crawledData.industry : input.industryHint
-    if (useCaseIndustry) {
-      try {
-        perplexityUseCases = await perplexityResearchAIUseCases(
-          input.name,
-          useCaseIndustry,
-          'businessDescription' in crawledData ? crawledData.businessDescription : undefined,
-          'products' in crawledData ? crawledData.products : undefined,
-          'services' in crawledData ? crawledData.services : undefined
-        )
-        console.log(`[Pipeline] Perplexity AI use cases research completed, found ${perplexityUseCases.length} use cases`)
-      } catch (err) {
-        console.error('[Pipeline] Perplexity AI use cases research failed:', err)
-        // Continue without Perplexity use cases
-      }
-    }
+    let useCaseDuration = 0
+    // Commented out to save time - LLM will generate use cases from context
+    // const useCaseIndustry = ('industry' in crawledData && crawledData.industry) ? crawledData.industry : input.industryHint
+    // if (useCaseIndustry) {
+    //   try {
+    //     const useCaseStartTime = Date.now()
+    //     perplexityUseCases = await perplexityResearchAIUseCases(
+    //       input.name,
+    //       useCaseIndustry,
+    //       'businessDescription' in crawledData ? crawledData.businessDescription : undefined,
+    //       'products' in crawledData ? crawledData.products : undefined,
+    //       'services' in crawledData ? crawledData.services : undefined
+    //     )
+    //     useCaseDuration = Date.now() - useCaseStartTime
+    //     console.log(`[Pipeline] ⏱️ Perplexity AI use cases research completed in ${useCaseDuration}ms (${(useCaseDuration / 1000).toFixed(1)}s), found ${perplexityUseCases.length} use cases`)
+    //   } catch (err) {
+    //     console.error('[Pipeline] Perplexity AI use cases research failed:', err)
+    //     // Continue without Perplexity use cases
+    //   }
+    // }
     
     console.log('[Pipeline] Perplexity company facts:', perplexityFacts)
     console.log('[Pipeline] Crawled website data:', {
@@ -222,13 +216,14 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
     ]
 
     const system = [
-    'You are an analyst writing for CEOs of companies with <500 employees.',
-    'Use plain, directive business language; be concise.',
-    'Do NOT invent or infer content. If there is no evidence, return an empty array for that section.',
-    'Company summary: Write a comprehensive 4-8 sentence overview (minimum 100 characters) that thoroughly describes: (1) what the company does and its core business model, (2) primary products/services and key capabilities, (3) target markets and customer base, (4) market position and competitive standing, (5) operational focus and key differentiators, (6) strategic direction if evident. Be specific and detailed based on the provided snippets. This is required, not optional.',
+    `You are a strategic advisor writing an executive AI Opportunity Brief for the CEO of ${input.name} (${input.website}).`,
+    `Company Context: ${input.name} operates in ${input.industryHint || 'their industry'} and is headquartered in ${input.headquartersHint || 'their location'}.`,
+    'Write in a direct, executive tone suitable for a CEO decision-maker. Be strategic, specific, and actionable.',
+    'CRITICAL: Use ONLY information from the provided snippets and crawledWebsiteData. Do NOT invent, infer, or use generic fallback information. If specific information is not available, omit that field rather than using generic placeholders.',
+    `Company summary: Write a comprehensive 4-8 sentence executive overview (minimum 100 characters) specifically about ${input.name} (${input.website}). Describe: (1) what ${input.name} does and its core business model, (2) primary products/services and key capabilities, (3) target markets and customer base, (4) market position in ${input.industryHint || 'their industry'}, (5) operational focus and key differentiators, (6) strategic direction if evident. Use crawledWebsiteData (businessDescription, products, services, targetMarkets) to ensure specificity. Be precise and detailed - this is a CEO-facing document about THIS specific company, not generic industry information.`,
     'Company facts: CRITICAL - Only include facts that are EXPLICITLY stated in the snippets. Do NOT estimate, infer, or guess. If information is not clearly stated, omit the field (return null/undefined). Size: ONLY include if snippets contain an explicit employee count (e.g., "50 employees", "100-200 employees", "150 Mitarbeiter") - search for exact phrases like "employees", "employee count", "workforce", "staffing", "headcount", "Mitarbeiter" followed by a number. Do NOT estimate from revenue or descriptions. Format as "X employees" or "X-Y employees" only if explicitly found. Founded: ONLY include if snippets contain an explicit founding/registration year (e.g., "founded in 1995", "established 2001", "registered 1987") - format as "Founded in YYYY" only if a specific year is mentioned. Do NOT infer or estimate the year. CEO: ONLY include if snippets explicitly state a person\'s name with a CEO/founder title (e.g., "John Smith, CEO", "Hans Müller, Geschäftsführer", "founder Jane Doe") - look for exact patterns like "CEO [Name]", "[Name], CEO", "Geschäftsführer [Name]", "[Name], founder". Do NOT infer names from context. Include industry sector, headquarters location, market position, and latest news only if explicitly stated in snippets.',
-    'Industry summary: Write one paragraph (MAXIMUM 300 characters, approximately 50 words) summarizing how intelligent automation, data analytics, and AI adoption are transforming the company\'s industry. Focus on business transformation and competitive advantage - not technical details. Explain how AI/ML/data-driven technologies are changing how companies operate, compete, and create value. Keep tone strategic and business-oriented for SMB leaders. CRITICAL: The summary must be 300 characters or less - count carefully.',
-    'Industry trends: Provide 4-5 industry-specific trends (max 200 characters each) that directly reference AI, machine learning, or data analytics technologies transforming the company\'s specific industry. Format each trend as "Trend Name: value-add description" where the value-add shows quantified business impact. Examples: "Predictive Maintenance: AI reduces unplanned downtime by 20-30%, cutting maintenance costs by 15%", "Demand Forecasting: ML models improve inventory accuracy by 25%, reducing stockouts and overstock", "Quality Control Automation: Computer vision detects defects 3x faster than manual inspection, improving quality by 10%", "Customer Churn Prediction: Data analytics identify at-risk customers 60 days earlier, enabling retention strategies that save 15% of revenue", "Supply Chain Optimization: AI optimizes logistics routes, reducing transportation costs by 12% and delivery times by 18%". Each trend must be specific to the company\'s industry (not generic), clearly show value-add (ROI, efficiency, cost savings, competitive advantage), and be actionable for SMB leaders. Keep tone strategic and business-focused.',
+    `Industry summary: Write one paragraph (MAXIMUM 300 characters, approximately 50 words) for the CEO of ${input.name} explaining how intelligent automation, data analytics, and AI adoption are transforming ${input.name}'s specific industry niche (${input.industryHint || 'their industry'}). CRITICAL: You MUST first analyze crawledWebsiteData (businessDescription, products, services, keyCapabilities, targetMarkets) to understand ${input.name}'s exact niche. Then write about how AI/ML is transforming THEIR specific business model, products/services, and market - NOT generic industry transformation. Focus on strategic business impact relevant to ${input.name}'s operations. Keep tone executive and business-focused. The summary must be exactly 300 characters or less.`,
+    `Industry trends: CRITICAL NICHE-SPECIFIC REQUIREMENT - You are writing for the CEO of ${input.name} (${input.website}) in ${input.industryHint || 'their industry'}, headquartered in ${input.headquartersHint || 'their location'}. You MUST first analyze crawledWebsiteData (businessDescription, products, services, keyCapabilities, targetMarkets) to understand ${input.name}'s exact niche. Then provide 4-5 AI/ML/data analytics trends (max 200 characters each) that are HIGHLY SPECIFIC to ${input.name}'s actual business activities. Format each as "Trend Name: quantified value-add for ${input.name}". Examples: If ${input.name} makes "precision components", trend should be "AI Quality Control for Precision Components: Computer vision detects defects 3x faster, improving quality by 10% and reducing scrap costs by CHF 80K annually". If they provide "logistics services", trend should be "AI Route Optimization for Logistics: Reduces fuel costs by 15% and improves on-time delivery by 25%". Each trend MUST directly relate to ${input.name}'s specific products/services/target markets from crawledWebsiteData - NOT generic industry trends. Show quantified business impact (ROI, cost savings, efficiency gains) relevant to ${input.name}'s operations. Executive tone, strategic focus.`,
     'Use-case titles must be Verb + Outcome (e.g., "Cut Scrap with AI QC").',
     'use_cases: CRITICAL - You MUST return EXACTLY 5 use cases. Count them carefully. If you have fewer than 5, create additional realistic use cases based on the company and industry. If you somehow have more than 5, return only the first 5. This is a hard requirement - the array must contain exactly 5 elements.',
     'All use_cases MUST include ALL numeric fields (est_annual_benefit, est_one_time_cost, est_ongoing_cost, payback_months); use 0 or reasonable estimates when uncertain. Every use case must have all four numeric fields present.',
@@ -261,11 +256,11 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
       'Company summary: MUST provide a comprehensive 4-8 sentence overview (minimum 100 characters) covering business model, products/services, target markets, market position, operations, and strategic focus. Be thorough and specific. This is required.',
       'Company facts: CRITICAL - Only include facts EXPLICITLY stated in snippets. Do NOT estimate or infer. Size: ONLY if snippets contain explicit employee count (e.g., "50 employees", "100-200 employees") - search for exact phrases with numbers. Do NOT estimate from revenue. Format as "X employees" or "X-Y employees" only if explicitly found, otherwise omit. Founded: ONLY if snippets contain explicit founding year (e.g., "founded in 1995", "established 2001") - format as "Founded in YYYY" only if specific year is mentioned. Do NOT infer the year. CEO: ONLY if snippets explicitly state a name with CEO/founder title (e.g., "John Smith, CEO", "Hans Müller, Geschäftsführer") - look for exact patterns. Do NOT infer names. Include industry, headquarters, market_position, latest_news only if explicitly stated.',
       'Include citations arrays (URLs) for each claim in sections. Citations default to [] if not provided.',
-      'Industry summary: MUST be one paragraph (MAXIMUM 300 characters, approximately 50 words) summarizing how intelligent automation, data analytics, and AI adoption are transforming the company\'s industry. Focus on business transformation and competitive advantage - strategic and business-oriented, not technical. CRITICAL: Count characters - the summary must be exactly 300 characters or less. If crawledWebsiteData is provided with businessDescription, products, services, or keyCapabilities, use this information to make the industry summary more specific and relevant to what the company actually does.',
-      'industry.trends: MUST provide 4-5 industry-specific AI/ML/data analytics trends (max 200 characters each) that are relevant to the company\'s specific industry. Format each as "Trend Name: value-add description" showing quantified business impact. Examples: "Predictive Maintenance: AI reduces unplanned downtime by 20-30%, cutting maintenance costs by 15%", "Demand Forecasting: ML models improve inventory accuracy by 25%, reducing stockouts and overstock", "Quality Control Automation: Computer vision detects defects 3x faster than manual inspection, improving quality by 10%". Each trend must be specific to the company\'s industry (not generic), show clear value-add (ROI, efficiency gains, cost savings, competitive advantage), and be actionable for SMB leaders. Focus on AI, machine learning, and data analytics technologies. If crawledWebsiteData is provided with products, services, or keyCapabilities, use this information to tailor trends to the company\'s actual business activities.',
+      `Industry summary: You are writing for the CEO of ${input.name} (${input.website}) in ${input.industryHint || 'their industry'}. MUST be one paragraph (MAXIMUM 300 characters) explaining how AI/ML is transforming ${input.name}'s specific industry niche. CRITICAL: First analyze crawledWebsiteData (businessDescription, products, services, keyCapabilities, targetMarkets) to understand ${input.name}'s exact niche. Then write about how AI/ML is transforming THEIR specific business model, products/services, and market - NOT generic industry transformation. Focus on strategic business impact for ${input.name}. Executive tone. Count characters - must be exactly 300 characters or less.`,
+      `industry.trends: CRITICAL - You are writing for the CEO of ${input.name} (${input.website}) in ${input.industryHint || 'their industry'}. You MUST first analyze crawledWebsiteData (businessDescription, products, services, keyCapabilities, targetMarkets) to understand ${input.name}'s exact niche. Then provide 4-5 AI/ML/data analytics trends (max 200 characters each) HIGHLY SPECIFIC to ${input.name}'s actual business activities. Format each as "Trend Name: quantified value-add for ${input.name}". Examples: If ${input.name} makes "precision components" (from crawledWebsiteData), trend should be "AI Quality Control for Precision Components: Computer vision detects defects 3x faster, improving quality by 10% and reducing scrap costs by CHF 80K annually". If they provide "logistics services" (from crawledWebsiteData), trend should be "AI Route Optimization for Logistics: Reduces fuel costs by 15% and improves on-time delivery by 25%". Each trend MUST directly relate to ${input.name}'s specific products/services/target markets from crawledWebsiteData - NOT generic industry trends. Show quantified business impact (ROI, cost savings, efficiency gains) relevant to ${input.name}'s operations. Executive tone, strategic focus.`,
       'competitors: ALWAYS return empty array []. Competitors are sourced from live search only, not LLM generation.',
-      'strategic_moves: CRITICAL - MUST have AT LEAST 3 items (minimum 3, maximum 5). Each must have: move (string), owner (string), horizon_quarters (integer 1-4), rationale (string). If you returned fewer than 3, create additional realistic strategic moves. Count them - must be at least 3.',
-      'use_cases: CRITICAL REQUIREMENT - You MUST return EXACTLY 5 use cases in the array. Count them before returning. This is a hard validation requirement - the array must have exactly 5 elements, no more, no less. Every use case must have ALL numeric fields present: est_annual_benefit, est_one_time_cost, est_ongoing_cost, payback_months (use 0 if uncertain). PRIORITY: If perplexityUseCases is provided, use those as the PRIMARY source for use cases - they are industry-specific, researched, and prioritized by ROI. Adapt them to the company\'s specific context using crawledWebsiteData (businessDescription, products, services, keyCapabilities). Make use cases SPECIFIC to the company\'s industry and business operations, not generic. Focus on concrete value propositions and quantified benefits. If crawledWebsiteData is provided with businessDescription, products, services, or keyCapabilities, use this information to create use cases that are highly relevant to the company\'s actual business operations, products, and services. Make use cases specific to what the company does, not generic.',
+      `strategic_moves: CRITICAL - You are writing for the CEO of ${input.name} (${input.website}) in ${input.industryHint || 'their industry'}, headquartered in ${input.headquartersHint || 'their location'}. MUST have AT LEAST 3 strategic moves (minimum 3, maximum 5). Each move must be SPECIFIC to ${input.name}'s business context. Use crawledWebsiteData (businessDescription, products, services, targetMarkets) to inform strategic moves relevant to ${input.name}'s actual operations. Each move must have: move (string - specific action for ${input.name}), owner (string - who at ${input.name} owns it), horizon_quarters (integer 1-4), rationale (string - why this matters for ${input.name}'s business). Moves must be tailored to ${input.name}'s industry, size, and business model - NOT generic strategic moves.`,
+      `use_cases: CRITICAL REQUIREMENT - You are writing for the CEO of ${input.name} (${input.website}) in ${input.industryHint || 'their industry'}. You MUST return EXACTLY 5 use cases. Every use case must have ALL numeric fields: est_annual_benefit, est_one_time_cost, est_ongoing_cost, payback_months. CRITICAL: You MUST first analyze crawledWebsiteData (businessDescription, products, services, keyCapabilities, targetMarkets) to understand ${input.name}'s exact niche. PRIORITY: If perplexityUseCases is provided, use those as PRIMARY source, but ADAPT them to be HIGHLY SPECIFIC to ${input.name}'s actual business. Example: If ${input.name} makes "precision medical devices" (from crawledWebsiteData), use case must be "AI Quality Control for Precision Medical Device Manufacturing at ${input.name}" not generic "AI quality control". If they provide "B2B logistics" (from crawledWebsiteData), use case must be "AI Route Optimization for ${input.name}'s B2B Logistics Operations" not generic "AI logistics". Each use case title must reference ${input.name}'s specific products/services/processes from crawledWebsiteData. Value propositions must be quantified and directly relevant to ${input.name}'s operations. NO generic use cases - all must be tailored to ${input.name}'s niche.`,
       'If a section lacks evidence, return [] for that section (no filler).'
       ]
     })
@@ -277,10 +272,13 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
     console.log('[Pipeline] - User payload (preview):', userPayload.substring(0, 500))
 
     /* 4) Generate JSON - single attempt, no retries for speed */
+    const llmStartTime = Date.now()
     console.log('[Pipeline] Calling LLM for brief generation...')
     const json = await llmGenerateJson(system, userPayload, { 
-      timeoutMs: 60000  // Reduced from 180s to 60s
+      timeoutMs: 60000  // 60s for brief generation (optimized for 90s total)
     })
+    const llmDuration = Date.now() - llmStartTime
+    console.log(`[Pipeline] ⏱️ LLM generation completed in ${llmDuration}ms (${(llmDuration / 1000).toFixed(1)}s)`)
     console.log('[Pipeline] LLM returned JSON, validating with input schema...')
     
     // Ensure exactly 5 use cases before validation
@@ -354,18 +352,67 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
       console.log(`[Pipeline] Truncated strategic_moves array to 5 items`)
     }
     
+    // Valid value_driver values
+    const validValueDrivers = ['revenue', 'cost', 'risk', 'speed', 'quality'] as const
+    type ValidValueDriver = typeof validValueDrivers[number]
+    
+    // Normalize invalid value_driver values
+    const normalizeValueDriver = (value: any): ValidValueDriver => {
+      if (!value || typeof value !== 'string') return 'cost'
+      const lower = value.toLowerCase().trim()
+      
+      // Direct match
+      if (validValueDrivers.includes(lower as ValidValueDriver)) {
+        return lower as ValidValueDriver
+      }
+      
+      // Map common invalid values to valid ones
+      const mapping: Record<string, ValidValueDriver> = {
+        'customer satisfaction': 'quality',
+        'satisfaction': 'quality',
+        'customer': 'quality',
+        'efficiency': 'cost',
+        'productivity': 'cost',
+        'performance': 'speed',
+        'accuracy': 'quality',
+        'reliability': 'risk',
+        'safety': 'risk',
+        'security': 'risk',
+        'growth': 'revenue',
+        'sales': 'revenue',
+        'profit': 'revenue'
+      }
+      
+      if (mapping[lower]) {
+        console.log(`[Pipeline] Normalizing value_driver "${value}" to "${mapping[lower]}"`)
+        return mapping[lower]
+      }
+      
+      // Default fallback
+      console.warn(`[Pipeline] Unknown value_driver "${value}", defaulting to "cost"`)
+      return 'cost'
+    }
+    
     // Ensure all numeric fields are present and convert null string fields to defaults
-    json.use_cases = json.use_cases.map((uc: any) => ({
-      ...uc,
-      est_annual_benefit: typeof uc.est_annual_benefit === 'number' ? uc.est_annual_benefit : 0,
-      est_one_time_cost: typeof uc.est_one_time_cost === 'number' ? uc.est_one_time_cost : 0,
-      est_ongoing_cost: typeof uc.est_ongoing_cost === 'number' ? uc.est_ongoing_cost : 0,
-      payback_months: typeof uc.payback_months === 'number' ? uc.payback_months : 0,
-      data_requirements: (uc.data_requirements && typeof uc.data_requirements === 'string') ? uc.data_requirements : 'TBD',
-      risks: (uc.risks && typeof uc.risks === 'string') ? uc.risks : 'TBD',
-      next_steps: (uc.next_steps && typeof uc.next_steps === 'string') ? uc.next_steps : 'TBD',
-      citations: Array.isArray(uc.citations) ? uc.citations : []
-    }))
+    json.use_cases = json.use_cases.map((uc: any, index: number) => {
+      const normalizedValueDriver = normalizeValueDriver(uc.value_driver)
+      if (uc.value_driver !== normalizedValueDriver) {
+        console.log(`[Pipeline] Fixed use case ${index} value_driver: "${uc.value_driver}" -> "${normalizedValueDriver}"`)
+      }
+      
+      return {
+        ...uc,
+        value_driver: normalizedValueDriver,
+        est_annual_benefit: typeof uc.est_annual_benefit === 'number' ? uc.est_annual_benefit : 0,
+        est_one_time_cost: typeof uc.est_one_time_cost === 'number' ? uc.est_one_time_cost : 0,
+        est_ongoing_cost: typeof uc.est_ongoing_cost === 'number' ? uc.est_ongoing_cost : 0,
+        payback_months: typeof uc.payback_months === 'number' ? uc.payback_months : 0,
+        data_requirements: (uc.data_requirements && typeof uc.data_requirements === 'string') ? uc.data_requirements : 'TBD',
+        risks: (uc.risks && typeof uc.risks === 'string') ? uc.risks : 'TBD',
+        next_steps: (uc.next_steps && typeof uc.next_steps === 'string') ? uc.next_steps : 'TBD',
+        citations: Array.isArray(uc.citations) ? uc.citations : []
+      }
+    })
     
     // Truncate industry summary if it exceeds 300 characters before validation
     if (json.industry?.summary && json.industry.summary.length > 300) {
@@ -375,12 +422,25 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
     
     // Normalize null values to undefined for optional fields (Zod doesn't accept null for optional fields)
     // Convert null to undefined for all optional company fields
+    // Also normalize arrays to strings for fields that should be strings
     if (json.company) {
       if (json.company.size === null) json.company.size = undefined
       if (json.company.founded === null) json.company.founded = undefined
       if (json.company.ceo === null) json.company.ceo = undefined
       if (json.company.market_position === null) json.company.market_position = undefined
-      if (json.company.latest_news === null) json.company.latest_news = undefined
+      
+      // Normalize latest_news: if it's an array, join it or take first element
+      if (Array.isArray(json.company.latest_news)) {
+        if (json.company.latest_news.length > 0) {
+          json.company.latest_news = json.company.latest_news[0] || json.company.latest_news.join('. ')
+        } else {
+          json.company.latest_news = undefined
+        }
+        console.log('[Pipeline] Normalized latest_news from array to string')
+      } else if (json.company.latest_news === null) {
+        json.company.latest_news = undefined
+      }
+      
       if (json.company.industry === null) json.company.industry = undefined
       if (json.company.headquarters === null) json.company.headquarters = undefined
     }
@@ -392,22 +452,51 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
     
     // Validate and clean company facts - ensure they're only included if explicitly found
     if (json.company) {
-      // Size: Must contain explicit employee count pattern, otherwise remove
+      // Size: Accept any valid employee count pattern, including large numbers
       if (json.company.size) {
-        const sizeStr = String(json.company.size).toLowerCase()
-        // Check if it contains explicit employee count pattern
-        if (!sizeStr.match(/\d+[\s-]*(?:employees?|mitarbeiter|staff|workforce|headcount|people)/i)) {
-          console.log(`[Pipeline] Removing invalid size field: ${json.company.size} (no explicit employee count found)`)
+        const sizeStr = String(json.company.size).trim()
+        
+        // Check if it contains explicit employee count pattern - accept any valid format
+        // Pattern matches: "100 employees", "10,000 employees", "100,000+ employees", "50-200 employees", etc.
+        if (!sizeStr.match(/\d+[\d,\s-]*(?:\+)?\s*(?:employees?|mitarbeiter|staff|workforce|headcount|people)/i)) {
+          console.log(`[Pipeline] Removing invalid size field: ${json.company.size} (no explicit employee count pattern found)`)
           json.company.size = undefined
         } else {
-          // Ensure format is correct
-          const match = sizeStr.match(/(\d+)(?:\s*-\s*(\d+))?\s*(?:employees?|mitarbeiter|staff|workforce|headcount|people)/i)
-          if (match) {
-            if (match[2]) {
-              json.company.size = `${match[1]}-${match[2]} employees`
+          // Remove commas and "+" for parsing, but preserve original format
+          const cleanedStr = sizeStr.replace(/,/g, '').replace(/\+/g, '').toLowerCase()
+          
+          // Extract number(s) - handle both ranges and single numbers
+          // Accept any number > 0 (including very large numbers like 100000)
+          const match = cleanedStr.match(/(\d+)(?:\s*-\s*(\d+))?\s*(?:employees?|mitarbeiter|staff|workforce|headcount|people)/i)
+          if (match && match[1]) {
+            const num1 = parseInt(match[1], 10)
+            // Only reject if it's actually 0 or NaN
+            if (num1 === 0 || isNaN(num1)) {
+              console.log(`[Pipeline] Removing invalid size field: ${json.company.size} (number is 0 or invalid: ${match[1]})`)
+              json.company.size = undefined
+            } else if (match[2]) {
+              const num2 = parseInt(match[2], 10)
+              if (num2 === 0 || isNaN(num2) || num2 < num1) {
+                console.log(`[Pipeline] Removing invalid size field: ${json.company.size} (invalid range)`)
+                json.company.size = undefined
+              } else {
+                // Format with commas for readability if large (preserve original if it had commas)
+                const hasCommas = sizeStr.includes(',')
+                const formatted1 = hasCommas && num1 >= 1000 ? num1.toLocaleString() : num1.toString()
+                const formatted2 = hasCommas && num2 >= 1000 ? num2.toLocaleString() : num2.toString()
+                json.company.size = `${formatted1}-${formatted2} employees`
+              }
             } else {
-              json.company.size = `${match[1]} employees`
+              // Format with commas for readability if large (preserve original if it had commas)
+              const hasCommas = sizeStr.includes(',')
+              const hasPlus = sizeStr.includes('+')
+              const formatted = hasCommas && num1 >= 1000 ? num1.toLocaleString() : num1.toString()
+              json.company.size = `${formatted}${hasPlus ? '+' : ''} employees`
             }
+          } else {
+            // If we can't parse it but it matches the pattern, keep it as-is (might be a special format)
+            console.log(`[Pipeline] Keeping size as-is (matches pattern but couldn't parse numbers): ${json.company.size}`)
+            // Keep the original size string
           }
         }
       }
@@ -427,8 +516,8 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
         }
       }
       
-      // CEO: Only remove if clearly invalid (generic terms, placeholder names, not a name)
-      // Always preserve CEO information if it looks like a real name
+      // CEO: Only remove if clearly invalid (generic terms, placeholder names, former/ex-CEOs, not a name)
+      // Always preserve CEO information if it looks like a real name and is current CEO
       if (json.company.ceo) {
         const ceoStr = String(json.company.ceo).trim()
         const lowerStr = ceoStr.toLowerCase()
@@ -446,6 +535,11 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
         // Reject if it's just "CEO" or similar with no actual name
         else if (lowerStr.match(/^(ceo|chief executive|chief executive officer|group ceo|managing director)$/i)) {
           console.log(`[Pipeline] Removing invalid CEO field: ${json.company.ceo} (title only, no name)`)
+          json.company.ceo = undefined
+        }
+        // CRITICAL: Reject former/ex-CEOs - only accept current CEOs
+        else if (lowerStr.match(/(former|ex-|previous|retired|past|prior|outgoing|departed|stepped down|resigned|left).*ceo|ceo.*(former|ex-|previous|retired|past|prior|outgoing|departed|stepped down|resigned|left)/i)) {
+          console.log(`[Pipeline] Removing former/ex-CEO: ${json.company.ceo} (not current CEO)`)
           json.company.ceo = undefined
         }
         // Accept if it looks like a real name (has at least 2 words, reasonable length)
@@ -535,74 +629,8 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
     // Ensure competitors array is empty (live search will populate it)
     parsed.competitors = []
     
-    // Override company facts with Perplexity results if available (more accurate)
-    // Always use Perplexity results if found - they're more reliable from company websites
-    // But preserve LLM-generated CEO if Perplexity doesn't find one
-    if (perplexityFacts && typeof perplexityFacts === 'object') {
-      if ('ceo' in perplexityFacts && perplexityFacts.ceo && typeof perplexityFacts.ceo === 'string' && perplexityFacts.ceo.trim().length > 0) {
-        const ceoName = perplexityFacts.ceo.trim()
-        const lowerName = ceoName.toLowerCase()
-        
-        // Reject generic terms, placeholder names, and titles without names
-        if (lowerName.match(/^(ceo|founder|chief|executive|director|manager|unknown|n\/a|tbd|not available|not found)$/i) ||
-            lowerName.match(/^(john doe|jane doe|test user|test name|example name|sample name|placeholder|demo|test|user|name|ceo name|company ceo|the ceo|our ceo)$/i) ||
-            lowerName.match(/^(ceo|chief executive|chief executive officer|group ceo|managing director)$/i)) {
-          console.log(`[Pipeline] Perplexity CEO result rejected (invalid): ${ceoName}, keeping LLM result if available`)
-          // Keep the LLM-generated CEO if Perplexity result is invalid (but only if LLM result is also valid)
-          if (parsed.company.ceo) {
-            const llmCeoLower = String(parsed.company.ceo).toLowerCase().trim()
-            // Also validate LLM CEO - if it's also invalid, remove it
-            if (llmCeoLower.match(/^(john doe|jane doe|test user|test name|example name|sample name|placeholder|demo|test|user|name|ceo name|company ceo|the ceo|our ceo)$/i)) {
-              console.log(`[Pipeline] LLM CEO is also invalid placeholder, removing: ${parsed.company.ceo}`)
-              parsed.company.ceo = undefined
-            }
-          }
-        } else if (ceoName.length <= 150 && ceoName.split(/\s+/).length >= 2) {
-          // Valid CEO name - use Perplexity result
-          parsed.company.ceo = ceoName
-          console.log(`[Pipeline] Overrode CEO with Perplexity result: ${ceoName}`)
-        } else {
-          console.log(`[Pipeline] Perplexity CEO result rejected (doesn't look like a real name): ${ceoName}`)
-          // Validate and potentially remove LLM CEO if it's also invalid
-          if (parsed.company.ceo) {
-            const llmCeoLower = String(parsed.company.ceo).toLowerCase().trim()
-            if (llmCeoLower.match(/^(john doe|jane doe|test user|test name|example name|sample name|placeholder|demo|test|user|name|ceo name|company ceo|the ceo|our ceo)$/i)) {
-              console.log(`[Pipeline] LLM CEO is also invalid placeholder, removing: ${parsed.company.ceo}`)
-              parsed.company.ceo = undefined
-            }
-          }
-        }
-      } else {
-        // Perplexity didn't find CEO, but validate LLM-generated one if it exists
-        if (parsed.company.ceo) {
-          const llmCeoLower = String(parsed.company.ceo).toLowerCase().trim()
-          // Check if LLM CEO is a placeholder name
-          if (llmCeoLower.match(/^(john doe|jane doe|test user|test name|example name|sample name|placeholder|demo|test|user|name|ceo name|company ceo|the ceo|our ceo)$/i)) {
-            console.log(`[Pipeline] LLM CEO is invalid placeholder, removing: ${parsed.company.ceo}`)
-            parsed.company.ceo = undefined
-          } else {
-            console.log(`[Pipeline] Perplexity didn't find CEO, preserving LLM-generated: ${parsed.company.ceo}`)
-          }
-        }
-      }
-      if ('founded' in perplexityFacts && perplexityFacts.founded && typeof perplexityFacts.founded === 'string') {
-        const foundedStr = perplexityFacts.founded.trim()
-        const yearMatch = foundedStr.match(/\b(19|20)\d{2}\b/)
-        if (yearMatch) {
-          parsed.company.founded = `Founded in ${yearMatch[0]}`
-          console.log(`[Pipeline] Overrode founded year with Perplexity result: ${yearMatch[0]}`)
-        }
-      }
-      if ('size' in perplexityFacts && perplexityFacts.size && typeof perplexityFacts.size === 'string') {
-        const sizeStr = perplexityFacts.size.trim().toLowerCase()
-        if (sizeStr.match(/\d+[\s-]*(?:employees?|mitarbeiter|staff|workforce|headcount|people)/i)) {
-          parsed.company.size = perplexityFacts.size.trim()
-          console.log(`[Pipeline] Overrode size with Perplexity result: ${perplexityFacts.size}`)
-        }
-      }
-    }
-    
-    // Override company facts with crawled website data if available (most reliable - direct from company website)
+    // Priority order for company facts: 1) Crawled Website Data (most reliable), 2) Perplexity Search, 3) LLM-generated
+    // First, use crawled website data if available (directly from company website - most accurate)
     if (crawledData && crawledData.pagesCrawled.length > 0) {
       // CEO: Use crawled data if valid (crawled data is most reliable as it's from company website)
       if ('ceo' in crawledData && crawledData.ceo && typeof crawledData.ceo === 'string' && crawledData.ceo.trim().length > 0) {
@@ -612,7 +640,7 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
         if (!lowerName.match(/^(john doe|jane doe|test user|test name|example name|sample name|placeholder|demo|test|user|name|ceo name|company ceo|the ceo|our ceo)$/i) &&
             ceoName.split(/\s+/).length >= 2) {
           parsed.company.ceo = ceoName
-          console.log(`[Pipeline] Overrode CEO with crawled website data: ${ceoName}`)
+          console.log(`[Pipeline] ✅ Using CEO from crawled website data (highest priority): ${ceoName}`)
         }
       }
       
@@ -621,7 +649,7 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
         const yearMatch = crawledData.founded.match(/\b(19|20)\d{2}\b/)
         if (yearMatch) {
           parsed.company.founded = `Founded in ${yearMatch[0]}`
-          console.log(`[Pipeline] Overrode founded year with crawled website data: ${yearMatch[0]}`)
+          console.log(`[Pipeline] ✅ Using founded year from crawled website data: ${yearMatch[0]}`)
         }
       }
       
@@ -630,10 +658,85 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
         const sizeStr = crawledData.size.trim().toLowerCase()
         if (sizeStr.match(/\d+[\s-]*(?:employees?|mitarbeiter|staff|workforce|headcount|people)/i)) {
           parsed.company.size = crawledData.size.trim()
-          console.log(`[Pipeline] Overrode size with crawled website data: ${crawledData.size}`)
+          console.log(`[Pipeline] ✅ Using size from crawled website data: ${crawledData.size}`)
         }
       }
-      
+    }
+    
+    // Second, validate and compare Perplexity results with website data
+    // If we have CEO from website, compare with Perplexity to ensure accuracy
+    if (perplexityFacts && typeof perplexityFacts === 'object') {
+      // CEO: Compare website CEO with Perplexity CEO for validation
+      if (parsed.company.ceo) {
+        // We have CEO from website - validate it matches Perplexity if Perplexity found one
+        if ('ceo' in perplexityFacts && perplexityFacts.ceo && typeof perplexityFacts.ceo === 'string') {
+          const websiteCeo = parsed.company.ceo.trim().toLowerCase()
+          const perplexityCeo = perplexityFacts.ceo.trim().toLowerCase()
+          
+          // Simple comparison: check if names are similar (same last name or significant overlap)
+          const websiteWords = websiteCeo.split(/\s+/)
+          const perplexityWords = perplexityCeo.split(/\s+/)
+          const lastNamesMatch = websiteWords[websiteWords.length - 1] === perplexityWords[perplexityWords.length - 1]
+          const hasSignificantOverlap = websiteWords.some(w => perplexityWords.includes(w)) && 
+                                       perplexityWords.some(w => websiteWords.includes(w))
+          
+          if (lastNamesMatch || hasSignificantOverlap) {
+            console.log(`[Pipeline] ✅ Website CEO (${parsed.company.ceo}) matches Perplexity CEO (${perplexityFacts.ceo}) - validated`)
+          } else {
+            console.log(`[Pipeline] ⚠️ Website CEO (${parsed.company.ceo}) differs from Perplexity CEO (${perplexityFacts.ceo}) - using website version`)
+          }
+        }
+      } else if ('ceo' in perplexityFacts && perplexityFacts.ceo && typeof perplexityFacts.ceo === 'string' && perplexityFacts.ceo.trim().length > 0) {
+        // No CEO from website - use Perplexity as fallback, but validate carefully
+        const ceoName = perplexityFacts.ceo.trim()
+        const lowerName = ceoName.toLowerCase()
+
+        // Reject generic terms, placeholder names, and titles without names
+        if (lowerName.match(/^(ceo|founder|chief|executive|director|manager|unknown|n\/a|tbd|not available|not found)$/i) ||
+            lowerName.match(/^(john doe|jane doe|test user|test name|example name|sample name|placeholder|demo|test|user|name|ceo name|company ceo|the ceo|our ceo)$/i) ||
+            lowerName.match(/^(ceo|chief executive|chief executive officer|group ceo|managing director)$/i)) {
+          console.log(`[Pipeline] Perplexity CEO result rejected (invalid): ${ceoName}`)
+        } else if (ceoName.length <= 150 && ceoName.split(/\s+/).length >= 2 && /^[A-Z][a-z]+(\s+[A-Z][a-z]+)+/.test(ceoName)) {
+          // Valid CEO name - use Perplexity result as fallback
+          parsed.company.ceo = ceoName
+          console.log(`[Pipeline] ⚠️ Using CEO from Perplexity (fallback, website didn't have it): ${ceoName}`)
+        } else {
+          console.log(`[Pipeline] Perplexity CEO result rejected (doesn't look like a real name): ${ceoName}`)
+        }
+      } else if (!parsed.company.ceo) {
+        // No CEO from website or Perplexity - validate LLM-generated one if it exists
+        if (parsed.company.ceo) {
+          const llmCeoLower = String(parsed.company.ceo).toLowerCase().trim()
+          // Check if LLM CEO is a placeholder name
+          if (llmCeoLower.match(/^(john doe|jane doe|test user|test name|example name|sample name|placeholder|demo|test|user|name|ceo name|company ceo|the ceo|our ceo)$/i)) {
+            console.log(`[Pipeline] LLM CEO is invalid placeholder, removing: ${parsed.company.ceo}`)
+            parsed.company.ceo = undefined
+          } else {
+            console.log(`[Pipeline] Using LLM-generated CEO (last resort): ${parsed.company.ceo}`)
+          }
+        }
+      }
+      // Founded: Only use Perplexity if we don't already have founded year from crawled website
+      if (!parsed.company.founded && 'founded' in perplexityFacts && perplexityFacts.founded && typeof perplexityFacts.founded === 'string') {
+        const foundedStr = perplexityFacts.founded.trim()
+        const yearMatch = foundedStr.match(/\b(19|20)\d{2}\b/)
+        if (yearMatch) {
+          parsed.company.founded = `Founded in ${yearMatch[0]}`
+          console.log(`[Pipeline] ⚠️ Using founded year from Perplexity (fallback, website didn't have it): ${yearMatch[0]}`)
+        }
+      }
+      // Size: Only use Perplexity if we don't already have size from crawled website
+      if (!parsed.company.size && 'size' in perplexityFacts && perplexityFacts.size && typeof perplexityFacts.size === 'string') {
+        const sizeStr = perplexityFacts.size.trim().toLowerCase()
+        if (sizeStr.match(/\d+[\s-]*(?:employees?|mitarbeiter|staff|workforce|headcount|people)/i)) {
+          parsed.company.size = perplexityFacts.size.trim()
+          console.log(`[Pipeline] ⚠️ Using size from Perplexity (fallback, website didn't have it): ${perplexityFacts.size}`)
+        }
+      }
+    }
+    
+    // Additional company facts from crawled website data (CEO/founded/size already handled above with highest priority)
+    if (crawledData && crawledData.pagesCrawled.length > 0) {
       // Headquarters: Use crawled data if available
       if ('headquarters' in crawledData && crawledData.headquarters && typeof crawledData.headquarters === 'string' && crawledData.headquarters.trim()) {
         parsed.company.headquarters = crawledData.headquarters.trim()
@@ -662,79 +765,266 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
     // NEW: Use comprehensive competitor search with crawled data
     console.log('[Pipeline] 🔍 Starting NEW comprehensive competitor search using crawled data')
     
+    // CRITICAL: Check prerequisites before attempting search
+    const crawled = crawledData as any
+    const industry = parsed.company?.industry || crawled?.industry || input.industryHint || undefined
+    const headquarters = parsed.company?.headquarters || crawled?.headquarters || input.headquartersHint || undefined
+    
+    console.log('[Pipeline] Competitor search prerequisites check:', {
+      hasIndustry: !!industry,
+      hasHeadquarters: !!headquarters,
+      industry: industry,
+      headquarters: headquarters,
+      hasCrawledData: crawledData.pagesCrawled.length > 0,
+      inputIndustryHint: input.industryHint,
+      inputHeadquartersHint: input.headquartersHint
+    })
+    
+    // Always proceed with competitor search - use fallbacks if industry/headquarters are missing
+    // For large companies, we can still find competitors using company name and website
+    if (!industry && !headquarters) {
+      console.warn('[Pipeline] ⚠️ WARNING: Missing both industry and headquarters, but proceeding with search using company name and website')
+      console.warn('[Pipeline] This may result in less targeted results, but we will still attempt to find competitors')
+    }
+    
+    // Proceed with search (removed the else block - always search)
     try {
-      // Prepare crawled data for competitor search
-      // Use type assertion since we know the structure from the crawler
-      const crawled = crawledData as any
-      const crawledCompetitorData = {
-        industry: parsed.company?.industry || crawled?.industry || input.industryHint,
-        headquarters: parsed.company?.headquarters || crawled?.headquarters || input.headquartersHint,
-        businessDescription: crawled?.businessDescription,
-        products: crawled?.products,
-        services: crawled?.services,
-        targetMarkets: crawled?.targetMarkets
-      }
+        // Prepare crawled data for competitor search
+        const crawledCompetitorData = {
+          industry: industry,
+          headquarters: headquarters,
+          businessDescription: crawled?.businessDescription,
+          products: crawled?.products,
+          services: crawled?.services,
+          targetMarkets: crawled?.targetMarkets
+        }
+        
+        const companySize = parsed.company?.size || crawled?.size
+        
+        console.log('[Pipeline] Competitor search parameters:', {
+          companyName: input.name,
+          companyWebsite: input.website,
+          crawledData: {
+            industry: crawledCompetitorData.industry,
+            headquarters: crawledCompetitorData.headquarters,
+            hasBusinessDesc: !!crawledCompetitorData.businessDescription,
+            productsCount: crawledCompetitorData.products?.length || 0,
+            servicesCount: crawledCompetitorData.services?.length || 0,
+            targetMarketsCount: crawledCompetitorData.targetMarkets?.length || 0
+          },
+          companySize
+        })
+        
+        // Use the new comprehensive competitor search function
+        const competitorSearchStartTime = Date.now()
+        console.log('[Pipeline] Calling findLocalCompetitors...')
+        const competitors = await findLocalCompetitors(
+          input.name,
+          input.website,
+          crawledCompetitorData,
+          companySize
+        )
+        const competitorSearchDuration = Date.now() - competitorSearchStartTime
+        console.log(`[Pipeline] ⏱️ Competitor search completed in ${competitorSearchDuration}ms (${(competitorSearchDuration / 1000).toFixed(1)}s)`)
+        
+        console.log('[Pipeline] findLocalCompetitors returned:', {
+          count: competitors.length,
+          competitors: competitors.map(c => ({ name: c.name, website: c.website }))
+        })
       
-      const companySize = parsed.company?.size || crawled?.size
-      
-      console.log('[Pipeline] Competitor search parameters:', {
-        companyName: input.name,
-        companyWebsite: input.website,
-        crawledData: {
-          industry: crawledCompetitorData.industry,
-          headquarters: crawledCompetitorData.headquarters,
-          hasBusinessDesc: !!crawledCompetitorData.businessDescription,
-          productsCount: crawledCompetitorData.products?.length || 0,
-          servicesCount: crawledCompetitorData.services?.length || 0,
-          targetMarketsCount: crawledCompetitorData.targetMarkets?.length || 0
-        },
-        companySize
-      })
-      
-      // Use the new comprehensive competitor search function
-      const competitors = await findLocalCompetitors(
-        input.name,
-        input.website,
-        crawledCompetitorData,
-        companySize
-      )
-      
-      console.log(`[Pipeline] ✅ NEW comprehensive competitor search completed, found ${competitors.length} competitors`)
-      
-      if (competitors.length === 0) {
-        console.warn('[Pipeline] ⚠️ No competitors returned from comprehensive search')
-        console.warn('[Pipeline] This may indicate:')
-        console.warn('[Pipeline]   1. No competitors found in the same industry and country')
-        console.warn('[Pipeline]   2. All results were filtered out during validation')
-        console.warn('[Pipeline]   3. Search parameters were too restrictive')
-      } else {
-        console.log('[Pipeline] ✅ Competitors found:', competitors.map(c => c.name))
-      }
-      
-      // Map to CompetitorStrict format (schema-compatible)
-      parsed.competitors = competitors.map(c => ({
-        name: c.name,
-        website: c.website,
-        hq: c.hq,
-        size_band: c.size_band,
-        positioning: c.positioning,
-        evidence_pages: c.evidence_pages || [],
-        source_url: c.source_url
-      }))
+        console.log(`[Pipeline] ✅ NEW comprehensive competitor search completed, found ${competitors.length} competitors`)
+        
+        if (competitors.length === 0) {
+          console.warn('[Pipeline] ⚠️ No competitors returned from comprehensive search')
+          console.warn('[Pipeline] This may indicate:')
+          console.warn('[Pipeline]   1. No competitors found in the same industry and country')
+          console.warn('[Pipeline]   2. All results were filtered out during validation')
+          console.warn('[Pipeline]   3. Search parameters were too restrictive')
+          console.warn('[Pipeline]   4. Perplexity API returned no results or error')
+        } else {
+          console.log('[Pipeline] ✅ Competitors found:', competitors.map(c => c.name))
+        }
+        
+        // Map to CompetitorStrict format (schema-compatible)
+        // Ensure evidence_pages is always a valid array with at least one URL
+        parsed.competitors = competitors.map((c, index) => {
+          console.log(`[Pipeline] Processing competitor ${index}:`, {
+            name: c.name,
+            website: c.website,
+            hasEvidencePages: Array.isArray(c.evidence_pages) && c.evidence_pages.length > 0,
+            evidencePagesCount: c.evidence_pages?.length || 0,
+            rawEvidencePages: c.evidence_pages
+          })
           
-      console.log(`[Pipeline] Final competitors (${parsed.competitors.length}):`, 
+          // Ensure evidence_pages is valid - must have at least website
+          let evidencePages: string[] = []
+          
+          if (c.evidence_pages && Array.isArray(c.evidence_pages) && c.evidence_pages.length > 0) {
+            // Filter and normalize URLs
+            evidencePages = c.evidence_pages
+              .filter((url: string) => url && typeof url === 'string' && url.trim().length > 0)
+              .map((url: string) => {
+                try {
+                  // Normalize URL using shared utility
+                  return normalizeWebsite(url)
+                } catch (err) {
+                  console.warn(`[Pipeline] Failed to normalize evidence URL: ${url}`, err)
+                  return null
+                }
+              })
+              .filter((url: string | null): url is string => url !== null && url.length > 0)
+          }
+          
+          // Ensure we have at least one valid URL - use website as fallback
+          if (evidencePages.length === 0) {
+            if (c.website) {
+              try {
+                const normalizedWebsite = normalizeWebsite(c.website)
+                evidencePages.push(normalizedWebsite)
+                console.log(`[Pipeline] Using website as evidence_pages for ${c.name}: ${normalizedWebsite}`)
+              } catch (err) {
+                console.error(`[Pipeline] ❌ Failed to normalize website for ${c.name}: ${c.website}`, err)
+              }
+            } else {
+              console.error(`[Pipeline] ❌ Competitor ${c.name} has no website and no evidence_pages!`)
+            }
+          }
+          
+          // Normalize website URL
+          let normalizedWebsite = c.website
+          try {
+            normalizedWebsite = normalizeWebsite(c.website)
+          } catch (err) {
+            console.error(`[Pipeline] ❌ Failed to normalize website for ${c.name}: ${c.website}`, err)
+          }
+          
+          // Validate URLs are actually valid
+          const isValidUrl = (url: string): boolean => {
+            try {
+              new URL(url)
+              return true
+            } catch {
+              return false
+            }
+          }
+          
+          // Filter out invalid URLs from evidence_pages
+          const validEvidencePages = evidencePages.filter(isValidUrl)
+          
+          if (validEvidencePages.length === 0) {
+            console.error(`[Pipeline] ❌ Competitor ${c.name} has no valid evidence_pages URLs!`)
+            console.error(`[Pipeline] Original evidence_pages:`, evidencePages)
+          }
+          
+          // Normalize source_url if present
+          let normalizedSourceUrl: string | undefined = undefined
+          if (c.source_url) {
+            try {
+              normalizedSourceUrl = normalizeWebsite(c.source_url)
+              if (!isValidUrl(normalizedSourceUrl)) {
+                console.warn(`[Pipeline] Invalid source_url for ${c.name}: ${normalizedSourceUrl}`)
+                normalizedSourceUrl = undefined
+              }
+            } catch (err) {
+              console.warn(`[Pipeline] Failed to normalize source_url for ${c.name}: ${c.source_url}`, err)
+            }
+          }
+          
+          const competitor = {
+            name: c.name,
+            website: normalizedWebsite,
+            hq: c.hq,
+            size_band: c.size_band,
+            positioning: c.positioning,
+            evidence_pages: validEvidencePages.length > 0 ? validEvidencePages : (normalizedWebsite ? [normalizedWebsite] : []),
+            source_url: normalizedSourceUrl
+          }
+          
+          console.log(`[Pipeline] ✅ Processed competitor ${index} (${c.name}):`, {
+            name: competitor.name,
+            website: competitor.website,
+            evidencePagesCount: competitor.evidence_pages.length,
+            evidencePages: competitor.evidence_pages,
+            hasValidUrls: competitor.evidence_pages.every(isValidUrl)
+          })
+          
+          return competitor
+        })
+        
+        // Filter out competitors with invalid data
+        const validCompetitors = parsed.competitors.filter((c: any, index: number) => {
+          const isValid = c.name && 
+                         c.website && 
+                         Array.isArray(c.evidence_pages) && 
+                         c.evidence_pages.length > 0 &&
+                         c.evidence_pages.every((url: string) => {
+                           try {
+                             new URL(url)
+                             return true
+                           } catch {
+                             return false
+                           }
+                         })
+          
+          if (!isValid) {
+            console.error(`[Pipeline] ❌ Filtering out invalid competitor ${index}:`, {
+              name: c.name,
+              website: c.website,
+              evidencePagesCount: c.evidence_pages?.length || 0,
+              hasValidUrls: c.evidence_pages?.every((url: string) => {
+                try {
+                  new URL(url)
+                  return true
+                } catch {
+                  return false
+                }
+              }) || false
+            })
+          }
+          
+          return isValid
+        })
+        
+        parsed.competitors = validCompetitors
+          
+      console.log(`[Pipeline] Final competitors after validation (${parsed.competitors.length}):`, 
         parsed.competitors.map(c => ({ 
           name: c.name, 
           website: c.website,
           hq: c.hq,
-          size_band: c.size_band
+          size_band: c.size_band,
+          evidence_pages_count: c.evidence_pages?.length || 0,
+          evidence_pages: c.evidence_pages
         }))
       )
-    } catch (err) {
-      console.error('[Pipeline] Comprehensive competitor search failed:', err)
-      // No fallbacks - continue with empty competitors array
-      parsed.competitors = []
-    }
+      
+      // Validate each competitor before final validation
+      parsed.competitors.forEach((c: any, index: number) => {
+        if (!c.name || !c.website) {
+          console.error(`[Pipeline] ⚠️ Competitor ${index} missing required fields:`, c)
+        }
+        if (!c.evidence_pages || !Array.isArray(c.evidence_pages) || c.evidence_pages.length === 0) {
+          console.error(`[Pipeline] ⚠️ Competitor ${index} (${c.name}) missing evidence_pages:`, c)
+        }
+        // Validate URLs
+        c.evidence_pages?.forEach((url: string, urlIndex: number) => {
+          try {
+            new URL(url)
+          } catch (err) {
+            console.error(`[Pipeline] ⚠️ Competitor ${index} (${c.name}) has invalid URL at index ${urlIndex}: ${url}`)
+          }
+        })
+      })
+      } catch (err) {
+        console.error('[Pipeline] ❌ Comprehensive competitor search FAILED:', err)
+        console.error('[Pipeline] Error details:', {
+          message: err instanceof Error ? err.message : String(err),
+          stack: err instanceof Error ? err.stack : undefined,
+          name: err instanceof Error ? err.name : undefined
+        })
+        // No fallbacks - continue with empty competitors array
+        parsed.competitors = []
+      }
 
     /* 6) Attach aggregated citations (internal only) */
     parsed.citations = dedupeUrls([...(parsed.citations || []), ...citations])
@@ -794,7 +1084,17 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
       if (parsed.company.founded === null) parsed.company.founded = undefined
       if (parsed.company.ceo === null) parsed.company.ceo = undefined
       if (parsed.company.market_position === null) parsed.company.market_position = undefined
-      if (parsed.company.latest_news === null) parsed.company.latest_news = undefined
+      // Normalize latest_news: if it's an array, join it or take first element
+      if (Array.isArray(parsed.company.latest_news)) {
+        if (parsed.company.latest_news.length > 0) {
+          parsed.company.latest_news = parsed.company.latest_news[0] || parsed.company.latest_news.join('. ')
+        } else {
+          parsed.company.latest_news = undefined
+        }
+        console.log('[Pipeline] Normalized latest_news from array to string (after enrichment)')
+      } else if (parsed.company.latest_news === null) {
+        parsed.company.latest_news = undefined
+      }
       if (parsed.company.industry === null) parsed.company.industry = undefined
       if (parsed.company.headquarters === null) parsed.company.headquarters = undefined
     }
@@ -832,14 +1132,46 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
     }
 
     // Final validation with full schema to ensure enriched data is correct
+    console.log('[Pipeline] Running final schema validation...')
+    console.log('[Pipeline] Competitors before validation:', {
+      count: parsed.competitors?.length || 0,
+      competitors: parsed.competitors?.map((c: any) => ({
+        name: c.name,
+        website: c.website,
+        hasEvidencePages: Array.isArray(c.evidence_pages) && c.evidence_pages.length > 0,
+        evidencePagesCount: c.evidence_pages?.length || 0
+      })) || []
+    })
+    
     const finalValidation = BriefSchema.safeParse(parsed)
     if (!finalValidation.success) {
       console.error('[Pipeline] Final validation FAILED after enrichment:', finalValidation.error.errors)
+      
+      // Check if competitors validation failed
+      const competitorErrors = finalValidation.error.errors.filter(e => 
+        e.path[0] === 'competitors' || e.path.includes('competitors')
+      )
+      if (competitorErrors.length > 0) {
+        console.error('[Pipeline] ❌ Competitor validation errors:', competitorErrors)
+        console.error('[Pipeline] This may explain why competitors are missing!')
+      }
+      
       throw new Error(`Failed to validate final brief after enrichment: ${JSON.stringify(finalValidation.error.errors, null, 2)}`)
     }
+    
+    console.log('[Pipeline] ✅ Final validation passed')
+    console.log('[Pipeline] Competitors after validation:', {
+      count: finalValidation.data.competitors?.length || 0,
+      competitors: finalValidation.data.competitors?.map((c: any) => ({
+        name: c.name,
+        website: c.website
+      })) || []
+    })
 
     const totalTime = Date.now() - startTime
     console.log(`[Pipeline] ✅ Pipeline completed in ${totalTime}ms (${(totalTime / 1000).toFixed(1)}s)`)
+    // Note: competitorSearchDuration is scoped within the try block, so we can't access it here
+    // The timing is already logged above when the search completes
     
     return { brief: finalValidation.data, citations: parsed.citations }
   })()

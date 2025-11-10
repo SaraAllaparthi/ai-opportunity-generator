@@ -4,31 +4,40 @@ import { confidenceFromCount, getConfidenceColor } from '@/lib/utils/citations'
 export default function SnapshotCard({ data }: { data: Brief }) {
   const company = data.company
   const confidence = confidenceFromCount((data.citations||[]).length)
-  // Format company size (remove "employees" and format nicely)
+  // Format company size - show full number without truncation, handle commas
   const formattedSize = company.size ? (() => {
     const sizeStr = company.size.trim()
     
-    // Remove "employees" or "employee" (case insensitive)
-    let cleaned = sizeStr.replace(/\s*employees?\s*/gi, ' ').trim()
+    // Remove commas for parsing, then add them back for display if needed
+    const cleaned = sizeStr.replace(/,/g, '')
     
-    // Extract number or range pattern (handles "150", "150-200", "150 - 200")
-    const rangeMatch = cleaned.match(/(\d+)\s*-\s*(\d+)/)
-    if (rangeMatch) {
-      return `${rangeMatch[1]}-${rangeMatch[2]}`
+    // Extract range (e.g., "1000-5000 employees")
+    const rangeMatch = cleaned.match(/([1-9]\d*)\s*-\s*([1-9]\d*)\s*(?:employees?|Mitarbeiter|staff|workforce|headcount|people)?/i)
+    if (rangeMatch && rangeMatch[1] && rangeMatch[2]) {
+      const num1 = parseInt(rangeMatch[1], 10)
+      const num2 = parseInt(rangeMatch[2], 10)
+      // Validate numbers are not zero and num2 > num1
+      if (num1 > 0 && num2 > 0 && num2 >= num1 && !isNaN(num1) && !isNaN(num2)) {
+        const formatted1 = num1 >= 1000 ? num1.toLocaleString() : num1.toString()
+        const formatted2 = num2 >= 1000 ? num2.toLocaleString() : num2.toString()
+        return `${formatted1}-${formatted2} employees`
+      }
     }
     
-    // Extract single number
-    const singleMatch = cleaned.match(/(\d+)/)
-    if (singleMatch) {
-      return singleMatch[1]
+    // Extract single number (e.g., "100000 employees")
+    const singleMatch = cleaned.match(/([1-9]\d*)\s*(?:employees?|Mitarbeiter|staff|workforce|headcount|people)?/i)
+    if (singleMatch && singleMatch[1]) {
+      const num = parseInt(singleMatch[1], 10)
+      // Validate number is not zero
+      if (num > 0 && !isNaN(num)) {
+        const formatted = num >= 1000 ? num.toLocaleString() : num.toString()
+        return `${formatted} employees`
+      }
     }
     
-    // If no numbers found but still has text, try to clean it further
-    // Remove common prefixes like "about", "approximately", "~", etc.
-    cleaned = cleaned.replace(/^(about|approximately|around|~|~|circa)\s+/i, '').trim()
-    
-    // Return cleaned version or original if nothing to clean
-    return cleaned || sizeStr
+    // If we can't parse it or it's invalid, return null to hide it
+    console.warn('[BriefSnapshotCard] Invalid size value:', sizeStr)
+    return null
   })() : null
 
   const hasFacts = formattedSize || company.industry || company.headquarters || company.founded || company.ceo || company.market_position

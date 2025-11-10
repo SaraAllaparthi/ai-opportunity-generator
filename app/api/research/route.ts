@@ -9,28 +9,7 @@ export const runtime = 'nodejs' // Use Node.js runtime (not Edge)
 export const maxDuration = 300 // 5 minutes (300 seconds) - maximum allowed by Vercel Pro
 
 // Normalize website URL - add https:// if missing
-function normalizeWebsite(url: string): string {
-  if (!url) return url
-  let normalized = url.trim()
-  
-  // Remove trailing slashes for consistency
-  normalized = normalized.replace(/\/+$/, '')
-  
-  // Add https:// if no protocol
-  if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
-    normalized = `https://${normalized}`
-  }
-  
-  // Validate it's a proper URL
-  try {
-    const urlObj = new URL(normalized)
-    // Return without trailing slash for consistency
-    return urlObj.toString().replace(/\/+$/, '')
-  } catch (e) {
-    // If URL parsing fails, return as-is (Zod will catch it)
-    return normalized
-  }
-}
+import { normalizeWebsite } from '@/lib/utils/url'
 
 const InputSchema = z.object({
   companyName: z.string().min(1),

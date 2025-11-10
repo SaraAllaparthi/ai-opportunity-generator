@@ -1,13 +1,6 @@
-export function normalizeUrl(url: string): string {
-  try {
-    const u = new URL(url)
-    u.hash = ''
-    u.searchParams.sort()
-    return u.toString()
-  } catch {
-    return url
-  }
-}
+// Re-export URL utilities from shared module
+import { normalizeUrl, getDomain } from './url'
+export { normalizeUrl, getDomain }
 
 export function dedupeUrls(urls: string[]): string[] {
   const seen = new Set<string>()
@@ -16,20 +9,10 @@ export function dedupeUrls(urls: string[]): string[] {
     const n = normalizeUrl(u)
     if (!seen.has(n)) {
       seen.add(n)
-      result.push(n)
+      result.push(u)
     }
   }
   return result
-}
-
-export function getDomain(url: string): string {
-  try {
-    const u = new URL(url)
-    const host = u.hostname.replace(/^www\./, '')
-    return host
-  } catch {
-    return url
-  }
 }
 
 export function confidenceFromCount(count: number): 'High' | 'Medium' | 'Low' {
@@ -50,5 +33,3 @@ export function getConfidenceColor(level: 'High' | 'Medium' | 'Low'): string {
       return 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600'
   }
 }
-
-

@@ -92,11 +92,23 @@ export default async function SharePage({ params }: { params: Promise<{ slug: st
   console.log('[SharePage] Rendering page with data:')
   console.log('  Company:', data.company?.name)
   console.log('  Competitors count:', data.competitors?.length || 0)
+  console.log('  Competitors type:', Array.isArray(data.competitors) ? 'array' : typeof data.competitors)
   console.log('  Competitors array:', JSON.stringify(data.competitors || [], null, 2))
   if (data.competitors && data.competitors.length > 0) {
     console.log('  First competitor:', JSON.stringify(data.competitors[0], null, 2))
+    console.log('  Competitor names:', data.competitors.map((c: any) => c.name))
+    console.log('  Competitor websites:', data.competitors.map((c: any) => c.website))
   } else {
     console.log('  ⚠️ No competitors in data!')
+    console.log('  ⚠️ This will cause CompetitorComparison to return null')
+  }
+  
+  // Validate data structure before passing to components
+  if (!data.competitors || !Array.isArray(data.competitors)) {
+    console.error('[SharePage] ❌ CRITICAL: competitors is not an array!', {
+      type: typeof data.competitors,
+      value: data.competitors
+    })
   }
   
   return (
