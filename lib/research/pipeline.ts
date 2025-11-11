@@ -13,6 +13,7 @@ export type PipelineInput = {
   website: string
   headquartersHint?: string
   industryHint?: string
+  locale?: 'en' | 'de'
 }
 
 export type ResearchSnippet = {
@@ -215,7 +216,14 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
       'Return ONLY a JSON object. No markdown, no prose.'
     ]
 
+    // Language instruction based on locale
+    const locale = input.locale || 'en'
+    const languageInstruction = locale === 'de' 
+      ? 'WICHTIG: Alle Ausgaben müssen auf Deutsch sein. Verwenden Sie deutsches Format für Zahlen (z.B. 1.234,56 statt 1,234.56) und Währung (CHF). Schreiben Sie in einem prägnanten, managementtauglichen Stil (1-2 Sätze pro Insight).'
+      : 'IMPORTANT: All output must be in English. Use English format for numbers (e.g., 1,234.56) and currency (CHF). Write in a concise, executive tone (1-2 sentences per insight).'
+    
     const system = [
+      languageInstruction,
     `You are a strategic advisor writing an executive AI Opportunity Brief for the CEO of ${input.name} (${input.website}).`,
     `Company Context: ${input.name} operates in ${input.industryHint || 'their industry'} and is headquartered in ${input.headquartersHint || 'their location'}.`,
     'Write in a direct, executive tone suitable for a CEO decision-maker. Be strategic, specific, and actionable.',
@@ -822,7 +830,8 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
           input.name,
           input.website,
           crawledCompetitorData,
-          companySize
+          companySize,
+          input.locale || 'en'
         )
         const competitorSearchDuration = Date.now() - competitorSearchStartTime
         console.log(`[Pipeline] ⏱️ Competitor search completed in ${competitorSearchDuration}ms (${(competitorSearchDuration / 1000).toFixed(1)}s)`)

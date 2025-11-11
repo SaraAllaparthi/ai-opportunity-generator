@@ -1,9 +1,15 @@
+'use client'
+
 import { Brief } from '@/lib/schema/brief'
 import { confidenceFromCount, getConfidenceColor } from '@/lib/utils/citations'
+import { useTranslations } from 'next-intl'
 
 export default function SnapshotCard({ data }: { data: Brief }) {
+  const t = useTranslations()
   const company = data.company
   const confidence = confidenceFromCount((data.citations||[]).length)
+  const employeesLabel = t('common.employees')
+  
   // Format company size - show full number without truncation, handle commas
   const formattedSize = company.size ? (() => {
     const sizeStr = company.size.trim()
@@ -20,7 +26,7 @@ export default function SnapshotCard({ data }: { data: Brief }) {
       if (num1 > 0 && num2 > 0 && num2 >= num1 && !isNaN(num1) && !isNaN(num2)) {
         const formatted1 = num1 >= 1000 ? num1.toLocaleString() : num1.toString()
         const formatted2 = num2 >= 1000 ? num2.toLocaleString() : num2.toString()
-        return `${formatted1}-${formatted2} employees`
+        return `${formatted1}-${formatted2} ${employeesLabel}`
       }
     }
     
@@ -31,7 +37,7 @@ export default function SnapshotCard({ data }: { data: Brief }) {
       // Validate number is not zero
       if (num > 0 && !isNaN(num)) {
         const formatted = num >= 1000 ? num.toLocaleString() : num.toString()
-        return `${formatted} employees`
+        return `${formatted} ${employeesLabel}`
       }
     }
     
@@ -55,44 +61,46 @@ export default function SnapshotCard({ data }: { data: Brief }) {
           <div className="font-semibold text-gray-900 dark:text-white mb-1 text-lg">{company.name}</div>
           <a className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors text-sm" href={company.website} target="_blank" rel="noreferrer">{company.website}</a>
         </div>
-        <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getConfidenceColor(confidence)}`}>Confidence {confidence}</span>
+        <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getConfidenceColor(confidence)}`}>
+          {t('badge.confidence.' + confidence.toLowerCase())}
+        </span>
       </div>
 
       {hasFacts && (
         <div className="mb-4 grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
           {formattedSize && (
             <div>
-              <div className="text-xs uppercase text-gray-500 dark:text-gray-400 mb-0.5">Size</div>
+              <div className="text-xs uppercase text-gray-500 dark:text-gray-400 mb-0.5">{t('report.snapshot.size')}</div>
               <div className="text-gray-900 dark:text-white font-medium">{formattedSize}</div>
             </div>
           )}
           {company.industry && (
             <div>
-              <div className="text-xs uppercase text-gray-500 dark:text-gray-400 mb-0.5">Industry</div>
+              <div className="text-xs uppercase text-gray-500 dark:text-gray-400 mb-0.5">{t('report.snapshot.industry')}</div>
               <div className="text-gray-900 dark:text-white font-medium">{company.industry}</div>
             </div>
           )}
           {company.headquarters && (
             <div>
-              <div className="text-xs uppercase text-gray-500 dark:text-gray-400 mb-0.5">Headquarters</div>
+              <div className="text-xs uppercase text-gray-500 dark:text-gray-400 mb-0.5">{t('report.snapshot.headquarters')}</div>
               <div className="text-gray-900 dark:text-white font-medium">{company.headquarters}</div>
             </div>
           )}
           {foundedYear && (
             <div>
-              <div className="text-xs uppercase text-gray-500 dark:text-gray-400 mb-0.5">Founded in</div>
+              <div className="text-xs uppercase text-gray-500 dark:text-gray-400 mb-0.5">{t('report.snapshot.founded')}</div>
               <div className="text-gray-900 dark:text-white font-medium">{foundedYear}</div>
             </div>
           )}
           {company.ceo && (
             <div>
-              <div className="text-xs uppercase text-gray-500 dark:text-gray-400 mb-0.5">CEO</div>
+              <div className="text-xs uppercase text-gray-500 dark:text-gray-400 mb-0.5">{t('report.snapshot.ceo')}</div>
               <div className="text-gray-900 dark:text-white font-medium">{company.ceo}</div>
             </div>
           )}
           {company.market_position && (
             <div>
-              <div className="text-xs uppercase text-gray-500 dark:text-gray-400 mb-0.5">Market Position</div>
+              <div className="text-xs uppercase text-gray-500 dark:text-gray-400 mb-0.5">{t('report.snapshot.marketPosition')}</div>
               <div className="text-gray-900 dark:text-white font-medium">{company.market_position}</div>
             </div>
           )}

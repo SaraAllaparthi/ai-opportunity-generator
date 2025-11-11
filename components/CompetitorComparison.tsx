@@ -2,6 +2,7 @@
 
 import { Brief } from '@/lib/schema/brief'
 import { useEffect, useState, useMemo, useRef } from 'react'
+import { useTranslations, useLocale } from 'next-intl'
 
 type EntityScores = {
   entity: string
@@ -250,6 +251,8 @@ function generateScores(data: Brief): ScoresData {
 }
 
 export default function CompetitorComparison({ data }: { data: Brief }) {
+  const t = useTranslations()
+  const locale = useLocale() as 'en' | 'de'
   if (!data) {
     return (
       <div className="w-full p-4 text-sm text-red-500">
@@ -325,25 +328,27 @@ export default function CompetitorComparison({ data }: { data: Brief }) {
         })
 
         // Generate summary with OpenAI
-        summarizePeerComparison(companyName, dimensionData, 'en')
+        summarizePeerComparison(companyName, dimensionData, locale)
           .then(summary => {
             if (summary && summary.trim()) {
               setExecutiveSummary(summary)
             } else {
               // Fallback if summary is empty
-              const fallbackSummary = generateExecutiveSummary(companyScore, peerScores)
+              const fallbackSummary = generateExecutiveSummary(companyScore, peerScores, locale)
               setExecutiveSummary(fallbackSummary)
             }
           })
           .catch(err => {
             console.error('[CompetitorComparison] Failed to generate OpenAI summary, using fallback:', err)
             // Fallback to local generation
-            const fallbackSummary = generateExecutiveSummary(companyScore, peerScores)
+            const fallbackSummary = generateExecutiveSummary(companyScore, peerScores, locale)
             setExecutiveSummary(fallbackSummary)
           })
       } else if (companyScore && peerScores.length === 0) {
         // No peers, but we have company score - show basic summary
-        setExecutiveSummary('Shows balanced capabilities across key dimensions.')
+        setExecutiveSummary(locale === 'de' 
+          ? 'Zeigt ausgewogene Fähigkeiten in allen wichtigen Dimensionen.'
+          : 'Shows balanced capabilities across key dimensions.')
       }
     } catch (err) {
       console.error('[CompetitorComparison] Error generating scores:', err)
@@ -377,14 +382,14 @@ export default function CompetitorComparison({ data }: { data: Brief }) {
     return (
       <div className="w-full">
         <div className="mb-4">
-          <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Peer Comparison</h4>
+          <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{t('report.peerComparison.title')}</h4>
           <p className="text-xs text-gray-600 dark:text-gray-300">
-            Peer comparison requires competitor data from the Competitive Position section.
+            {t('report.peerComparison.noCompetitors')}
           </p>
         </div>
         <div className="h-[480px] flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
           <div className="text-center">
-            <div className="mb-2">No competitors found in the brief data.</div>
+            <div className="mb-2">{t('report.peerComparison.noCompetitors')}</div>
           </div>
         </div>
       </div>
@@ -394,9 +399,12 @@ export default function CompetitorComparison({ data }: { data: Brief }) {
   return (
     <div className="w-full">
       <div className="mb-2">
-        <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Peer Comparison</h4>
+        <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">{t('report.peerComparison.title')}</h4>
         <p className="text-xs text-gray-600 dark:text-gray-300">
-          Comparative analysis against {competitors.length} competitor{competitors.length > 1 ? 's' : ''} from the Competitive Position section
+          {t('report.subtitle.peerComparison', { 
+            count: competitors.length, 
+            plural: competitors.length > 1 ? 's' : '' 
+          })}
         </p>
       </div>
 
@@ -549,10 +557,13 @@ export default function CompetitorComparison({ data }: { data: Brief }) {
 
 function generateExecutiveSummary(
   companyScore: EntityScores,
-  peerScores: EntityScores[]
+  peerScores: EntityScores[],
+  locale: 'en' | 'de' = 'en'
 ): string {
   if (peerScores.length === 0) {
-    return 'Shows balanced capabilities across key dimensions.'
+    return locale === 'de'
+      ? 'Zeigt ausgewogene Fähigkeiten in allen wichtigen Dimensionen.'
+      : 'Shows balanced capabilities across key dimensions.'
   }
 
   const dims: Array<keyof Omit<EntityScores, 'entity'>> = [
@@ -564,13 +575,13 @@ function generateExecutiveSummary(
     'customer_focus'
   ]
 
-  const labels: Record<keyof Omit<EntityScores, 'entity'>, string> = {
-    ai_adoption: 'AI Adoption',
-    innovation_speed: 'Innovation Speed',
-    operational_efficiency: 'Operational Efficiency',
-    market_position: 'Market Position',
-    technology_maturity: 'Technology Maturity',
-    customer_focus: 'Customer Focus'
+  const labels: Record<keyof Omit<EntityScores, 'entity'>, { en: string; de: string }> = {
+    ai_adoption: { en: 'AI Adoption', de: 'KI-Einführung' },
+    innovation_speed: { en: 'Innovation Speed', de: 'Innovationsgeschwindigkeit' },
+    operational_efficiency: { en: 'Operational Efficiency', de: 'Operative Effizienz' },
+    market_position: { en: 'Market Position', de: 'Marktposition' },
+    technology_maturity: { en: 'Technology Maturity', de: 'Technologiereife' },
+    customer_focus: { en: 'Customer Focus', de: 'Kundenfokus' }
   }
 
   const strengths: Array<{ dimension: string; lead: number }> = []
@@ -580,20 +591,28 @@ function generateExecutiveSummary(
     const companyValue = companyScore[dim]
     const avgPeer = peerScores.reduce((sum, p) => sum + p[dim], 0) / peerScores.length
     const diff = companyValue - avgPeer
-    if (diff > 0.3) strengths.push({ dimension: labels[dim], lead: diff })
-    if (-diff > 0.3) weaknesses.push({ dimension: labels[dim], gap: -diff })
+    if (diff > 0.3) strengths.push({ dimension: labels[dim][locale], lead: diff })
+    if (-diff > 0.3) weaknesses.push({ dimension: labels[dim][locale], gap: -diff })
   })
 
   const sentences: string[] = []
 
   if (strengths.length > 0) {
     const topStrength = strengths.sort((a, b) => b.lead - a.lead)[0]
-    sentences.push(`Leads peers in ${topStrength.dimension.toLowerCase()} by ${topStrength.lead.toFixed(1)} points, indicating a competitive advantage to leverage.`)
+    if (locale === 'de') {
+      sentences.push(`Führt bei ${topStrength.dimension.toLowerCase()} mit ${topStrength.lead.toFixed(1)} Punkten, was einen Wettbewerbsvorteil darstellt, den es zu nutzen gilt.`)
+    } else {
+      sentences.push(`Leads peers in ${topStrength.dimension.toLowerCase()} by ${topStrength.lead.toFixed(1)} points, indicating a competitive advantage to leverage.`)
+    }
   }
 
   if (weaknesses.length > 0) {
     const topWeakness = weaknesses.sort((a, b) => b.gap - a.gap)[0]
-    sentences.push(`Trails peers in ${topWeakness.dimension.toLowerCase()} by ${topWeakness.gap.toFixed(1)} points, representing a priority area for improvement.`)
+    if (locale === 'de') {
+      sentences.push(`Liegt bei ${topWeakness.dimension.toLowerCase()} um ${topWeakness.gap.toFixed(1)} Punkte zurück, was einen Prioritätsbereich für Verbesserungen darstellt.`)
+    } else {
+      sentences.push(`Trails peers in ${topWeakness.dimension.toLowerCase()} by ${topWeakness.gap.toFixed(1)} points, representing a priority area for improvement.`)
+    }
   }
 
   if (sentences.length === 0) {
@@ -604,20 +623,30 @@ function generateExecutiveSummary(
     }, 0) / dims.length
 
     if (avgCompany > avgPeer + 0.2) {
-      sentences.push('Demonstrates stronger overall capabilities compared to peers, with particular strengths in key operational areas.')
+      sentences.push(locale === 'de'
+        ? 'Zeigt insgesamt stärkere Fähigkeiten im Vergleich zu Peers, mit besonderen Stärken in wichtigen operativen Bereichen.'
+        : 'Demonstrates stronger overall capabilities compared to peers, with particular strengths in key operational areas.')
     } else if (avgPeer > avgCompany + 0.2) {
-      sentences.push('Shows opportunities for improvement across multiple dimensions relative to peer performance.')
+      sentences.push(locale === 'de'
+        ? 'Zeigt Verbesserungsmöglichkeiten in mehreren Dimensionen im Vergleich zur Peer-Leistung.'
+        : 'Shows opportunities for improvement across multiple dimensions relative to peer performance.')
     } else {
-      sentences.push('Shows balanced capabilities relative to peers, with opportunities to differentiate through targeted investments.')
+      sentences.push(locale === 'de'
+        ? 'Zeigt ausgewogene Fähigkeiten im Vergleich zu Peers, mit Möglichkeiten zur Differenzierung durch gezielte Investitionen.'
+        : 'Shows balanced capabilities relative to peers, with opportunities to differentiate through targeted investments.')
     }
   }
 
   if (sentences.length === 1 && strengths.length > 1) {
     const secondStrength = strengths.sort((a, b) => b.lead - a.lead)[1]
-    sentences.push(`Additional strength in ${secondStrength.dimension.toLowerCase()} further positions competitively.`)
+    sentences.push(locale === 'de'
+      ? `Zusätzliche Stärke in ${secondStrength.dimension.toLowerCase()} positioniert weiterhin wettbewerbsfähig.`
+      : `Additional strength in ${secondStrength.dimension.toLowerCase()} further positions competitively.`)
   } else if (sentences.length === 1 && weaknesses.length > 1) {
     const secondWeakness = weaknesses.sort((a, b) => b.gap - a.gap)[1]
-    sentences.push(`Addressing gaps in ${secondWeakness.dimension.toLowerCase()} could accelerate competitive positioning.`)
+    sentences.push(locale === 'de'
+      ? `Die Behebung von Lücken in ${secondWeakness.dimension.toLowerCase()} könnte die Wettbewerbspositionierung beschleunigen.`
+      : `Addressing gaps in ${secondWeakness.dimension.toLowerCase()} could accelerate competitive positioning.`)
   }
 
   return sentences.slice(0, 3).join(' ')

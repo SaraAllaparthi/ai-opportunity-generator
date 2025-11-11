@@ -1,5 +1,8 @@
+'use client'
+
 import { Brief } from '@/lib/schema/brief'
 import { getDomain, confidenceFromCount, getConfidenceColor } from '@/lib/utils/citations'
+import { useTranslations } from 'next-intl'
 
 // Generate strategic comparison when competitors are unavailable
 function generateStrategicComparison(data: Brief): string {
@@ -19,6 +22,7 @@ function generateStrategicComparison(data: Brief): string {
 }
 
 export default function CompetitorsCard({ data }: { data: Brief }) {
+  const t = useTranslations()
   // Debug: Log what we receive
   console.log('[CompetitorsCard] Received data:')
   console.log('  Has competitors field:', 'competitors' in data)
@@ -51,13 +55,15 @@ export default function CompetitorsCard({ data }: { data: Brief }) {
   return (
     <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-lg">
       <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Competitive Position</h3>
-        <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getConfidenceColor(confidence)}`}>Confidence {confidence}</span>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('report.competitors.title')}</h3>
+        <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getConfidenceColor(confidence)}`}>
+          {t('badge.confidence.' + confidence.toLowerCase())}
+        </span>
       </div>
-      <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">Understanding where you stand relative to peers helps prioritize AI investments that deliver competitive advantage.</p>
+      <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">{t('report.competitors.description')}</p>
       {!hasCompetitors ? (
         <div className="text-sm text-gray-500 dark:text-gray-400 italic leading-relaxed">
-          Peer analysis is being generated from verified industry sources.
+          {t('report.competitors.noData')}
         </div>
       ) : (
         <>
@@ -68,20 +74,24 @@ export default function CompetitorsCard({ data }: { data: Brief }) {
               if (competitorNames.length === 1) {
                 competitorText = competitorNames[0]
               } else if (competitorNames.length === 2) {
-                competitorText = `${competitorNames[0]} and ${competitorNames[1]}`
+                competitorText = `${competitorNames[0]} ${t('report.competitors.and')} ${competitorNames[1]}`
               } else {
-                competitorText = `${competitorNames.slice(0, -1).join(', ')}, and ${competitorNames[competitorNames.length - 1]}`
+                competitorText = `${competitorNames.slice(0, -1).join(', ')}, ${t('report.competitors.and')} ${competitorNames[competitorNames.length - 1]}`
               }
               
               const industryText = data.company.industry 
-                ? `the ${data.company.industry.toLowerCase()} sector`
-                : 'your industry'
+                ? t('report.competitors.industryText', { industry: data.company.industry.toLowerCase() })
+                : t('report.competitors.defaultIndustry')
               
-              return `${data.company.name} competes alongside ${competitorText} in ${industryText}.`
+              return t('report.competitors.competesText', { 
+                company: data.company.name, 
+                competitors: competitorText, 
+                industry: industryText 
+              })
             })()}
           </div>
           <ul className="space-y-3 text-sm">
-            {competitors.slice(0, 3).map((c, i) => (
+            {competitors.map((c, i) => (
               <li key={i} className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-4">
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1">

@@ -1,6 +1,7 @@
 "use client"
 import { Brief } from '@/lib/schema/brief'
 import { useMemo, useState } from 'react'
+import { useTranslations } from 'next-intl'
 
 // Match the same colors used in IndustryCard
 const TREND_COLORS = [
@@ -146,20 +147,20 @@ function extractAIOpportunity(trend: string): string {
 }
 
 // Get action item based on readiness and impact
-function getActionItem(readiness: number, impact: number): string {
+function getActionItem(readiness: number, impact: number, t: any): string {
   if (readiness >= 0.7 && impact >= 0.6) {
-    return 'Act now — High priority opportunity'
+    return t('report.trends.action.highPriority')
   }
   if (readiness >= 0.7 && impact < 0.6) {
-    return 'Quick win — Low effort, good return'
+    return t('report.trends.action.quickWin')
   }
   if (readiness < 0.7 && impact >= 0.6) {
-    return 'Plan pilot — High value, needs preparation'
+    return t('report.trends.action.planPilot')
   }
   if (readiness >= 0.5 && impact >= 0.5) {
-    return 'Explore options — Medium priority'
+    return t('report.trends.action.explore')
   }
-  return 'Monitor — Lower priority for now'
+  return t('report.trends.action.monitor')
 }
 
 // Get color based on readiness level (green = ready now, blue = emerging, purple = future-ready)
@@ -191,6 +192,7 @@ interface TrendPoint {
 }
 
 export default function TrendImpactGrid({ data }: { data: Brief }) {
+  const t = useTranslations()
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   
   const trends = useMemo(() => {
@@ -200,7 +202,7 @@ export default function TrendImpactGrid({ data }: { data: Brief }) {
       const readiness = estimateReadiness(trend)
       const impact = estimateImpact(trend)
       const trendName = extractTrendName(trend)
-      const action = getActionItem(readiness, impact)
+      const action = getActionItem(readiness, impact, t)
       const aiOpportunity = extractAIOpportunity(trend)
       
       return {
@@ -319,8 +321,8 @@ export default function TrendImpactGrid({ data }: { data: Brief }) {
                         <span className="font-semibold text-sm">{point.trendName}</span>
                       </div>
                       <div className="text-xs text-gray-600 dark:text-gray-400 mb-1 leading-relaxed space-y-0.5">
-                        <div>Readiness: {Math.round(point.readiness * 100)}%</div>
-                        <div>Impact: {Math.round(point.impact * 100)}%</div>
+                        <div>{t('report.trends.readiness')}: {Math.round(point.readiness * 100)}%</div>
+                        <div>{t('report.trends.impact')}: {Math.round(point.impact * 100)}%</div>
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400 pt-1 border-t border-gray-200 dark:border-gray-700">
                         {point.action}
@@ -335,21 +337,21 @@ export default function TrendImpactGrid({ data }: { data: Brief }) {
 
         {/* X-axis labels */}
         <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 text-sm text-gray-600 dark:text-gray-400 font-medium">
-          Business Readiness
+          {t('report.trends.businessReadiness')}
         </div>
         <div className="absolute bottom-4 left-12 text-xs text-gray-500 dark:text-gray-500">
-          Low
+          {t('report.trends.low')}
         </div>
         <div className="absolute bottom-4 right-12 text-xs text-gray-500 dark:text-gray-500">
-          High
+          {t('report.trends.high')}
         </div>
         
         {/* Y-axis labels */}
         <div className="absolute left-6 top-1/2 transform -translate-y-1/2 -rotate-90 text-sm text-gray-600 dark:text-gray-400 font-medium whitespace-nowrap origin-center">
-          Potential Impact
+          {t('report.trends.potentialImpact')}
         </div>
         <div className="absolute left-4 top-12 text-xs text-gray-500 dark:text-gray-500">
-          High
+          {t('report.trends.high')}
         </div>
       </div>
     </div>

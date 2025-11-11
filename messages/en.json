@@ -1,0 +1,264 @@
+{
+  "nav": {
+    "back": "Back to Home",
+    "features": "Features",
+    "howItWorks": "How it works",
+    "signIn": "Sign In",
+    "jumpTo": "Jump to"
+  },
+  "title": {
+    "report": "AI Opportunity Brief — {company}",
+    "app": "Maverick Lens"
+  },
+  "section": {
+    "execSummary": "Executive Summary",
+    "snapshot": "Company Snapshot",
+    "industry": "Industry Intelligence",
+    "moves": "Strategic Moves",
+    "compLandscape": "Competitive Landscape",
+    "competitors": "Competitive Position",
+    "useCases": "AI Opportunity Landscape",
+    "actionPlan": "CEO Action Plan",
+    "feasibility": "AI Readiness Assessment",
+    "peerComparison": "Peer Comparison",
+    "roi": "Benefit vs Investment",
+    "trends": "Industry Trends"
+  },
+  "badge": {
+    "confidence": {
+      "high": "Confidence High",
+      "medium": "Confidence Medium",
+      "low": "Confidence Low"
+    }
+  },
+  "cta": {
+    "scheduleWorkshop": "Schedule a 30-min AI Value Workshop",
+    "bookDiscoveryCall": "Book 30-min AI Discovery Call",
+    "generateInsights": "Generate AI Insights"
+  },
+  "state": {
+    "loading": "Loading…",
+    "noData": "No data available",
+    "error": "An error occurred",
+    "invalidLink": "Invalid report link. Please check the URL and try again."
+  },
+  "home": {
+    "hero": {
+      "title": "Discover Your AI Opportunities in Under 90 Seconds",
+      "subtitle": "Seamlessly analyze your company's public data to discover the most valuable AI use cases, quantify ROI and get an executive ready strategy brief in under 90 seconds.",
+      "button": "Generate AI Insights"
+    },
+    "form": {
+      "title": "Generate Your AI Report",
+      "subtitle": "Enter your company information to get started",
+      "companyName": "Company Name",
+      "website": "Company Website",
+      "industry": "Industry",
+      "headquarters": "Headquarters (City, Country)",
+      "submit": "Generate Report",
+      "researching": "Researching {company}...",
+      "analyzing": "Analyzing competitive landscape...",
+      "generating": "Generating insights...",
+      "finalizing": "Finalizing report...",
+      "error": "Failed to generate report. Please try again."
+    },
+    "features": {
+      "title": "Why Maverick Lens?",
+      "subtitle": "Get actionable AI strategy insights in minutes, not months",
+      "section1": {
+        "title": "8 Strategic Sections",
+        "description": "Comprehensive analysis covering executive summary, competitive landscape, ROI-ranked use cases, and more."
+      },
+      "section2": {
+        "title": "< 90 s Report Generation",
+        "description": "Fast, automated research powered by AI to deliver insights at the speed of business."
+      },
+      "section3": {
+        "title": "5 ROI-Ranked AI Use Cases",
+        "description": "Prioritized opportunities with quantified benefits, costs, and payback periods."
+      },
+      "section4": {
+        "title": "Seamless Integration",
+        "description": "Connects instantly with your public website or company profile — no data upload required."
+      },
+      "section5": {
+        "title": "Executive Analysis in Minutes",
+        "description": "Generates a concise, board-ready intelligence report with ROI, feasibility, and a 90-day action plan."
+      },
+      "section6": {
+        "title": "Quantified Impact",
+        "description": "Each use case includes projected benefit, cost, payback, and confidence level — all visualized."
+      }
+    },
+    "howItWorks": {
+      "title": "How it works",
+      "subtitle": "Get your comprehensive AI opportunity report in three simple steps",
+      "step1": {
+        "title": "Enter Company Details",
+        "description": "Provide your company name and website URL. We'll use this to gather public information."
+      },
+      "step2": {
+        "title": "AI Analysis",
+        "description": "Our multi-agent AI system researches your company and analyzes opportunities using advanced LLM technology."
+      },
+      "step3": {
+        "title": "Get Your Report",
+        "description": "Receive a comprehensive report with AI opportunities, ROI projections, competitive analysis, and actionable insights."
+      }
+    },
+    "cta": {
+      "title": "Let's Design Your AI Roadmap Together",
+      "subtitle": "Work directly with our strategy team to map your company's fastest-ROI AI initiatives, identify data gaps, and define your 90-day execution plan.",
+      "button": "Book Strategic Session"
+    },
+    "problemSolution": {
+      "problem": {
+        "title": "Business Problem",
+        "text1": "CEOs know AI has potential — but not where to start.",
+        "text2": "Most organizations waste months on vague \"AI readiness\" discussions without a clear ROI case."
+      },
+      "solution": {
+        "title": "Our Solution",
+        "text1": "Maverick Lens uses multi-agent AI research to scan your company's public footprint, benchmark against competitors, and identify the fastest-payback AI initiatives.",
+        "text2": "The result: a quantified, McKinsey-style AI Opportunity Brief tailored to your business."
+      }
+    }
+  },
+  "report": {
+    "execSummary": {
+      "annualUplift": "Annual Uplift",
+      "weightedPayback": "Weighted Payback",
+      "deliveryProfile": "Delivery Profile",
+      "complexity": "Complexity {value}/5",
+      "effort": "Effort {value}/5",
+      "estimate": "Estimate"
+    },
+    "snapshot": {
+      "size": "Size",
+      "industry": "Industry",
+      "headquarters": "Headquarters",
+      "founded": "Founded in",
+      "ceo": "CEO",
+      "marketPosition": "Market Position"
+    },
+    "subtitle": {
+      "execSummary": "Executive intelligence on ROI and strategic AI acceleration for {company}",
+      "snapshot": "Overview of {company} and market position",
+      "industry": "Key market dynamics and opportunities for {company}",
+      "moves": "Strategic initiatives and market positioning",
+      "competitors": "Competitive analysis and market context",
+      "useCases": "Five prioritized use cases with ROI analysis",
+      "actionPlan": "{company} 90-day roadmap for AI acceleration",
+      "feasibility": "{company} - Organizational readiness to roll out AI capabilities",
+      "peerComparison": "Comparative analysis against {count} competitor{plural} from the Competitive Position section"
+    },
+    "roi": {
+      "contribution": "ROI Contribution",
+      "title": "Benefit vs Investment",
+      "summary": "ROI Summary",
+      "useCase": "Use case",
+      "benefit": "Benefit",
+      "oneTime": "Investment",
+      "ongoing": "Ongoing",
+      "payback": "Payback",
+      "roi": "ROI",
+      "confidence": "Confidence",
+      "invested": "Invested",
+      "gained": "Gained",
+      "paybackText": "Payback in {months} months after AI solution is deployed into production",
+      "totals": "Totals — Benefit: CHF {benefit}; Investment: CHF {investment}; Avg payback: {payback}; Overall ROI: {roi}.",
+      "estimate": "Estimate",
+      "est": "est."
+    },
+    "competitors": {
+      "title": "Competitive Position",
+      "description": "Understanding where you stand relative to peers helps prioritize AI investments that deliver competitive advantage.",
+      "noData": "Peer analysis is being generated from verified industry sources.",
+      "and": "and",
+      "industryText": "the {industry} sector",
+      "defaultIndustry": "your industry",
+      "competesText": "{company} competes alongside {competitors} in {industry}."
+    },
+    "peerComparison": {
+      "title": "Peer Comparison",
+      "subtitle": "Comparative analysis against {count} competitor{plural}",
+      "execSummary": "Executive Summary",
+      "noCompetitors": "No competitors found in the brief data."
+    },
+    "feasibility": {
+      "title": "AI Readiness Assessment across 5 key pillars",
+      "subtitle": "Organizational readiness to roll out AI capabilities.",
+      "pillars": {
+        "data": "Data Readiness",
+        "leadership": "Leadership Alignment",
+        "technical": "Technical Capability",
+        "risk": "Risk & Security",
+        "compliance": "Regulatory Readiness"
+      },
+      "descriptions": {
+        "data": "Data quality and availability to support AI initiatives.",
+        "leadership": "Executive sponsorship and governance for AI adoption.",
+        "technical": "Infrastructure, tools, and skills to implement AI solutions.",
+        "risk": "Ability to manage data privacy, model risk, and ethical use.",
+        "compliance": "Compliance posture for data and AI regulation."
+      },
+      "levels": {
+        "high": "Strong capabilities ready for scalable AI deployment.",
+        "medium": "Adequate foundation; some enablers still developing.",
+        "low": "Gaps require foundational improvements."
+      }
+    },
+    "useCases": {
+      "title": "Top 5 AI Use Cases for {company}",
+      "prioritized": "Prioritised by ROI",
+      "roiPercent": "{percent}% ROI",
+      "payback": "Payback: {months} mo",
+      "paybackMonths": "{months} mo",
+      "value": "Value",
+      "complexity": "Complexity",
+      "effort": "Effort",
+      "annualBenefit": "Annual benefit",
+      "oneTimeCost": "One-time cost",
+      "ongoingCost": "Ongoing cost"
+    },
+    "actionPlan": {
+      "title": "CEO Action Plan",
+      "titleWithDays": "CEO Action Plan (90 days)",
+      "subtitle": "Move fast with discipline: Discover → Pilot → Scale → Measure.",
+      "phases": {
+        "discover": "Discover",
+        "pilot": "Pilot",
+        "scale": "Scale",
+        "measure": "Measure"
+      }
+    },
+    "trends": {
+      "title": "Trend Analysis Impact Grid",
+      "subtitle": "Prioritised trends by business readiness and potential impact",
+      "businessReadiness": "Business Readiness",
+      "potentialImpact": "Potential Impact",
+      "readiness": "Readiness",
+      "impact": "Impact",
+      "low": "Low",
+      "high": "High",
+      "action": {
+        "highPriority": "Act now — High priority opportunity",
+        "quickWin": "Quick win — Low effort, good return",
+        "planPilot": "Plan pilot — High value, needs preparation",
+        "explore": "Explore options — Medium priority",
+        "monitor": "Monitor — Lower priority for now"
+      }
+    }
+  },
+  "common": {
+    "notSpecified": "not specified",
+    "months": "mo",
+    "chf": "CHF",
+    "employees": "employees"
+  },
+  "footer": {
+    "copyright": "© 2025 Maverick Lens | Built by Maverick AI Group | All rights reserved.",
+    "builtBy": "Built by Maverick AI Group"
+  }
+}
+

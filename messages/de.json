@@ -1,0 +1,264 @@
+{
+  "nav": {
+    "back": "Zurück zur Startseite",
+    "features": "Funktionen",
+    "howItWorks": "So funktioniert's",
+    "signIn": "Anmelden",
+    "jumpTo": "Springen zu"
+  },
+  "title": {
+    "report": "KI-Chancenbericht — {company}",
+    "app": "Maverick Lens"
+  },
+  "section": {
+    "execSummary": "Management-Zusammenfassung",
+    "snapshot": "Unternehmensübersicht",
+    "industry": "Branchenintelligenz",
+    "moves": "Strategische Initiativen",
+    "compLandscape": "Wettbewerbslandschaft",
+    "competitors": "Wettbewerbsposition",
+    "useCases": "KI-Chancenlandschaft",
+    "actionPlan": "CEO-Aktionsplan",
+    "feasibility": "KI-Bereitschaftsbewertung",
+    "peerComparison": "Peer-Vergleich",
+    "roi": "Nutzen vs. Investition",
+    "trends": "Branchentrends"
+  },
+  "badge": {
+    "confidence": {
+      "high": "Hohe Zuverlässigkeit",
+      "medium": "Mittlere Zuverlässigkeit",
+      "low": "Geringe Zuverlässigkeit"
+    }
+  },
+  "cta": {
+    "scheduleWorkshop": "30-Minuten KI-Workshop planen",
+    "bookDiscoveryCall": "30-Minuten KI-Entdeckungsgespräch buchen",
+    "generateInsights": "KI-Insights generieren"
+  },
+  "state": {
+    "loading": "Wird geladen…",
+    "noData": "Keine Daten verfügbar",
+    "error": "Ein Fehler ist aufgetreten",
+    "invalidLink": "Ungültiger Berichtslink. Bitte überprüfen Sie die URL und versuchen Sie es erneut."
+  },
+  "home": {
+    "hero": {
+      "title": "Entdecken Sie Ihre KI-Chancen in unter 90 Sekunden",
+      "subtitle": "Analysieren Sie nahtlos die öffentlichen Daten Ihres Unternehmens, um die wertvollsten KI-Anwendungsfälle zu entdecken, den ROI zu quantifizieren und einen managementtauglichen Strategiebericht in unter 90 Sekunden zu erhalten.",
+      "button": "KI-Insights generieren"
+    },
+    "form": {
+      "title": "Generieren Sie Ihren KI-Bericht",
+      "subtitle": "Geben Sie Ihre Unternehmensinformationen ein, um zu beginnen",
+      "companyName": "Firmenname",
+      "website": "Firmenwebsite",
+      "industry": "Branche",
+      "headquarters": "Hauptsitz (Stadt, Land)",
+      "submit": "Bericht generieren",
+      "researching": "Erforsche {company}...",
+      "analyzing": "Analysiere Wettbewerbslandschaft...",
+      "generating": "Generiere Insights...",
+      "finalizing": "Finalisiere Bericht...",
+      "error": "Bericht konnte nicht generiert werden. Bitte versuchen Sie es erneut."
+    },
+    "features": {
+      "title": "Warum Maverick Lens?",
+      "subtitle": "Erhalten Sie umsetzbare KI-Strategie-Insights in Minuten, nicht Monaten",
+      "section1": {
+        "title": "8 Strategische Abschnitte",
+        "description": "Umfassende Analyse mit Management-Zusammenfassung, Wettbewerbslandschaft, ROI-bewerteten Anwendungsfällen und mehr."
+      },
+      "section2": {
+        "title": "< 90 s Berichtsgenerierung",
+        "description": "Schnelle, automatisierte Recherche mit KI, um Insights in Geschwindigkeit zu liefern."
+      },
+      "section3": {
+        "title": "5 ROI-bewertete KI-Anwendungsfälle",
+        "description": "Priorisierte Chancen mit quantifizierten Vorteilen, Kosten und Amortisationszeiten."
+      },
+      "section4": {
+        "title": "Nahtlose Integration",
+        "description": "Verbindet sich sofort mit Ihrer öffentlichen Website oder Unternehmensprofil — kein Daten-Upload erforderlich."
+      },
+      "section5": {
+        "title": "Management-Analyse in Minuten",
+        "description": "Generiert einen prägnanten, board-tauglichen Intelligenzbericht mit ROI, Machbarkeit und einem 90-Tage-Aktionsplan."
+      },
+      "section6": {
+        "title": "Quantifizierte Wirkung",
+        "description": "Jeder Anwendungsfall umfasst projizierten Nutzen, Kosten, Amortisation und Zuverlässigkeitsniveau — alles visualisiert."
+      }
+    },
+    "howItWorks": {
+      "title": "So funktioniert's",
+      "subtitle": "Erhalten Sie Ihren umfassenden KI-Chancenbericht in drei einfachen Schritten",
+      "step1": {
+        "title": "Unternehmensdetails eingeben",
+        "description": "Geben Sie Ihren Firmennamen und Website-URL an. Wir verwenden dies, um öffentliche Informationen zu sammeln."
+      },
+      "step2": {
+        "title": "KI-Analyse",
+        "description": "Unser Multi-Agent-KI-System recherchiert Ihr Unternehmen und analysiert Chancen mit fortschrittlicher LLM-Technologie."
+      },
+      "step3": {
+        "title": "Bericht erhalten",
+        "description": "Erhalten Sie einen umfassenden Bericht mit KI-Chancen, ROI-Prognosen, Wettbewerbsanalyse und umsetzbaren Insights."
+      }
+    },
+    "cta": {
+      "title": "Lassen Sie uns gemeinsam Ihre KI-Roadmap gestalten",
+      "subtitle": "Arbeiten Sie direkt mit unserem Strategieteam zusammen, um die schnellsten ROI-KI-Initiativen Ihres Unternehmens zu kartieren, Datenlücken zu identifizieren und Ihren 90-Tage-Ausführungsplan zu definieren.",
+      "button": "Strategische Sitzung buchen"
+    },
+    "problemSolution": {
+      "problem": {
+        "title": "Geschäftsproblem",
+        "text1": "CEOs wissen, dass KI Potenzial hat — aber nicht, wo sie anfangen sollen.",
+        "text2": "Die meisten Organisationen verschwenden Monate mit vagen \"KI-Bereitschafts\"-Diskussionen ohne klaren ROI-Fall."
+      },
+      "solution": {
+        "title": "Unsere Lösung",
+        "text1": "Maverick Lens nutzt Multi-Agent-KI-Recherche, um den öffentlichen Fußabdruck Ihres Unternehmens zu scannen, sich mit Wettbewerbern zu vergleichen und die schnellsten Amortisations-KI-Initiativen zu identifizieren.",
+        "text2": "Das Ergebnis: ein quantifizierter, McKinsey-artiger KI-Chancenbericht, der auf Ihr Unternehmen zugeschnitten ist."
+      }
+    }
+  },
+  "report": {
+    "execSummary": {
+      "annualUplift": "Jährlicher Mehrwert",
+      "weightedPayback": "Gewichtete Amortisation",
+      "deliveryProfile": "Umsetzungsprofil",
+      "complexity": "Komplexität {value}/5",
+      "effort": "Aufwand {value}/5",
+      "estimate": "Schätzung"
+    },
+    "snapshot": {
+      "size": "Größe",
+      "industry": "Branche",
+      "headquarters": "Hauptsitz",
+      "founded": "Gegründet",
+      "ceo": "CEO",
+      "marketPosition": "Marktposition"
+    },
+    "subtitle": {
+      "execSummary": "Management-Intelligenz zu ROI und strategischer KI-Beschleunigung für {company}",
+      "snapshot": "Überblick über {company} und Marktposition",
+      "industry": "Wichtige Marktdynamiken und Chancen für {company}",
+      "moves": "Strategische Initiativen und Marktpositionierung",
+      "competitors": "Wettbewerbsanalyse und Marktkontext",
+      "useCases": "Fünf priorisierte Anwendungsfälle mit ROI-Analyse",
+      "actionPlan": "{company} 90-Tage-Roadmap für KI-Beschleunigung",
+      "feasibility": "{company} - Organisatorische Bereitschaft zur Einführung von KI-Fähigkeiten",
+      "peerComparison": "Vergleichende Analyse gegen {count} Konkurrent{plural} aus dem Abschnitt Wettbewerbsposition"
+    },
+    "roi": {
+      "contribution": "ROI-Beitrag",
+      "title": "Nutzen vs. Investition",
+      "summary": "ROI-Zusammenfassung",
+      "useCase": "Anwendungsfall",
+      "benefit": "Nutzen",
+      "oneTime": "Investition",
+      "ongoing": "Laufend",
+      "payback": "Amortisation",
+      "roi": "ROI",
+      "confidence": "Zuverlässigkeit",
+      "invested": "Investiert",
+      "gained": "Erzielt",
+      "paybackText": "Amortisation in {months} Monaten nach der Bereitstellung der KI-Lösung in der Produktion",
+      "totals": "Summen — Nutzen: CHF {benefit}; Investition: CHF {investment}; Durchschn. Amortisation: {payback}; Gesamt-ROI: {roi}.",
+      "estimate": "Schätzung",
+      "est": "geschätzt"
+    },
+    "competitors": {
+      "title": "Wettbewerbsposition",
+      "description": "Das Verständnis Ihrer Position im Vergleich zu Mitbewerbern hilft dabei, KI-Investitionen zu priorisieren, die Wettbewerbsvorteile schaffen.",
+      "noData": "Peer-Analyse wird aus verifizierten Branchenquellen generiert.",
+      "and": "und",
+      "industryText": "dem {industry} Sektor",
+      "defaultIndustry": "Ihrer Branche",
+      "competesText": "{company} konkurriert neben {competitors} in {industry}."
+    },
+    "peerComparison": {
+      "title": "Peer-Vergleich",
+      "subtitle": "Vergleichende Analyse gegen {count} Konkurrent{plural}",
+      "execSummary": "Management-Zusammenfassung",
+      "noCompetitors": "Keine Konkurrenten in den Berichtsdaten gefunden."
+    },
+    "feasibility": {
+      "title": "KI-Bereitschaftsbewertung über 5 Schlüsselsäulen",
+      "subtitle": "Organisatorische Bereitschaft zur Einführung von KI-Fähigkeiten.",
+      "pillars": {
+        "data": "Datenbereitschaft",
+        "leadership": "Führungsausrichtung",
+        "technical": "Technische Fähigkeit",
+        "risk": "Risiko & Sicherheit",
+        "compliance": "Regulatorische Bereitschaft"
+      },
+      "descriptions": {
+        "data": "Datenqualität und Verfügbarkeit zur Unterstützung von KI-Initiativen.",
+        "leadership": "Geschäftsführung und Governance für KI-Einführung.",
+        "technical": "Infrastruktur, Tools und Fähigkeiten zur Implementierung von KI-Lösungen.",
+        "risk": "Fähigkeit zur Verwaltung von Datenschutz, Modellrisiko und ethischer Nutzung.",
+        "compliance": "Compliance-Position für Daten- und KI-Regulierung."
+      },
+      "levels": {
+        "high": "Starke Fähigkeiten bereit für skalierbare KI-Bereitstellung.",
+        "medium": "Angemessene Grundlage; einige Enabler entwickeln sich noch.",
+        "low": "Lücken erfordern grundlegende Verbesserungen."
+      }
+    },
+    "useCases": {
+      "title": "Top 5 KI-Anwendungsfälle für {company}",
+      "prioritized": "Priorisiert nach ROI",
+      "roiPercent": "{percent}% ROI",
+      "payback": "Amortisation: {months} Mon.",
+      "paybackMonths": "{months} Mon.",
+      "value": "Wert",
+      "complexity": "Komplexität",
+      "effort": "Aufwand",
+      "annualBenefit": "Jährlicher Nutzen",
+      "oneTimeCost": "Einmalige Kosten",
+      "ongoingCost": "Laufende Kosten"
+    },
+    "actionPlan": {
+      "title": "CEO-Aktionsplan",
+      "titleWithDays": "CEO-Aktionsplan (90 Tage)",
+      "subtitle": "Schnell und diszipliniert vorgehen: Entdecken → Pilot → Skalieren → Messen.",
+      "phases": {
+        "discover": "Entdecken",
+        "pilot": "Pilot",
+        "scale": "Skalieren",
+        "measure": "Messen"
+      }
+    },
+    "trends": {
+      "title": "Trend-Analyse Impact-Grid",
+      "subtitle": "Priorisierte Trends nach Geschäftsbereitschaft und potenziellem Impact",
+      "businessReadiness": "Geschäftsbereitschaft",
+      "potentialImpact": "Potenzieller Impact",
+      "readiness": "Bereitschaft",
+      "impact": "Impact",
+      "low": "Niedrig",
+      "high": "Hoch",
+      "action": {
+        "highPriority": "Jetzt handeln — Hochprioritäre Chance",
+        "quickWin": "Schneller Erfolg — Geringer Aufwand, gute Rendite",
+        "planPilot": "Pilot planen — Hoher Wert, benötigt Vorbereitung",
+        "explore": "Optionen erkunden — Mittlere Priorität",
+        "monitor": "Überwachen — Niedrigere Priorität für jetzt"
+      }
+    }
+  },
+  "common": {
+    "notSpecified": "nicht angegeben",
+    "months": "Mon.",
+    "chf": "CHF",
+    "employees": "Mitarbeiter"
+  },
+  "footer": {
+    "copyright": "© 2025 Maverick Lens | Erstellt von Maverick AI Group | Alle Rechte vorbehalten.",
+    "builtBy": "Erstellt von Maverick AI Group"
+  }
+}
+

@@ -1,4 +1,7 @@
+'use client'
+
 import { Brief } from '@/lib/schema/brief'
+import { useTranslations } from 'next-intl'
 
 const getLevelColor = (level: string) => {
   switch (level.toLowerCase()) {
@@ -13,20 +16,20 @@ const getLevelColor = (level: string) => {
   }
 }
 
-const getLevelDescription = (level: string): string => {
+const getLevelDescription = (level: string, t: any): string => {
   switch (level.toLowerCase()) {
     case 'high':
-      return 'Strong capabilities ready for scalable AI deployment.'
+      return t('report.feasibility.levels.high')
     case 'medium':
-      return 'Adequate foundation; some enablers still developing.'
+      return t('report.feasibility.levels.medium')
     case 'low':
-      return 'Gaps require foundational improvements.'
+      return t('report.feasibility.levels.low')
     default:
       return 'Assessment pending.'
   }
 }
 
-function generateReadinessItems(data: Brief): Array<{ 
+function generateReadinessItems(data: Brief, t: any): Array<{ 
   name: string
   label: string
   description: string
@@ -87,36 +90,36 @@ function generateReadinessItems(data: Brief): Array<{
   return [
     { 
       name: 'data',
-      label: 'Data Readiness',
-      description: 'Data quality and availability to support AI initiatives.',
+      label: t('report.feasibility.pillars.data'),
+      description: t('report.feasibility.descriptions.data'),
       level: dataLevel,
       rationale: dataRationale
     },
     { 
       name: 'leadership',
-      label: 'Leadership Alignment',
-      description: 'Executive sponsorship and governance for AI adoption.',
+      label: t('report.feasibility.pillars.leadership'),
+      description: t('report.feasibility.descriptions.leadership'),
       level: leadershipLevel,
       rationale: leadershipRationale
     },
     { 
       name: 'technical',
-      label: 'Technical Capability',
-      description: 'Infrastructure, tools, and skills to implement AI solutions.',
+      label: t('report.feasibility.pillars.technical'),
+      description: t('report.feasibility.descriptions.technical'),
       level: technicalLevel,
       rationale: technicalRationale
     },
     { 
       name: 'risk',
-      label: 'Risk & Security',
-      description: 'Ability to manage data privacy, model risk, and ethical use.',
+      label: t('report.feasibility.pillars.risk'),
+      description: t('report.feasibility.descriptions.risk'),
       level: riskLevel,
       rationale: riskRationale
     },
     { 
       name: 'compliance',
-      label: 'Regulatory Readiness',
-      description: 'Compliance posture for data and AI regulation.',
+      label: t('report.feasibility.pillars.compliance'),
+      description: t('report.feasibility.descriptions.compliance'),
       level: complianceLevel,
       rationale: complianceRationale
     }
@@ -124,12 +127,13 @@ function generateReadinessItems(data: Brief): Array<{
 }
 
 export default function FeasibilityScan({ _data }: { _data: Brief }) {
-  const items = generateReadinessItems(_data)
+  const t = useTranslations()
+  const items = generateReadinessItems(_data, t)
   
   return (
     <section className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-lg">
       <div className="mb-6">
-        <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">AI Readiness Assessment across 5 key pillars</h4>
+        <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">{t('report.feasibility.title')}</h4>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {items.map((item) => (
@@ -145,7 +149,7 @@ export default function FeasibilityScan({ _data }: { _data: Brief }) {
               {item.level}
             </div>
             <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 leading-relaxed">
-              {getLevelDescription(item.level)}
+              {getLevelDescription(item.level, t)}
             </p>
           </div>
         ))}

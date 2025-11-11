@@ -1,5 +1,6 @@
 "use client"
 import { Brief } from '@/lib/schema/brief'
+import { useTranslations } from 'next-intl'
 
 function computeWeightedPayback(useCases: Brief['use_cases']) {
   const items = useCases.filter(u => typeof u.est_annual_benefit === 'number' && typeof u.payback_months === 'number')
@@ -10,6 +11,7 @@ function computeWeightedPayback(useCases: Brief['use_cases']) {
 }
 
 export default function BenefitInvestmentBar({ data }: { data: Brief }) {
+  const t = useTranslations()
   // Normalize numeric values to ensure consistency (handle null, undefined, or string values)
   const normalizeNum = (v: any): number => {
     if (typeof v === 'number' && !isNaN(v)) return v
@@ -54,7 +56,7 @@ export default function BenefitInvestmentBar({ data }: { data: Brief }) {
       {/* ROI Percentage Display */}
       <div className="text-center">
         <div className="text-2xl font-bold text-gray-900 dark:text-white">
-          ROI: {roiPercentage >= 0 ? '+' : ''}{roiPercentage.toFixed(0)}%
+          {t('report.roi.roi')}: {roiPercentage >= 0 ? '+' : ''}{roiPercentage.toFixed(1)}%
         </div>
       </div>
       
@@ -82,10 +84,10 @@ export default function BenefitInvestmentBar({ data }: { data: Brief }) {
         {/* Labels below the bar */}
         <div className="flex justify-between mt-2 text-sm">
           <span className="text-blue-600 dark:text-blue-400 font-medium">
-            {formatCurrency(totalInvestment)} Invested
+            {formatCurrency(totalInvestment)} {t('report.roi.invested')}
           </span>
           <span className="text-green-600 dark:text-green-400 font-medium">
-            {formatCurrency(totalBenefit)} Gained
+            {formatCurrency(totalBenefit)} {t('report.roi.gained')}
           </span>
         </div>
       </div>
@@ -93,7 +95,7 @@ export default function BenefitInvestmentBar({ data }: { data: Brief }) {
       {/* Payback period */}
       {weightedPayback !== undefined && (
         <div className="text-center text-xs text-gray-500 dark:text-gray-400">
-          Payback in {weightedPayback} months after AI solution is deployed into production
+          {t('report.roi.paybackText', { months: weightedPayback })}
         </div>
       )}
     </div>

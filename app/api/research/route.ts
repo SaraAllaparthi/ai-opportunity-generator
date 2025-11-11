@@ -17,7 +17,8 @@ const InputSchema = z.object({
   website: z.string().min(1).transform((val) => normalizeWebsite(val)).pipe(z.string().url()),
   headquartersHint: z.string().min(1), // REQUIRED: Must include city, region, and country
   industryHint: z.string().min(1), // REQUIRED
-  industry: z.string().optional() // Legacy field
+  industry: z.string().optional(), // Legacy field
+  locale: z.enum(['en', 'de']).optional().default('en') // Language for LLM output
 })
 
 export async function POST(req: NextRequest) {
@@ -48,6 +49,7 @@ export async function POST(req: NextRequest) {
     const website = parsed.website
     const headquartersHint = parsed.headquartersHint
     const industryHint = parsed.industryHint || parsed.industry
+    const locale = parsed.locale || 'en'
 
     // STRICT PREREQUISITE CHECKS: All three required
     if (!companyName || companyName.trim().length === 0) {
@@ -78,7 +80,8 @@ export async function POST(req: NextRequest) {
       name: companyName,
       website,
       headquartersHint,
-      industryHint
+      industryHint,
+      locale
     })
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error('Pipeline timeout: Request took longer than 280 seconds')), 280000)

@@ -423,7 +423,8 @@ export async function findLocalCompetitors(
     services?: string[]
     targetMarkets?: string[]
   },
-  companySize?: string
+  companySize?: string,
+  locale: 'en' | 'de' = 'en'
 ): Promise<Array<{
   name: string
   website: string
@@ -554,7 +555,7 @@ Find at least ${stage.minResults} competitors if possible. Focus on finding real
       messages: [
         {
           role: 'system',
-          content: 'You are a business intelligence researcher specializing in finding competitors for companies. Use your search capabilities to find direct competitors based on the company information provided. Return ONLY a valid JSON array of competitor objects. Each object: name (string, required), website (string, required - can be domain.com or full URL), hq (string or null), size_band (string or null), positioning (string or null, max 140 chars), source_url (string or null). No markdown, just JSON array. Search thoroughly using all available sources. Return at least 3-5 competitors if possible.'
+          content: `You are a business intelligence researcher specializing in finding competitors for companies. Use your search capabilities to find direct competitors based on the company information provided. ${locale === 'de' ? 'WICHTIG: Alle Texte müssen auf Deutsch sein. Die positioning-Beschreibungen müssen auf Deutsch verfasst werden.' : ''} Return ONLY a valid JSON array of competitor objects. Each object: name (string, required), website (string, required - can be domain.com or full URL), hq (string or null), size_band (string or null${locale === 'de' ? ' - use "X Mitarbeiter" or "X-Y Mitarbeiter" format' : ''}), positioning (string or null, max 140 chars${locale === 'de' ? ' - MUST be in German' : ''}), source_url (string or null). No markdown, just JSON array. Search thoroughly using all available sources. Return at least 3-5 competitors if possible.`
         },
         {
           role: 'user',
@@ -740,6 +741,53 @@ Find at least ${stage.minResults} competitors if possible. Focus on finding real
             const commonWords = ['the', 'and', 'for', 'inc', 'ltd', 'ag', 'corp']
             if (!commonWords.includes(companyNameLower)) {
               console.log(`[Perplexity] ❌ ${stage.name} stage: Rejecting ${index} (${c.name}): short company name appears in competitor name`)
+              return false
+            }
+          }
+          
+          // Exclude mergers and acquisitions
+          const mergerKeywords = [
+            'merger', 'merged', 'merging',
+            'acquisition', 'acquired', 'acquiring',
+            'takeover', 'taken over',
+            'consolidation', 'consolidated',
+            'merges with', 'acquired by', 'taken over by'
+          ]
+          
+          // Check competitor name for merger keywords
+          const hasMergerKeyword = mergerKeywords.some(keyword => 
+            competitorNameLower.includes(keyword)
+          )
+          
+          if (hasMergerKeyword) {
+            console.log(`[Perplexity] ❌ ${stage.name} stage: Rejecting ${index} (${c.name}): appears to be a merger/acquisition`)
+            return false
+          }
+          
+          // Check for merger patterns: "Company A + Company B" or "Company A & Company B"
+          const mergerPatterns = [
+            /\s+\+\s+/,  // Space + Space
+            /\s+&\s+/,   // Space & Space
+            /\s+and\s+/, // Space and Space (when it's clearly two companies)
+          ]
+          
+          const hasMergerPattern = mergerPatterns.some(pattern => pattern.test(competitorNameLower))
+          
+          // Additional check: if pattern found, verify it's not just a normal company name with "and"
+          if (hasMergerPattern) {
+            // Count words - if more than 4 words, likely a merger description
+            const wordCount = competitorNameLower.split(/\s+/).length
+            if (wordCount > 4) {
+              console.log(`[Perplexity] ❌ ${stage.name} stage: Rejecting ${index} (${c.name}): appears to be a merger description (${wordCount} words)`)
+              return false
+            }
+            // Also check if positioning mentions merger/acquisition
+            const positioningLower = (c.positioning || '').toLowerCase()
+            const positioningHasMergerKeyword = mergerKeywords.some(keyword => 
+              positioningLower.includes(keyword)
+            )
+            if (positioningHasMergerKeyword) {
+              console.log(`[Perplexity] ❌ ${stage.name} stage: Rejecting ${index} (${c.name}): positioning mentions merger/acquisition`)
               return false
             }
           }
