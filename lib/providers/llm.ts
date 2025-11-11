@@ -108,4 +108,92 @@ export async function llmGenerateJson(system: string, user: string, options?: Ge
   throw new Error('LLM generation failed')
 }
 
+/**
+ * Generate text (non-JSON) response from OpenAI
+ */
+export async function llmGenerateText(
+  system: string,
+  user: string,
+  options?: {
+    model?: string
+    temperature?: number
+    max_tokens?: number
+    timeoutMs?: number
+  }
+): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY
+  if (!apiKey) throw new Error('Missing OPENAI_API_KEY')
+
+  const model = options?.model ?? 'gpt-4o-mini'
+  const temperature = options?.temperature ?? 0.3
+  const max_tokens = options?.max_tokens ?? 120
+  const timeoutMs = options?.timeoutMs ?? 30000 // 30s default for text generation
+  const url = 'https://api.openai.com/v1/chat/completions'
+  const body = {
+    model,
+    temperature,
+    max_tokens,
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: user }
+    ]
+  }
+
+  console.log('[LLM] Sending text generation request to OpenAI:', {
+    model,
+    temperature,
+    max_tokens,
+    systemLength: system.length,
+    userLength: user.length
+  })
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => {
+    console.error(`[LLM] Text generation timeout after ${timeoutMs}ms`)
+    controller.abort()
+  }, timeoutMs)
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal
+    })
+
+    clearTimeout(timeout)
+
+    if (!res.ok) {
+      const errorText = await res.text()
+      console.error('[LLM] Error response:', { status: res.status, body: errorText })
+      throw new Error(`OpenAI error: ${res.status}`)
+    }
+
+    const json = await res.json()
+    const content = json.choices?.[0]?.message?.content
+    if (!content) {
+      console.error('[LLM] OpenAI returned empty content')
+      throw new Error('OpenAI returned empty content')
+    }
+
+    console.log('[LLM] Text generation completed:', {
+      model: json.model,
+      usage: json.usage,
+      contentLength: content.length
+    })
+
+    return content.trim()
+  } catch (err) {
+    clearTimeout(timeout)
+    if ((err as any)?.name === 'AbortError') {
+      throw new Error(`OpenAI request timed out after ${timeoutMs}ms`)
+    }
+    console.error('[LLM] Text generation error:', err)
+    throw err
+  }
+}
+
 

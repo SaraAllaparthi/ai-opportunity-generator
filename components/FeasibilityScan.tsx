@@ -3,17 +3,36 @@ import { Brief } from '@/lib/schema/brief'
 const getLevelColor = (level: string) => {
   switch (level.toLowerCase()) {
     case 'high':
-      return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-300 dark:border-green-700'
+      return 'bg-green-500/20 dark:bg-green-500/20 text-green-700 dark:text-green-400 border-green-500 dark:border-green-500'
     case 'medium':
-      return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border-yellow-300 dark:border-yellow-700'
+      return 'bg-amber-500/20 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500 dark:border-amber-500'
     case 'low':
-      return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-300 dark:border-red-700'
+      return 'bg-red-500/20 dark:bg-red-500/20 text-red-700 dark:text-red-400 border-red-500 dark:border-red-500'
     default:
       return 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600'
   }
 }
 
-function generateFeasibilityItems(data: Brief): Array<{ name: string; level: string; rationale: string }> {
+const getLevelDescription = (level: string): string => {
+  switch (level.toLowerCase()) {
+    case 'high':
+      return 'Strong capabilities ready for scalable AI deployment.'
+    case 'medium':
+      return 'Adequate foundation; some enablers still developing.'
+    case 'low':
+      return 'Gaps require foundational improvements.'
+    default:
+      return 'Assessment pending.'
+  }
+}
+
+function generateReadinessItems(data: Brief): Array<{ 
+  name: string
+  label: string
+  description: string
+  level: string
+  rationale: string
+}> {
   const industry = data.company?.industry || 'Professional Services'
   const companySize = data.company?.size || ''
   const useCases = data.use_cases || []
@@ -29,7 +48,7 @@ function generateFeasibilityItems(data: Brief): Array<{ name: string; level: str
   const isRegulated = ['Financial Services', 'Healthcare', 'Energy & Utilities'].includes(industry)
   const isTechForward = ['Technology', 'Professional Services'].includes(industry)
   
-  // Data readiness
+  // Data Readiness
   const dataLevel = hasData ? 'High' : (isTechForward ? 'Medium' : 'Low')
   const dataRationale = hasData 
     ? 'Use cases have clear data requirements'
@@ -37,7 +56,7 @@ function generateFeasibilityItems(data: Brief): Array<{ name: string; level: str
       ? `${industry} typically has structured data available`
       : `Data collection may be needed for ${industry.toLowerCase()}`
   
-  // Leadership readiness
+  // Leadership Alignment
   const leadershipLevel = companySize.includes('100') || companySize.includes('200') || companySize.includes('500') 
     ? 'High' 
     : 'Medium'
@@ -45,7 +64,7 @@ function generateFeasibilityItems(data: Brief): Array<{ name: string; level: str
     ? `${companySize} organization has management structure for AI initiatives`
     : 'Leadership commitment needed for AI transformation'
   
-  // Technical readiness
+  // Technical Capability
   const technicalLevel = isTechForward ? 'High' : (avgComplexity <= 3 ? 'Medium' : 'Low')
   const technicalRationale = isTechForward
     ? `${industry} has technical capabilities for AI adoption`
@@ -53,46 +72,81 @@ function generateFeasibilityItems(data: Brief): Array<{ name: string; level: str
       ? 'Use cases are moderate complexity, feasible with support'
       : 'Complex use cases may require technical partnerships'
   
-  // Risk assessment
+  // Risk & Security
   const riskLevel = isRegulated ? 'Medium' : 'Low'
   const riskRationale = isRegulated
     ? `${industry} has regulatory considerations for AI deployment`
     : 'Standard business risks, manageable with proper planning'
   
-  // Compliance
+  // Regulatory Readiness
   const complianceLevel = isRegulated ? 'High' : 'Medium'
   const complianceRationale = isRegulated
     ? `${industry} requires compliance with industry regulations`
     : 'General data protection and business compliance standards apply'
   
   return [
-    { name: 'Data', level: dataLevel, rationale: dataRationale },
-    { name: 'Leadership', level: leadershipLevel, rationale: leadershipRationale },
-    { name: 'Technical', level: technicalLevel, rationale: technicalRationale },
-    { name: 'Risk', level: riskLevel, rationale: riskRationale },
-    { name: 'Compliance', level: complianceLevel, rationale: complianceRationale }
+    { 
+      name: 'data',
+      label: 'Data Readiness',
+      description: 'Data quality and availability to support AI initiatives.',
+      level: dataLevel,
+      rationale: dataRationale
+    },
+    { 
+      name: 'leadership',
+      label: 'Leadership Alignment',
+      description: 'Executive sponsorship and governance for AI adoption.',
+      level: leadershipLevel,
+      rationale: leadershipRationale
+    },
+    { 
+      name: 'technical',
+      label: 'Technical Capability',
+      description: 'Infrastructure, tools, and skills to implement AI solutions.',
+      level: technicalLevel,
+      rationale: technicalRationale
+    },
+    { 
+      name: 'risk',
+      label: 'Risk & Security',
+      description: 'Ability to manage data privacy, model risk, and ethical use.',
+      level: riskLevel,
+      rationale: riskRationale
+    },
+    { 
+      name: 'compliance',
+      label: 'Regulatory Readiness',
+      description: 'Compliance posture for data and AI regulation.',
+      level: complianceLevel,
+      rationale: complianceRationale
+    }
   ]
 }
 
 export default function FeasibilityScan({ _data }: { _data: Brief }) {
-  const items = generateFeasibilityItems(_data)
+  const items = generateReadinessItems(_data)
   
   return (
     <section className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-lg">
-      <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">Feasibility Scan</h3>
-      <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
-        Readiness assessment for {_data.company?.name || 'your company'} in the {_data.company?.industry || 'industry'} sector.
-      </p>
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
-        {items.map((i) => (
-          <div key={i.name} className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-4">
-            <div className="mb-2">
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">{i.name}</span>
+      <div className="mb-6">
+        <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">AI Readiness Assessment across 5 key pillars</h4>
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        {items.map((item) => (
+          <div 
+            key={item.name} 
+            className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-4 transition-all duration-200 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600"
+          >
+            <div className="mb-3">
+              <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">{item.label}</h5>
+              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{item.description}</p>
             </div>
-            <div className={`rounded-full border px-2.5 py-1 text-xs font-medium text-center mb-2 ${getLevelColor(i.level)}`}>
-              {i.level}
+            <div className={`rounded-full border px-2.5 py-1 text-xs font-medium text-center mb-2 ${getLevelColor(item.level)}`}>
+              {item.level}
             </div>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">{i.rationale}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 leading-relaxed">
+              {getLevelDescription(item.level)}
+            </p>
           </div>
         ))}
       </div>

@@ -292,10 +292,10 @@ export default async function SharePage({ params }: { params: Promise<{ slug: st
           
           <div className="mt-8 text-center">
             <a
-              href="#book"
+              href="mailto:contact@maverickaigroup.ai?subject=Book 30-min AI Discovery Call"
               className="inline-flex h-12 items-center justify-center rounded-xl bg-blue-600 dark:bg-blue-500 px-8 text-sm font-semibold text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
             >
-              Schedule a 30-min {data.company.name} AI Value Workshop — define your fastest ROI path
+              Book 30-min AI Discovery Call
             </a>
           </div>
         </SectionWrapper>
@@ -304,16 +304,16 @@ export default async function SharePage({ params }: { params: Promise<{ slug: st
         <SectionWrapper id="action-plan" className="pt-0">
           <div className="mb-4">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">CEO Action Plan</h2>
-            <p className="text-gray-600 dark:text-gray-300 text-sm">90-day roadmap for AI acceleration</p>
+            <p className="text-gray-600 dark:text-gray-300 text-sm">{data.company?.name || 'Organization'} 90-day roadmap for AI acceleration</p>
           </div>
           <CEOActionPlan data={data} />
         </SectionWrapper>
 
-        {/* Feasibility Scan */}
+        {/* AI Readiness Assessment */}
         <SectionWrapper id="feasibility" className="pt-0">
           <div className="mb-4">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">Feasibility Scan</h2>
-            <p className="text-gray-600 dark:text-gray-300 text-sm">Readiness assessment across key domains</p>
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">AI Readiness Assessment</h2>
+            <p className="text-gray-600 dark:text-gray-300 text-sm">{data.company?.name || 'Organization'} - Organizational readiness to roll out AI capabilities</p>
           </div>
           <FeasibilityScan _data={data} />
         </SectionWrapper>

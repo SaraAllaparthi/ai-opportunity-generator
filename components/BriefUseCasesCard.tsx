@@ -37,7 +37,7 @@ export default function UseCasesCard({ data }: { data: Brief }) {
           const roiPct = (typeof u.est_annual_benefit === 'number' && investment > 0)
             ? Math.round(((u.est_annual_benefit - investment) / investment) * 100)
             : undefined
-          const roiColor = roiPct === undefined ? 'bg-slate-500' : roiPct >= 200 ? 'bg-green-600' : roiPct >= 120 ? 'bg-amber-500' : 'bg-red-600'
+          const roiColor = 'bg-green-600'
           const maxPayback = Math.max(...sorted.map(s => s.payback_months || 0), 1)
           const progress = Math.min(100, Math.round(((u.payback_months || maxPayback) / maxPayback) * 100))
           return (
@@ -100,7 +100,15 @@ export default function UseCasesCard({ data }: { data: Brief }) {
                     <td className="p-3 text-gray-700 dark:text-gray-300">{u.est_ongoing_cost?.toLocaleString() ?? '—'}</td>
                     <td className="p-3 text-gray-600 dark:text-gray-400">{u.payback_months ? `${u.payback_months} mo` : 'estimate'}</td>
                     <td className="p-3 text-blue-600 dark:text-blue-400 font-medium">{roi}</td>
-                    <td className="p-3"><span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${getConfidenceColor(conf)}`}>{conf}</span></td>
+                    <td className="p-3">
+                      <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${
+                        conf === 'Medium' || conf === 'High' 
+                          ? 'bg-green-500/20 text-green-700 dark:text-green-400 border-green-500 dark:border-green-500' 
+                          : getConfidenceColor(conf)
+                      }`}>
+                        {conf}
+                      </span>
+                    </td>
                   </tr>
                 )
               })}

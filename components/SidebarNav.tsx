@@ -9,7 +9,7 @@ const sections = [
   { id: 'competitors', label: 'Competitors' },
   { id: 'use-cases', label: 'Landscape' },
   { id: 'action-plan', label: 'Action Plan' },
-  { id: 'feasibility', label: 'Feasibility' }
+  { id: 'feasibility', label: 'AI Readiness' }
 ]
 
 export default function SidebarNav() {

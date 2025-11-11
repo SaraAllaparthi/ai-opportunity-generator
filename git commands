@@ -1,0 +1,40 @@
+
+
+git status
+
+git add .
+
+git commit -am “final working changes“
+
+git push origin main
+
+git pull 
+
+
+git commit -am “final changes“
+
+
+
+git status
+
+git add .
+
+git commit -am “final working changes“
+
+git push origin main
+
+git pull 
+
+
+
+git status
+
+git add .
+
+git commit -am "test"
+
+git push origin main
+
+git pull 
+
+

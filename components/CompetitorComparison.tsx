@@ -2,233 +2,354 @@
 
 import { Brief } from '@/lib/schema/brief'
 import { useEffect, useState, useMemo, useRef } from 'react'
-import { researchCompetitorCapabilities } from '@/lib/providers/perplexity'
 
-type CompetitorCapabilities = {
+type EntityScores = {
+  entity: string
   ai_adoption: number
   innovation_speed: number
   operational_efficiency: number
-  market_position: number
   technology_maturity: number
+  market_position: number
   customer_focus: number
-  insights: string[]
 }
 
-type CompetitorWithCapabilities = {
-  name: string
-  website: string
-  hq?: string
-  capabilities: CompetitorCapabilities
+type ScoresData = {
+  scores: EntityScores[]
 }
 
 const sanitizeKey = (name: string) => `k_${(name || 'unknown').replace(/[^a-zA-Z0-9_]/g, '_')}`
 
+// Dimensions defined outside component to avoid recreation on every render
+const dimensions = [
+  { label: 'AI Adoption', key: 'ai_adoption' },
+  { label: 'Innovation Speed', key: 'innovation_speed' },
+  { label: 'Operational Efficiency', key: 'operational_efficiency' },
+  { label: 'Market Position', key: 'market_position' },
+  { label: 'Technology Maturity', key: 'technology_maturity' },
+  { label: 'Customer Focus', key: 'customer_focus' }
+] as const
+
+/**
+ * Generate executive summary using OpenAI via API route
+ */
+async function summarizePeerComparison(
+  companyName: string,
+  dimensions: Array<{ label: string; companyScore: number; peerAverage: number }>,
+  language: 'en' | 'de' = 'en'
+): Promise<string> {
+  try {
+    const response = await fetch('/api/summarize-peer-comparison', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        companyName,
+        dimensions,
+        language
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data.summary || ''
+  } catch (err) {
+    console.error('[PeerComparison] Error generating summary:', err)
+    // Fallback to basic summary
+    const topGap = dimensions.reduce((max, d) => {
+      const gap = Math.abs(d.companyScore - d.peerAverage)
+      return gap > max.gap ? { dimension: d.label, gap, isPositive: d.companyScore > d.peerAverage } : max
+    }, { dimension: '', gap: 0, isPositive: true })
+    
+    if (topGap.gap > 0.3) {
+      return language === 'de'
+        ? `${topGap.isPositive ? 'Führt' : 'Liegt zurück'} bei ${topGap.dimension.toLowerCase()} um ${topGap.gap.toFixed(1)} Punkte im Vergleich zu Peers.`
+        : `${topGap.isPositive ? 'Leads' : 'Trails'} in ${topGap.dimension.toLowerCase()} by ${topGap.gap.toFixed(1)} points compared to peers.`
+    }
+    return language === 'de'
+      ? 'Zeigt ausgewogene Fähigkeiten im Vergleich zu Peers.'
+      : 'Shows balanced capabilities compared to peers.'
+  }
+}
+
+/**
+ * Analyze text and infer scores for six dimensions based on keywords and patterns
+ * Company-agnostic logic that works for any organization or industry
+ */
+function inferScoresFromText(text: string): {
+  ai_adoption: number
+  innovation_speed: number
+  operational_efficiency: number
+  technology_maturity: number
+  market_position: number
+  customer_focus: number
+} {
+  const lowerText = text.toLowerCase()
+  
+  // AI Adoption scoring (1-5)
+  const aiKeywords = {
+    strong: ['ai', 'artificial intelligence', 'machine learning', 'ml', 'deep learning', 'neural network', 'automation', 'intelligent', 'smart', 'predictive analytics', 'ai-powered', 'ai-driven'],
+    moderate: ['digital', 'technology', 'software', 'platform', 'system', 'data analytics', 'analytics', 'optimization'],
+    weak: ['traditional', 'manual', 'legacy', 'paper-based']
+  }
+  const aiScore = calculateDimensionScore(lowerText, aiKeywords, 1.5)
+
+  // Innovation Speed scoring (1-5)
+  const innovationKeywords = {
+    strong: ['innovative', 'cutting-edge', 'pioneering', 'breakthrough', 'rapid', 'agile', 'fast-moving', 'disruptive', 'next-generation', 'advanced', 'modern', 'state-of-the-art'],
+    moderate: ['developing', 'growing', 'expanding', 'improving', 'enhancing', 'upgrading'],
+    weak: ['established', 'traditional', 'stable', 'conservative', 'long-standing']
+  }
+  const innovationScore = calculateDimensionScore(lowerText, innovationKeywords, 1.5)
+
+  // Operational Efficiency scoring (1-5)
+  const efficiencyKeywords = {
+    strong: ['efficient', 'optimized', 'streamlined', 'automated', 'lean', 'productive', 'cost-effective', 'high-performance', 'scalable', 'agile operations'],
+    moderate: ['operational', 'process', 'workflow', 'systematic', 'organized'],
+    weak: ['inefficient', 'complex', 'bureaucratic', 'slow', 'cumbersome']
+  }
+  const efficiencyScore = calculateDimensionScore(lowerText, efficiencyKeywords, 1.5)
+
+  // Technology Maturity scoring (1-5)
+  const techKeywords = {
+    strong: ['cloud', 'saas', 'api', 'microservices', 'modern tech', 'digital platform', 'enterprise software', 'cloud-native', 'api-first', 'scalable architecture'],
+    moderate: ['software', 'system', 'platform', 'digital', 'technology', 'solution'],
+    weak: ['legacy', 'outdated', 'traditional systems', 'on-premise', 'manual processes']
+  }
+  const techScore = calculateDimensionScore(lowerText, techKeywords, 1.5)
+
+  // Market Position scoring (1-5)
+  const marketKeywords = {
+    strong: ['leader', 'leading', 'market leader', 'dominant', 'top', 'premier', 'recognized', 'award-winning', 'established leader', 'industry leader'],
+    moderate: ['established', 'growing', 'expanding', 'recognized', 'known', 'reputable'],
+    weak: ['emerging', 'startup', 'small', 'niche', 'regional', 'local']
+  }
+  const marketScore = calculateDimensionScore(lowerText, marketKeywords, 1.5)
+
+  // Customer Focus scoring (1-5)
+  const customerKeywords = {
+    strong: ['customer-centric', 'client-focused', 'customer satisfaction', 'personalized', 'tailored', 'custom', 'dedicated service', 'customer experience', 'client success'],
+    moderate: ['service', 'support', 'customer', 'client', 'solutions', 'satisfaction'],
+    weak: ['generic', 'standard', 'one-size-fits-all', 'impersonal']
+  }
+  const customerScore = calculateDimensionScore(lowerText, customerKeywords, 1.5)
+
+  return {
+    ai_adoption: Math.max(1, Math.min(5, Math.round(aiScore * 10) / 10)),
+    innovation_speed: Math.max(1, Math.min(5, Math.round(innovationScore * 10) / 10)),
+    operational_efficiency: Math.max(1, Math.min(5, Math.round(efficiencyScore * 10) / 10)),
+    technology_maturity: Math.max(1, Math.min(5, Math.round(techScore * 10) / 10)),
+    market_position: Math.max(1, Math.min(5, Math.round(marketScore * 10) / 10)),
+    customer_focus: Math.max(1, Math.min(5, Math.round(customerScore * 10) / 10))
+  }
+}
+
+/**
+ * Calculate dimension score based on keyword presence
+ * Returns score between 1-5
+ */
+function calculateDimensionScore(text: string, keywords: { strong: string[], moderate: string[], weak: string[] }, baseScore: number): number {
+  let score = baseScore // Start with neutral base
+  
+  // Count strong keyword matches
+  const strongMatches = keywords.strong.filter(kw => text.includes(kw)).length
+  score += strongMatches * 0.8
+  
+  // Count moderate keyword matches
+  const moderateMatches = keywords.moderate.filter(kw => text.includes(kw)).length
+  score += moderateMatches * 0.3
+  
+  // Subtract for weak keyword matches
+  const weakMatches = keywords.weak.filter(kw => text.includes(kw)).length
+  score -= weakMatches * 0.5
+  
+  // Text length factor (longer descriptions may indicate more detail/capability)
+  const lengthFactor = Math.min(text.length / 200, 0.5) // Cap at 0.5 bonus
+  score += lengthFactor
+  
+  return Math.max(1, Math.min(5, score))
+}
+
+/**
+ * Normalize scores so the strongest company in each dimension = 5
+ */
+function normalizeScores(scores: EntityScores[]): EntityScores[] {
+  if (scores.length === 0) return scores
+
+  const dimensions: Array<keyof Omit<EntityScores, 'entity'>> = [
+    'ai_adoption',
+    'innovation_speed',
+    'operational_efficiency',
+    'technology_maturity',
+    'market_position',
+    'customer_focus'
+  ]
+
+  // Find max value for each dimension
+  const maxValues: Record<string, number> = {}
+  dimensions.forEach(dim => {
+    const max = Math.max(...scores.map(s => s[dim]))
+    maxValues[dim] = max > 0 ? max : 1 // Avoid division by zero
+  })
+
+  // Normalize each score: (score / max) * 5
+  return scores.map(entity => {
+    const normalized: EntityScores = { ...entity }
+    dimensions.forEach(dim => {
+      normalized[dim] = Math.max(1, Math.min(5, Math.round(((entity[dim] / maxValues[dim]) * 5) * 10) / 10))
+    })
+    return normalized
+  })
+}
+
+/**
+ * Generate scores for all entities using local text analysis
+ */
+function generateScores(data: Brief): ScoresData {
+  const scores: EntityScores[] = []
+
+  // Score main company
+  const companyText = [
+    data.company.summary || '',
+    data.company.market_position || '',
+    data.company.latest_news || ''
+  ].filter(Boolean).join(' ')
+
+  if (companyText.trim()) {
+    const companyScores = inferScoresFromText(companyText)
+    scores.push({
+      entity: data.company.name,
+      ...companyScores
+    })
+  }
+
+  // Score competitors
+  const competitors = (data.competitors || []).slice(0, 5)
+  competitors.forEach(comp => {
+    const competitorText = [
+      comp.positioning || '',
+      comp.size_band || ''
+    ].filter(Boolean).join(' ')
+
+    if (competitorText.trim()) {
+      const compScores = inferScoresFromText(competitorText)
+      scores.push({
+        entity: comp.name,
+        ...compScores
+      })
+    }
+  })
+
+  // Normalize scores so strongest = 5
+  const normalized = normalizeScores(scores)
+
+  return { scores: normalized }
+}
+
 export default function CompetitorComparison({ data }: { data: Brief }) {
-  // CRITICAL: Validate data prop is actually received
   if (!data) {
-    console.error('[CompetitorComparison] ❌ CRITICAL: No data prop received!')
     return (
       <div className="w-full p-4 text-sm text-red-500">
         <div className="mb-2">Error: Component did not receive data prop</div>
-        <div className="text-xs">This is a data flow issue - check how component is called</div>
       </div>
     )
   }
-  
-  // Debug: Log component initialization
-  console.log('[CompetitorComparison] Component rendering with data:', {
-    hasData: !!data,
-    hasCompany: !!data?.company,
-    companyName: data?.company?.name,
-    competitorsCount: data?.competitors?.length || 0,
-    competitors: data?.competitors?.map(c => ({ name: c?.name, website: c?.website })) || []
-  })
 
   const [R, setR] = useState<any>(null)
-  const [error, setError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [companyCapabilities, setCompanyCapabilities] = useState<CompetitorCapabilities | null>(null)
-  const [competitorCapabilities, setCompetitorCapabilities] = useState<CompetitorWithCapabilities[]>([])
-  const [insights, setInsights] = useState<string[]>([])
+  const [scoresData, setScoresData] = useState<ScoresData | null>(null)
+  const [executiveSummary, setExecutiveSummary] = useState<string>('')
 
-  // Safe guards for possibly-missing data on first render
   const companyName = data?.company?.name ?? ''
-  const companyWebsite = data?.company?.website ?? ''
-  const companyIndustry = data?.company?.industry ?? data?.industry?.summary ?? ''
-  const companyHq = data?.company?.headquarters
+  const competitors = useMemo(() => {
+    return (data?.competitors || [])
+      .filter(c => c && c.name && c.name.trim())
+      .slice(0, 5)
+  }, [data?.competitors])
+
+  const hasCompetitors = competitors.length > 0
 
   useEffect(() => setMounted(true), [])
 
-  // Lazy-load recharts only on client
+  // Lazy-load recharts
   useEffect(() => {
     ;(async () => {
       try {
         const recharts = await import('recharts')
-        console.log('[CompetitorComparison] Recharts loaded:', {
-          hasResponsiveContainer: !!recharts.ResponsiveContainer,
-          hasRadarChart: !!recharts.RadarChart,
-          keys: Object.keys(recharts).slice(0, 10)
-        })
         setR(recharts)
       } catch (err) {
         console.error('[CompetitorComparison] Failed to load recharts:', err)
-        setError('Failed to load chart library')
       }
     })()
   }, [])
 
-  const competitors = useMemo(() => {
-    const filtered = (data?.competitors || [])
-      .filter(c => c && c.name && c.name.trim())
-      .slice(0, 3)
-    console.log('[CompetitorComparison] Filtered competitors:', {
-      rawCount: data?.competitors?.length || 0,
-      filteredCount: filtered.length,
-      competitors: filtered.map(c => ({ name: c.name, website: c.website }))
-    })
-    return filtered
-  }, [data?.competitors])
+  // Generate scores from local data
+  // Use a stable key to track if we've processed this data
+  const dataKey = useMemo(() => {
+    return `${companyName}|${competitors.map(c => c.name).join(',')}`
+  }, [companyName, competitors])
 
-  const hasCompetitors = competitors.length > 0
-  
-  // Debug: Log competitor status
-  console.log('[CompetitorComparison] Competitor status:', {
-    hasCompetitors,
-    competitorsCount: competitors.length,
-    companyName,
-    companyWebsite
-  })
-  const competitorIds = useMemo(
-    () => competitors.map(c => `${c.name}|${c.website}`).join(','),
-    [competitors]
-  )
-
-  const researchCompletedRef = useRef(false)
-  const researchKeyRef = useRef<string>('')
+  const lastProcessedKeyRef = useRef<string>('')
 
   useEffect(() => {
-    console.log('[CompetitorComparison] useEffect triggered:', {
-      mounted,
-      hasCompetitors,
-      companyName: companyName || 'MISSING',
-      companyWebsite: companyWebsite || 'MISSING',
-      competitorIds
-    })
-
-    // Early exits if required inputs aren't ready
-    if (!mounted) {
-      console.log('[CompetitorComparison] ⏸️ Early exit: not mounted')
-      return
-    }
-    if (!hasCompetitors) {
-      console.log('[CompetitorComparison] ⏸️ Early exit: no competitors')
-      setLoading(false)
-      return
-    }
-    if (!companyName || !companyWebsite) {
-      console.log('[CompetitorComparison] ⏸️ Early exit: missing company name or website', { companyName, companyWebsite })
-      setLoading(false)
+    if (!mounted || !hasCompetitors) {
+      lastProcessedKeyRef.current = ''
       return
     }
 
-    const currentResearchKey = `${companyName}|${companyWebsite}|${competitorIds}`
-    if (researchCompletedRef.current && researchKeyRef.current === currentResearchKey) {
-      console.log('[CompetitorComparison] ⏸️ Early exit: already researched this key')
-      return
-    }
+    // Skip if we've already processed this data
+    if (lastProcessedKeyRef.current === dataKey) return
 
-    console.log('[CompetitorComparison] ✅ Starting research with key:', currentResearchKey)
+    try {
+      const generated = generateScores(data)
+      setScoresData(generated)
+      lastProcessedKeyRef.current = dataKey
 
-    const run = async () => {
-      setLoading(true)
-      setError(null)
-      researchKeyRef.current = currentResearchKey
+      // Generate executive summary using OpenAI
+      const companyScore = generated.scores.find(s => s.entity === companyName)
+      const peerScores = generated.scores.filter(s => s.entity !== companyName)
 
-      // Add timeout to prevent infinite loading
-      const timeoutId = setTimeout(() => {
-        console.warn('[CompetitorComparison] ⏱️ Research timeout - showing fallback')
-        setLoading(false)
-        setError('Research timed out. Please refresh the page to retry.')
-      }, 120000) // 2 minutes timeout
-
-      try {
-        console.log('[CompetitorComparison] 🔍 Researching company capabilities...')
-        const companyCaps = await researchCompetitorCapabilities(
-          companyName,
-          companyWebsite,
-          companyIndustry,
-          companyHq
-        )
-        console.log('[CompetitorComparison] ✅ Company capabilities received:', companyCaps)
-        setCompanyCapabilities(companyCaps)
-
-        console.log('[CompetitorComparison] 🔍 Researching', competitors.length, 'competitors...')
-        const competitorCaps = await Promise.all(
-          competitors.map(async comp => {
-            try {
-              console.log('[CompetitorComparison] 🔍 Researching competitor:', comp.name)
-              const caps = await researchCompetitorCapabilities(
-                comp.name,
-                comp.website,
-                companyIndustry,
-                comp.hq
-              )
-              console.log('[CompetitorComparison] ✅ Competitor capabilities received for', comp.name, ':', caps)
-              return { name: comp.name, website: comp.website, hq: comp.hq, capabilities: caps }
-            } catch (e) {
-              console.error('[CompetitorComparison] ❌ Competitor research failed:', comp.name, e)
-              // Return default values on error - component will still render
+      if (companyScore && peerScores.length > 0) {
+        // Calculate peer averages for each dimension
+        const dimensionData = dimensions.map(({ label, key }) => {
+          const companyValue = companyScore[key]
+          const peerAvg = peerScores.reduce((sum, p) => sum + p[key], 0) / peerScores.length
               return {
-                name: comp.name,
-                website: comp.website,
-                hq: comp.hq,
-                capabilities: {
-                  ai_adoption: 3.0,
-                  innovation_speed: 3.0,
-                  operational_efficiency: 3.0,
-                  market_position: 3.0,
-                  technology_maturity: 3.0,
-                  customer_focus: 3.0,
-                  insights: [`Research unavailable for ${comp.name}`]
-                }
-              }
+            label,
+            companyScore: companyValue,
+            peerAverage: peerAvg
+          }
+        })
+
+        // Generate summary with OpenAI
+        summarizePeerComparison(companyName, dimensionData, 'en')
+          .then(summary => {
+            if (summary && summary.trim()) {
+              setExecutiveSummary(summary)
+            } else {
+              // Fallback if summary is empty
+              const fallbackSummary = generateExecutiveSummary(companyScore, peerScores)
+              setExecutiveSummary(fallbackSummary)
             }
           })
-        )
-        console.log('[CompetitorComparison] ✅ All competitor capabilities received:', competitorCaps.length, 'competitors')
-        setCompetitorCapabilities(competitorCaps)
-
-        const generatedInsights = generateInsights(companyCaps, competitorCaps, companyName)
-        console.log('[CompetitorComparison] ✅ Generated insights:', generatedInsights.length, 'insights')
-        setInsights(generatedInsights)
-
-        researchCompletedRef.current = true
-        console.log('[CompetitorComparison] ✅ Research completed successfully')
-        clearTimeout(timeoutId)
-      } catch (e: any) {
-        console.error('[CompetitorComparison] ❌ Research error:', e)
-        setError(`Failed to research competitors: ${e?.message ?? String(e)}`)
-        clearTimeout(timeoutId)
-      } finally {
-        setLoading(false)
-        console.log('[CompetitorComparison] ⏹️ Research finished, loading set to false')
+          .catch(err => {
+            console.error('[CompetitorComparison] Failed to generate OpenAI summary, using fallback:', err)
+            // Fallback to local generation
+            const fallbackSummary = generateExecutiveSummary(companyScore, peerScores)
+            setExecutiveSummary(fallbackSummary)
+          })
+      } else if (companyScore && peerScores.length === 0) {
+        // No peers, but we have company score - show basic summary
+        setExecutiveSummary('Shows balanced capabilities across key dimensions.')
       }
+    } catch (err) {
+      console.error('[CompetitorComparison] Error generating scores:', err)
+      lastProcessedKeyRef.current = ''
     }
-
-    run()
-    // NOTE: all deps are safe-guarded with nullish coalescing above
-  }, [mounted, hasCompetitors, companyName, companyWebsite, companyIndustry, companyHq, competitorIds])
-
-  // Build chart data with sanitized keys (avoid spaces)
-  const dimensions = [
-    { label: 'AI Adoption', key: 'ai_adoption' },
-    { label: 'Innovation Speed', key: 'innovation_speed' },
-    { label: 'Operational Efficiency', key: 'operational_efficiency' },
-    { label: 'Market Position', key: 'market_position' },
-    { label: 'Technology Maturity', key: 'technology_maturity' },
-    { label: 'Customer Focus', key: 'customer_focus' }
-  ] as const
+  }, [mounted, hasCompetitors, dataKey])
 
   const companyKey = sanitizeKey(companyName)
   const competitorKeyMap = useMemo(() => {
@@ -237,78 +358,22 @@ export default function CompetitorComparison({ data }: { data: Brief }) {
     return m
   }, [competitors])
 
-  const chartData = companyCapabilities && competitorCapabilities.length > 0
+  const chartData = scoresData
     ? dimensions.map(({ label, key }) => {
         const row: Record<string, any> = { dimension: label }
-        const companyValue = companyCapabilities[key as keyof CompetitorCapabilities] as number
-        row[companyKey] = companyValue
-        
-        competitorCapabilities.forEach(comp => {
-          const compKey = competitorKeyMap[comp.name]
-          if (compKey) {
-            const compValue = comp.capabilities[key as keyof CompetitorCapabilities] as number
-            row[compKey] = compValue
+        scoresData.scores.forEach(score => {
+          const entityKey = score.entity === companyName ? companyKey : competitorKeyMap[score.entity]
+          if (entityKey) {
+            row[entityKey] = score[key]
           }
         })
-        
-        console.log(`[CompetitorComparison] Chart row for ${label}:`, {
-          dimension: label,
-          companyKey,
-          companyValue,
-          competitorKeys: Object.keys(row).filter(k => k !== 'dimension' && k !== companyKey),
-          rowKeys: Object.keys(row)
-        })
-        
         return row
       })
     : []
-  
-  // Debug: Log chart data creation
-  console.log('[CompetitorComparison] Chart data created:', {
-    hasCompanyCapabilities: !!companyCapabilities,
-    competitorCapabilitiesCount: competitorCapabilities.length,
-    chartDataLength: chartData.length,
-    chartDataKeys: chartData.length > 0 ? Object.keys(chartData[0]) : [],
-    firstRowSample: chartData.length > 0 ? chartData[0] : null
-  })
 
   const colors = ['#16a34a', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4']
 
-  // Debug: Log render state
-  console.log('[CompetitorComparison] Render state:', {
-    mounted,
-    hasR: !!R,
-    loading,
-    error,
-    hasCompanyCapabilities: !!companyCapabilities,
-    competitorCapabilitiesCount: competitorCapabilities.length,
-    chartDataLength: chartData.length,
-    hasCompetitors,
-    companyKey,
-    competitorKeyMap,
-    chartDataSample: chartData.length > 0 ? chartData[0] : null
-  })
-  
-  // Debug: Log why chart might not be rendering
-  if (hasCompetitors && !loading && !error && chartData.length === 0) {
-    console.warn('[CompetitorComparison] ⚠️ Chart data is empty but should have data:', {
-      hasCompanyCapabilities: !!companyCapabilities,
-      competitorCapabilitiesCount: competitorCapabilities.length,
-      expectedCompetitors: competitors.length,
-      companyCapabilitiesSample: companyCapabilities ? {
-        ai_adoption: companyCapabilities.ai_adoption,
-        innovation_speed: companyCapabilities.innovation_speed
-      } : null,
-      competitorCapabilitiesSample: competitorCapabilities.length > 0 ? {
-        name: competitorCapabilities[0].name,
-        ai_adoption: competitorCapabilities[0].capabilities.ai_adoption
-      } : null
-    })
-  }
-
-  // If no competitors, show a message instead of returning null
   if (!hasCompetitors) {
-    console.log('[CompetitorComparison] ⚠️ No competitors found - showing message')
     return (
       <div className="w-full">
         <div className="mb-4">
@@ -320,224 +385,37 @@ export default function CompetitorComparison({ data }: { data: Brief }) {
         <div className="h-[480px] flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
           <div className="text-center">
             <div className="mb-2">No competitors found in the brief data.</div>
-            <div className="text-xs">Raw competitors count: {data?.competitors?.length || 0}</div>
-            <div className="text-xs mt-2">Check server logs for data flow details</div>
           </div>
         </div>
       </div>
     )
   }
   
-  // Always render the section header - don't hide it even during loading
-  // This ensures the section is visible and not blank
-
-  // Always render - never return null if we have competitors
-  // This ensures the section is always visible, even if research is in progress or fails
-  // Always render something - never be completely blank
-  // Show section header and status immediately
   return (
     <div className="w-full">
-      <div className="mb-4">
-        <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Peer Comparison</h4>
+      <div className="mb-2">
+        <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Peer Comparison</h4>
         <p className="text-xs text-gray-600 dark:text-gray-300">
-          {hasCompetitors
-            ? `Comparative analysis of ${companyName} against ${competitors.length} competitor${competitors.length > 1 ? 's' : ''} from the Competitive Position section`
-            : 'Loading competitor data...'}
+          Comparative analysis against {competitors.length} competitor{competitors.length > 1 ? 's' : ''} from the Competitive Position section
         </p>
       </div>
 
-      <div className="min-h-[550px] w-full flex items-center justify-center py-4">
-        {error ? (
-          <div className="flex flex-col items-center justify-center h-full text-sm text-red-500 dark:text-red-400 border-2 border-red-500 rounded p-4">
-            <div className="mb-2 font-semibold">Error: {error}</div>
-            <div className="text-xs text-gray-500">Check browser console for details</div>
-            <div className="text-xs mt-2">Competitors found: {competitors.length}</div>
-            <div className="text-xs">This error occurred during research. The chart cannot be displayed.</div>
-            <div className="text-xs mt-4 p-2 bg-red-50 dark:bg-red-900/20 rounded">
-              <strong>Debug Info:</strong><br/>
-              Company: {companyName || 'MISSING'}<br/>
-              Competitors: {competitors.length} found<br/>
-              Research Status: Failed
-            </div>
-            {/* Show table even on error */}
-            <div className="mt-4 w-full max-h-64 overflow-auto border-2 border-gray-400 rounded">
-              <table className="w-full text-xs border-collapse">
-                <thead>
-                  <tr className="bg-gray-100 dark:bg-gray-800">
-                    <th className="border p-2 text-left">Dimension</th>
-                    <th className="border p-2">{companyName}</th>
-                    {competitorCapabilities.map(comp => (
-                      <th key={comp.name} className="border p-2">{comp.name}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {dimensions.map(({ label, key }) => (
-                    <tr key={key}>
-                      <td className="border p-2 font-medium">{label}</td>
-                      <td className="border p-2 text-center">
-                        {companyCapabilities ? (companyCapabilities[key as keyof CompetitorCapabilities] as number).toFixed(1) : '-'}
-                      </td>
-                      {competitorCapabilities.map(comp => (
-                        <td key={comp.name} className="border p-2 text-center">
-                          {(comp.capabilities[key as keyof CompetitorCapabilities] as number).toFixed(1)}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        ) : !mounted || !R ? (
-          <div className="flex flex-col items-center justify-center h-full text-sm text-gray-600 dark:text-gray-400 border-2 border-gray-400 rounded p-4">
+      <div className="min-h-[620px] w-full flex items-center justify-center overflow-visible">
+        {!mounted || !R ? (
+          <div className="flex flex-col items-center justify-center h-full text-sm text-gray-600 dark:text-gray-400">
             <div className="mb-2">{!mounted ? 'Initializing component…' : 'Loading chart library…'}</div>
-            <div className="text-xs">Competitors: {competitors.length} found</div>
-            {/* Show table while loading */}
-            {companyCapabilities && competitorCapabilities.length > 0 && (
-              <div className="mt-4 w-full max-h-64 overflow-auto border-2 border-gray-400 rounded">
-                <div className="text-xs mb-2 p-2 bg-blue-50">Data available - showing table while chart loads:</div>
-                <table className="w-full text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-gray-100 dark:bg-gray-800">
-                      <th className="border p-2 text-left">Dimension</th>
-                      <th className="border p-2">{companyName}</th>
-                      {competitorCapabilities.map(comp => (
-                        <th key={comp.name} className="border p-2">{comp.name}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dimensions.map(({ label, key }) => (
-                      <tr key={key}>
-                        <td className="border p-2 font-medium">{label}</td>
-                        <td className="border p-2 text-center">
-                          {(companyCapabilities[key as keyof CompetitorCapabilities] as number).toFixed(1)}
-                        </td>
-                        {competitorCapabilities.map(comp => (
-                          <td key={comp.name} className="border p-2 text-center">
-                            {(comp.capabilities[key as keyof CompetitorCapabilities] as number).toFixed(1)}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
           </div>
-        ) : loading ? (
-          <div className="flex flex-col items-center justify-center h-full text-sm text-gray-600 dark:text-gray-400 border-2 border-blue-400 rounded p-4">
-            <div className="mb-2 font-semibold">Researching competitors with Perplexity AI…</div>
-            <div className="text-xs mt-2">This may take 30-60 seconds</div>
-            <div className="text-xs">Found {competitors.length} competitor{competitors.length > 1 ? 's' : ''} to research</div>
-            <div className="text-xs mt-4 p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
-              <strong>Researching:</strong><br/>
-              • {companyName}<br/>
-              {competitors.map(c => `• ${c.name}`).map((line, i) => (
-                <span key={i}>{line}<br/></span>
-              ))}
-            </div>
+        ) : !scoresData || chartData.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-sm text-gray-500 dark:text-gray-400">
+            <div className="mb-2">Generating comparison scores...</div>
           </div>
-        ) : chartData.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-sm text-gray-500 dark:text-gray-400 border-2 border-orange-400 rounded p-4">
-            <div className="mb-2 font-semibold">Unable to generate comparison chart</div>
-            <div className="text-xs">Company data: {companyCapabilities ? 'loaded' : 'missing'}</div>
-            <div className="text-xs">Competitor data: {competitorCapabilities.length} loaded (expected: {competitors.length})</div>
-            <div className="text-xs mt-2">Chart data points: {chartData.length}</div>
-            <div className="text-xs">Competitors in data: {competitors.length}</div>
-            <div className="text-xs">Check browser console (F12) for debugging info</div>
-            {competitorCapabilities.length < competitors.length && (
-              <div className="text-xs mt-2 text-yellow-600">
-                ⚠️ Some competitor research may have failed. Check console for errors.
-              </div>
-            )}
-            {/* Show table if we have data */}
-            {companyCapabilities && competitorCapabilities.length > 0 && (
-              <div className="mt-4 w-full max-h-64 overflow-auto border-2 border-gray-400 rounded">
-                <div className="text-xs mb-2 p-2 bg-blue-50">Showing data table:</div>
-                <table className="w-full text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-gray-100 dark:bg-gray-800">
-                      <th className="border p-2 text-left">Dimension</th>
-                      <th className="border p-2">{companyName}</th>
-                      {competitorCapabilities.map(comp => (
-                        <th key={comp.name} className="border p-2">{comp.name}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dimensions.map(({ label, key }) => (
-                      <tr key={key}>
-                        <td className="border p-2 font-medium">{label}</td>
-                        <td className="border p-2 text-center">
-                          {(companyCapabilities[key as keyof CompetitorCapabilities] as number).toFixed(1)}
-                        </td>
-                        {competitorCapabilities.map(comp => (
-                          <td key={comp.name} className="border p-2 text-center">
-                            {(comp.capabilities[key as keyof CompetitorCapabilities] as number).toFixed(1)}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        ) : !R || !R.ResponsiveContainer || !R.RadarChart ? (
-          <div className="flex flex-col items-center justify-center h-full text-sm text-yellow-600 dark:text-yellow-400 border-2 border-yellow-500 rounded p-4">
-            <div className="mb-2 font-semibold">Chart library not fully loaded</div>
-            <div className="text-xs">R: {R ? 'exists' : 'missing'}</div>
-            <div className="text-xs">ResponsiveContainer: {R?.ResponsiveContainer ? 'exists' : 'missing'}</div>
-            <div className="text-xs">RadarChart: {R?.RadarChart ? 'exists' : 'missing'}</div>
-            <div className="text-xs mt-2">Chart data is ready ({chartData.length} dimensions) but chart cannot render</div>
-            {/* ALWAYS show table when chart can't render */}
-            <div className="mt-4 w-full max-h-64 overflow-auto border-2 border-gray-400 rounded bg-white dark:bg-gray-800">
-              <div className="text-xs mb-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 font-semibold">Data Table (Chart unavailable):</div>
-              <table className="w-full text-xs border-collapse">
-                <thead>
-                  <tr className="bg-gray-100 dark:bg-gray-800">
-                    <th className="border p-2 text-left">Dimension</th>
-                    <th className="border p-2">{companyName}</th>
-                    {competitorCapabilities.map(comp => (
-                      <th key={comp.name} className="border p-2">{comp.name}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {dimensions.map(({ label, key }) => (
-                    <tr key={key}>
-                      <td className="border p-2 font-medium">{label}</td>
-                      <td className="border p-2 text-center">
-                        {(companyCapabilities![key as keyof CompetitorCapabilities] as number).toFixed(1)}
-                      </td>
-                      {competitorCapabilities.map(comp => (
-                        <td key={comp.name} className="border p-2 text-center">
-                          {(comp.capabilities[key as keyof CompetitorCapabilities] as number).toFixed(1)}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+        ) : !R.RadarChart ? (
+          <div className="flex flex-col items-center justify-center h-full text-sm text-yellow-600 dark:text-yellow-400">
+            <div className="mb-2">Chart library not fully loaded</div>
           </div>
         ) : (
-          <div className="w-full flex items-center justify-center" style={{ height: '480px', minHeight: '480px' }}>
+          <div className="w-full flex items-center justify-center overflow-visible" style={{ height: '825px', minHeight: '825px' }}>
             {(() => {
-              if (!R || !R.RadarChart) {
-                return (
-                  <div className="flex items-center justify-center h-full text-sm text-yellow-600">
-                    <div>
-                      <div className="mb-2">Chart components missing</div>
-                      <div className="text-xs">R: {R ? '✓' : '✗'}</div>
-                      <div className="text-xs">RadarChart: {R?.RadarChart ? '✓' : '✗'}</div>
-                    </div>
-                  </div>
-                )
-              }
-              
               try {
                 const RadarChart = R.RadarChart
                 const PolarGrid = R.PolarGrid
@@ -547,33 +425,49 @@ export default function CompetitorComparison({ data }: { data: Brief }) {
                 const Legend = R.Legend
                 const Radar = R.Radar
                 
-                const containerWidth = 650
-                const containerHeight = 550
+                const containerWidth = 732
+                const containerHeight = 620
+
+                const companyScore = scoresData.scores.find(s => s.entity === companyName)
+                const peerScores = scoresData.scores.filter(s => s.entity !== companyName)
                 
                 return (
-                  <div className="w-full flex items-center justify-center">
+                  <div className="w-full flex items-center justify-center overflow-visible">
                     <RadarChart 
                       width={containerWidth} 
                       height={containerHeight}
                       data={chartData} 
-                      margin={{ top: 80, right: 80, bottom: 80, left: 80 }}
+                      margin={{ top: 60, right: 75, bottom: 60, left: 75 }}
+                      outerRadius="75%"
                     >
                       <PolarGrid 
                         stroke="#e5e7eb" 
-                        strokeOpacity={0.3} 
+                        strokeOpacity={0.35} 
                         strokeWidth={1} 
                       />
                       <PolarAngleAxis 
                         dataKey="dimension" 
-                        tick={{ fontSize: 12, fill: 'currentColor', fontWeight: 500 }} 
+                        tick={{ fontSize: 11, fill: 'currentColor', fontWeight: 500 }} 
                         tickLine={false}
-                        tickFormatter={(value: string) => value}
+                        tickFormatter={(value: string) => {
+                          // Shorten long labels to prevent overlap
+                          const shortLabels: Record<string, string> = {
+                            'Operational Efficiency': 'Ops Efficiency',
+                            'Technology Maturity': 'Tech Maturity',
+                            'Customer Focus': 'Customer Focus',
+                            'Innovation Speed': 'Innovation Speed',
+                            'AI Adoption': 'AI Adoption',
+                            'Market Position': 'Market Position'
+                          }
+                          return shortLabels[value] || value
+                        }}
                       />
                       <PolarRadiusAxis 
                         angle={90} 
                         domain={[0, 5]} 
                         tickCount={6} 
                         tick={{ fontSize: 10, fill: '#6b7280' }} 
+                        tickFormatter={(v: number) => String(Math.round(v))}
                         axisLine={false}
                       />
                       <Tooltip 
@@ -586,32 +480,35 @@ export default function CompetitorComparison({ data }: { data: Brief }) {
                         }}
                       />
                       <Legend 
-                        wrapperStyle={{ paddingTop: '30px' }} 
+                        wrapperStyle={{ paddingTop: '20px', paddingBottom: '10px' }}
                         iconType="line"
                         formatter={(value: string) => <span style={{ fontSize: '12px', color: 'currentColor' }}>{value}</span>}
+                        verticalAlign="bottom"
                       />
+                      {companyScore && (
                       <Radar
                         name={companyName || 'Company'}
                         dataKey={companyKey}
                         stroke="#2563eb"
                         fill="#2563eb"
-                        fillOpacity={0.2}
+                        fillOpacity={0.25}
                         strokeWidth={2.5}
                         dot={{ fill: '#2563eb', r: 4 }}
                       />
-                      {competitorCapabilities.map((comp, i) => {
-                        const compKey = competitorKeyMap[comp.name]
-                        if (!compKey) return null
+                      )}
+                      {peerScores.map((peer, i) => {
+                        const peerKey = competitorKeyMap[peer.entity]
+                        if (!peerKey) return null
                         return (
                           <Radar
-                            key={compKey}
-                            name={comp.name}
-                            dataKey={compKey}
+                            key={peerKey}
+                            name={peer.entity}
+                            dataKey={peerKey}
                             stroke={colors[i % colors.length]}
                             fill={colors[i % colors.length]}
-                            fillOpacity={0.15}
+                            fillOpacity={0.12}
                             strokeWidth={2}
-                            strokeDasharray={i === 0 ? '5 5' : undefined}
+                            strokeDasharray="4 3"
                             dot={{ fill: colors[i % colors.length], r: 3 }}
                           />
                         )
@@ -632,87 +529,96 @@ export default function CompetitorComparison({ data }: { data: Brief }) {
         )}
       </div>
 
-      {insights.length > 0 && (
-        <div className="mt-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-          <div className="text-xs font-semibold text-blue-900 dark:text-blue-300 mb-2">Key Insights</div>
-          <ul className="space-y-1.5">
-            {insights.map((insight, i) => (
-              <li key={i} className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed flex items-start gap-2">
-                <span className="text-blue-600 dark:text-blue-400 mt-0.5">•</span>
-                <span>{insight}</span>
-              </li>
-            ))}
-          </ul>
+      {scoresData && scoresData.scores.length > 0 && (
+        <div className="mt-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+          <div className="text-xs font-semibold text-blue-900 dark:text-blue-300 mb-2">Executive Summary</div>
+          {executiveSummary ? (
+            <p className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
+              {executiveSummary}
+            </p>
+          ) : (
+            <p className="text-xs text-blue-700 dark:text-blue-300 italic">
+              Generating executive summary...
+            </p>
+          )}
         </div>
       )}
     </div>
   )
 }
 
-function generateInsights(
-  companyCaps: CompetitorCapabilities,
-  competitorCaps: CompetitorWithCapabilities[],
-  companyName: string
-): string[] {
-  const insights: string[] = []
-  if (competitorCaps.length === 0) return insights
+function generateExecutiveSummary(
+  companyScore: EntityScores,
+  peerScores: EntityScores[]
+): string {
+  if (peerScores.length === 0) {
+    return 'Shows balanced capabilities across key dimensions.'
+  }
 
-  const dims: Array<keyof CompetitorCapabilities> = [
-    'ai_adoption','innovation_speed','operational_efficiency','market_position','technology_maturity','customer_focus'
+  const dims: Array<keyof Omit<EntityScores, 'entity'>> = [
+    'ai_adoption',
+    'innovation_speed',
+    'operational_efficiency',
+    'market_position',
+    'technology_maturity',
+    'customer_focus'
   ]
-  const labels: Record<keyof CompetitorCapabilities, string> = {
+
+  const labels: Record<keyof Omit<EntityScores, 'entity'>, string> = {
     ai_adoption: 'AI Adoption',
     innovation_speed: 'Innovation Speed',
     operational_efficiency: 'Operational Efficiency',
     market_position: 'Market Position',
     technology_maturity: 'Technology Maturity',
-    customer_focus: 'Customer Focus',
-    insights: 'Insights'
+    customer_focus: 'Customer Focus'
   }
 
   const strengths: Array<{ dimension: string; lead: number }> = []
   const weaknesses: Array<{ dimension: string; gap: number }> = []
 
   dims.forEach(dim => {
-    const companyScore = companyCaps[dim] as number
-    const avgComp = competitorCaps.reduce((s, c) => s + (c.capabilities[dim] as number), 0) / competitorCaps.length
-    const diff = companyScore - avgComp
+    const companyValue = companyScore[dim]
+    const avgPeer = peerScores.reduce((sum, p) => sum + p[dim], 0) / peerScores.length
+    const diff = companyValue - avgPeer
     if (diff > 0.3) strengths.push({ dimension: labels[dim], lead: diff })
     if (-diff > 0.3) weaknesses.push({ dimension: labels[dim], gap: -diff })
   })
 
-  if (strengths.length) {
-    const top = strengths.sort((a,b) => b.lead - a.lead)[0]
-    insights.push(`${companyName} leads peers in ${top.dimension.toLowerCase()} by ${top.lead.toFixed(1)} points, indicating a competitive advantage to leverage.`)
-  }
-  if (weaknesses.length) {
-    const top = weaknesses.sort((a,b) => b.gap - a.gap)[0]
-    insights.push(`${companyName} trails peers in ${top.dimension.toLowerCase()} by ${top.gap.toFixed(1)} points, representing a priority area for improvement.`)
+  const sentences: string[] = []
+
+  if (strengths.length > 0) {
+    const topStrength = strengths.sort((a, b) => b.lead - a.lead)[0]
+    sentences.push(`Leads peers in ${topStrength.dimension.toLowerCase()} by ${topStrength.lead.toFixed(1)} points, indicating a competitive advantage to leverage.`)
   }
 
-  const aiGap = competitorCaps.reduce((s, c) => s + c.capabilities.ai_adoption, 0) / competitorCaps.length - companyCaps.ai_adoption
-  if (Math.abs(aiGap) > 0.5) {
-    insights.push(aiGap > 0
-      ? `Competitors show ${aiGap.toFixed(1)} points higher AI adoption on average, suggesting accelerated AI investment could close the gap.`
-      : `${companyName} leads in AI adoption by ${Math.abs(aiGap).toFixed(1)} points, indicating strong technology positioning.`
-    )
+  if (weaknesses.length > 0) {
+    const topWeakness = weaknesses.sort((a, b) => b.gap - a.gap)[0]
+    sentences.push(`Trails peers in ${topWeakness.dimension.toLowerCase()} by ${topWeakness.gap.toFixed(1)} points, representing a priority area for improvement.`)
   }
 
-  const mpGap = competitorCaps.reduce((s, c) => s + c.capabilities.market_position, 0) / competitorCaps.length - companyCaps.market_position
-  if (Math.abs(mpGap) > 0.5) {
-    insights.push(mpGap > 0
-      ? `Peers hold stronger market positions on average, highlighting the need for strategic differentiation.`
-      : `${companyName} maintains a stronger market position than peers, providing a solid foundation for growth.`
-    )
+  if (sentences.length === 0) {
+    const avgCompany = dims.reduce((sum, dim) => sum + companyScore[dim], 0) / dims.length
+    const avgPeer = dims.reduce((sum, dim) => {
+      const peerAvg = peerScores.reduce((s, p) => s + p[dim], 0) / peerScores.length
+      return sum + peerAvg
+    }, 0) / dims.length
+
+    if (avgCompany > avgPeer + 0.2) {
+      sentences.push('Demonstrates stronger overall capabilities compared to peers, with particular strengths in key operational areas.')
+    } else if (avgPeer > avgCompany + 0.2) {
+      sentences.push('Shows opportunities for improvement across multiple dimensions relative to peer performance.')
+    } else {
+      sentences.push('Shows balanced capabilities relative to peers, with opportunities to differentiate through targeted investments.')
+    }
   }
 
-  const effGap = competitorCaps.reduce((s, c) => s + c.capabilities.operational_efficiency, 0) / competitorCaps.length - companyCaps.operational_efficiency
-  if (Math.abs(effGap) > 0.5) {
-    insights.push(effGap > 0
-      ? `Competitors demonstrate higher operational efficiency, suggesting opportunities for process optimization and cost reduction.`
-      : `${companyName} operates more efficiently than peers, providing cost advantages and margin benefits.`
-    )
+  if (sentences.length === 1 && strengths.length > 1) {
+    const secondStrength = strengths.sort((a, b) => b.lead - a.lead)[1]
+    sentences.push(`Additional strength in ${secondStrength.dimension.toLowerCase()} further positions competitively.`)
+  } else if (sentences.length === 1 && weaknesses.length > 1) {
+    const secondWeakness = weaknesses.sort((a, b) => b.gap - a.gap)[1]
+    sentences.push(`Addressing gaps in ${secondWeakness.dimension.toLowerCase()} could accelerate competitive positioning.`)
   }
 
-  return insights.slice(0, 5)
+  return sentences.slice(0, 3).join(' ')
 }

@@ -878,7 +878,6 @@ export async function researchCompetitorCapabilities(
   market_position: number // 1-5 scale
   technology_maturity: number // 1-5 scale
   customer_focus: number // 1-5 scale
-  insights: string[] // Key insights about the competitor
 }> {
   const apiKey = process.env.PERPLEXITY_API_KEY
   if (!apiKey) {
@@ -889,21 +888,21 @@ export async function researchCompetitorCapabilities(
       operational_efficiency: 3.0,
       market_position: 3.0,
       technology_maturity: 3.0,
-      customer_focus: 3.0,
-      insights: []
+      customer_focus: 3.0
     }
   }
 
   const locationPart = hq ? ` located in ${hq}` : ''
   const industryPart = industry ? ` in the ${industry} industry` : ''
 
-  const query = `You are a business intelligence analyst. Research ${competitorName} (website: ${competitorWebsite})${industryPart}${locationPart} and provide a detailed capability assessment.
+  const query = `You are a business intelligence analyst. Research ${competitorName} (website: ${competitorWebsite})${industryPart}${locationPart} and provide a detailed capability assessment based on their public data, latest strategy, and recent news.
 
-STEP 1: RESEARCH ${competitorName}
+STEP 1: RESEARCH ${competitorName} - FOCUS ON LATEST DATA
 - Visit and analyze ${competitorWebsite} - examine their technology stack, products, services, and digital capabilities
-- Search for recent news, press releases, and announcements about ${competitorName}
-- Look for analyst reports, industry rankings, and market research about ${competitorName}
-- Find information about ${competitorName}'s AI/ML initiatives, innovation programs, operational efficiency, market position, technology infrastructure, and customer experience
+- Search for RECENT news (2024-2025), press releases, and announcements about ${competitorName}'s strategy, investments, and initiatives
+- Look for latest analyst reports, industry rankings, and market research about ${competitorName}
+- Find CURRENT information about ${competitorName}'s AI/ML initiatives, innovation programs, operational efficiency, market position, technology infrastructure, and customer experience
+- Prioritize recent evidence over historical data - focus on what ${competitorName} is doing NOW
 
 STEP 2: ASSESS EACH DIMENSION WITH SPECIFIC EVIDENCE
 For each dimension below, you MUST:
@@ -957,8 +956,6 @@ Assess ${competitorName}'s capabilities across these dimensions:
    - Score 5 if ${competitorName} is highly customer-focused with excellent service; 4 if strong focus; 3 if moderate; 2 if limited; 1 if weak
    - EXAMPLE: If ${competitorName} has customer awards or high satisfaction scores, score 4-5. If customer complaints are common, score 2-3.
 
-Also provide 3-5 key insights about ${competitorName}'s competitive strengths and weaknesses based on your research.
-
 CRITICAL SCORING REQUIREMENTS:
 1. NO DEFAULT VALUES: Do NOT return 3.0 for all dimensions. Each score must reflect actual research findings about ${competitorName}.
 2. USE DECIMAL PRECISION: Use values like 2.3, 3.7, 4.2 (not just whole numbers) to show nuanced differences.
@@ -979,7 +976,6 @@ Return your response as a JSON object with these exact keys:
 - market_position (number 1-5, with decimal precision)
 - technology_maturity (number 1-5, with decimal precision)
 - customer_focus (number 1-5, with decimal precision)
-- insights (array of strings, 3-5 items with specific evidence about ${competitorName})
 
 CRITICAL: Use specific evidence from your research to assign scores. Be objective, data-driven, and ensure scores reflect ${competitorName}'s actual capabilities. Do NOT return generic or default values.`
 
@@ -997,7 +993,7 @@ CRITICAL: Use specific evidence from your research to assign scores. Be objectiv
 3. Assign different scores for different companies - avoid default values
 4. Use decimal precision (e.g., 2.5, 3.7, 4.2) to show nuanced differences
 5. Base scores on actual evidence: website content, news, reports, industry analysis
-6. Return ONLY a valid JSON object with exact keys: ai_adoption, innovation_speed, operational_efficiency, market_position, technology_maturity, customer_focus, insights
+6. Return ONLY a valid JSON object with exact keys: ai_adoption, innovation_speed, operational_efficiency, market_position, technology_maturity, customer_focus
 7. No markdown formatting, just raw JSON`
       },
       {
@@ -1030,14 +1026,13 @@ CRITICAL: Use specific evidence from your research to assign scores. Be objectiv
       console.error('[Perplexity] Error researching competitor:', { status: res.status, body: errorText })
       // Return default scores on error
       return {
-        ai_adoption: 3.0,
-        innovation_speed: 3.0,
-        operational_efficiency: 3.0,
-        market_position: 3.0,
-        technology_maturity: 3.0,
-        customer_focus: 3.0,
-        insights: [`Unable to research ${competitorName} capabilities`]
-      }
+      ai_adoption: 3.0,
+      innovation_speed: 3.0,
+      operational_efficiency: 3.0,
+      market_position: 3.0,
+      technology_maturity: 3.0,
+      customer_focus: 3.0
+    }
     }
 
     const json = await res.json()
@@ -1121,10 +1116,7 @@ CRITICAL: Use specific evidence from your research to assign scores. Be objectiv
       operational_efficiency: normalizeScore(capabilities.operational_efficiency, 'operational_efficiency'),
       market_position: normalizeScore(capabilities.market_position, 'market_position'),
       technology_maturity: normalizeScore(capabilities.technology_maturity, 'technology_maturity'),
-      customer_focus: normalizeScore(capabilities.customer_focus, 'customer_focus'),
-      insights: Array.isArray(capabilities.insights) 
-        ? capabilities.insights.filter((i: any) => i && typeof i === 'string' && i.trim().length > 0).slice(0, 5)
-        : []
+      customer_focus: normalizeScore(capabilities.customer_focus, 'customer_focus')
     }
     
     // Log score distribution for debugging (but don't reject)
@@ -1142,15 +1134,14 @@ CRITICAL: Use specific evidence from your research to assign scores. Be objectiv
     console.log('[Perplexity] ✅ Competitor capabilities researched:', {
       competitorName,
       scores: {
-        ai_adoption: result.ai_adoption,
-        innovation_speed: result.innovation_speed,
-        operational_efficiency: result.operational_efficiency,
-        market_position: result.market_position,
-        technology_maturity: result.technology_maturity,
-        customer_focus: result.customer_focus
-      },
-      insightsCount: result.insights.length
-    })
+      ai_adoption: result.ai_adoption,
+      innovation_speed: result.innovation_speed,
+      operational_efficiency: result.operational_efficiency,
+      market_position: result.market_position,
+      technology_maturity: result.technology_maturity,
+      customer_focus: result.customer_focus
+    }
+  })
 
     return result
   } catch (err) {
@@ -1166,8 +1157,7 @@ CRITICAL: Use specific evidence from your research to assign scores. Be objectiv
       operational_efficiency: 3.0,
       market_position: 3.0,
       technology_maturity: 3.0,
-      customer_focus: 3.0,
-      insights: [`Research unavailable for ${competitorName}`]
+      customer_focus: 3.0
     }
   }
 }
