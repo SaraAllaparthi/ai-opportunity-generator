@@ -302,10 +302,10 @@ export default async function SharePage({ params }: { params: Promise<{ slug: st
           
           <div className="mt-8 text-center">
             <a
-              href="mailto:contact@maverickaigroup.ai?subject=Book 30-min AI Discovery Call"
+              href={`mailto:contact@maverickaigroup.ai?subject=${encodeURIComponent(t('cta.bookDiscoveryCall'))}`}
               className="inline-flex h-12 items-center justify-center rounded-xl bg-blue-600 dark:bg-blue-500 px-8 text-sm font-semibold text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
             >
-              Book 30-min AI Discovery Call
+              {t('cta.bookDiscoveryCall')}
             </a>
           </div>
         </SectionWrapper>

@@ -286,7 +286,9 @@ export default function LandingPage() {
                 in unter 90 Sekunden
               </>
             ) : (
-              t('home.hero.title')
+              <>
+                Discover Your <span className="text-blue-600 dark:text-blue-400">AI Opportunities</span> in Under 90 Seconds
+              </>
             )}
           </h1>
           <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto leading-relaxed">
