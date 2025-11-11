@@ -29,7 +29,7 @@ export default function UseCasesCard({ data }: { data: Brief }) {
     <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-lg">
       <div className="mb-2 flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('report.useCases.title', { company: data.company.name })}</h3>
-        <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getConfidenceColor(confidence)}`}>
+        <span className={`rounded-full border px-2.5 py-1 text-sm font-medium ${getConfidenceColor(confidence)}`}>
           {t('badge.confidence.' + confidence.toLowerCase())}
         </span>
       </div>
@@ -54,21 +54,21 @@ export default function UseCasesCard({ data }: { data: Brief }) {
           >
             <div className="flex items-center justify-between mb-2">
               <div className="font-semibold text-gray-900 dark:text-white">{retitle(u.title, data.company.name, u.value_driver)}</div>
-              <div className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-2">
+              <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
                 <span className={`rounded-full px-2 py-0.5 text-white text-[10px] font-medium ${roiColor}`}>
                   {roiPct !== undefined ? t('report.useCases.roiPercent', { percent: roiPct }) : t('report.roi.est')}
                 </span>
                 <span>{u.payback_months ? t('report.useCases.payback', { months: u.payback_months }) : t('report.roi.est')}</span>
               </div>
             </div>
-            <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
               {t('report.useCases.value')}: {u.value_driver} • {t('report.useCases.complexity')} {u.complexity}/5 • {t('report.useCases.effort')} {u.effort}/5
             </div>
             <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{u.description}</p>
             <div className="mt-3 h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
               <div className="h-2 rounded-full bg-blue-600 dark:bg-blue-500" style={{ width: `${100 - progress}%` }}></div>
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-gray-600 dark:text-gray-400">
+            <div className="mt-3 grid grid-cols-2 gap-3 text-sm text-gray-600 dark:text-gray-400">
               <div>{t('report.useCases.annualBenefit')}: <span className="text-blue-600 dark:text-blue-400 font-medium">{u.est_annual_benefit?.toLocaleString() ?? '—'}</span></div>
               <div>{t('report.useCases.oneTimeCost')}: <span className="text-gray-700 dark:text-gray-300">{u.est_one_time_cost?.toLocaleString() ?? '—'}</span></div>
               <div>{t('report.useCases.ongoingCost')}: <span className="text-gray-700 dark:text-gray-300">{u.est_ongoing_cost?.toLocaleString() ?? '—'}</span></div>
@@ -79,7 +79,7 @@ export default function UseCasesCard({ data }: { data: Brief }) {
       <div className="mt-4">
         <h4 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">{t('report.roi.summary')}</h4>
         <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-sm">
             <thead className="text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800">
               <tr>
                 <th className="p-3">{t('report.roi.useCase')}</th>
@@ -109,7 +109,7 @@ export default function UseCasesCard({ data }: { data: Brief }) {
                     <td className="p-3 text-gray-600 dark:text-gray-400">{u.payback_months ? t('report.useCases.paybackMonths', { months: u.payback_months }) : t('report.roi.estimate')}</td>
                     <td className="p-3 text-blue-600 dark:text-blue-400 font-medium">{roi}</td>
                     <td className="p-3">
-                      <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${
+                      <span className={`rounded-full border px-2 py-0.5 text-sm font-medium ${
                         conf === 'Medium' || conf === 'High' 
                           ? 'bg-green-500/20 text-green-700 dark:text-green-400 border-green-500 dark:border-green-500' 
                           : getConfidenceColor(conf)

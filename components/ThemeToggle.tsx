@@ -74,7 +74,7 @@ export default function ThemeToggle() {
   if (!mounted) {
     return (
       <button
-        className="inline-flex h-8 items-center justify-center rounded-md border border-gray-300 bg-white px-3 text-xs text-gray-700 transition-colors"
+        className="inline-flex h-8 items-center justify-center rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700 transition-colors"
         aria-label="Toggle theme"
         disabled
       >
@@ -88,7 +88,7 @@ export default function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="inline-flex h-8 items-center justify-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+      className="inline-flex h-8 items-center justify-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
       aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
     >
       {dark ? (

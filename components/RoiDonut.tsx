@@ -32,8 +32,8 @@ const Tooltip = ({
         marginTop: '-8px'
       }}
     >
-      <p className="text-xs font-medium text-gray-900 dark:text-white mb-1">{name}</p>
-      <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold">{formattedValue}</p>
+      <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">{name}</p>
+      <p className="text-sm text-blue-600 dark:text-blue-400 font-semibold">{formattedValue}</p>
     </div>
   )
 }

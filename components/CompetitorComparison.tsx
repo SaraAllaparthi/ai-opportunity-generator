@@ -383,11 +383,11 @@ export default function CompetitorComparison({ data }: { data: Brief }) {
       <div className="w-full">
         <div className="mb-4">
           <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{t('report.peerComparison.title')}</h4>
-          <p className="text-xs text-gray-600 dark:text-gray-300">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
             {t('report.peerComparison.noCompetitors')}
           </p>
         </div>
-        <div className="h-[480px] flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
+        <div className="h-[400px] flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
           <div className="text-center">
             <div className="mb-2">{t('report.peerComparison.noCompetitors')}</div>
           </div>
@@ -400,7 +400,7 @@ export default function CompetitorComparison({ data }: { data: Brief }) {
     <div className="w-full">
       <div className="mb-2">
         <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">{t('report.peerComparison.title')}</h4>
-        <p className="text-xs text-gray-600 dark:text-gray-300">
+        <p className="text-sm text-gray-600 dark:text-gray-300">
           {t('report.subtitle.peerComparison', { 
             count: competitors.length, 
             plural: competitors.length > 1 ? 's' : '' 
@@ -408,21 +408,21 @@ export default function CompetitorComparison({ data }: { data: Brief }) {
         </p>
       </div>
 
-      <div className="min-h-[620px] w-full flex items-center justify-center overflow-visible">
+      <div className="w-full flex items-center justify-center overflow-visible">
         {!mounted || !R ? (
-          <div className="flex flex-col items-center justify-center h-full text-sm text-gray-600 dark:text-gray-400">
+          <div className="flex flex-col items-center justify-center h-[480px] text-sm text-gray-600 dark:text-gray-400">
             <div className="mb-2">{!mounted ? 'Initializing component…' : 'Loading chart library…'}</div>
           </div>
         ) : !scoresData || chartData.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-sm text-gray-500 dark:text-gray-400">
+          <div className="flex flex-col items-center justify-center h-[480px] text-sm text-gray-500 dark:text-gray-400">
             <div className="mb-2">Generating comparison scores...</div>
           </div>
         ) : !R.RadarChart ? (
-          <div className="flex flex-col items-center justify-center h-full text-sm text-yellow-600 dark:text-yellow-400">
+          <div className="flex flex-col items-center justify-center h-[480px] text-sm text-yellow-600 dark:text-yellow-400">
             <div className="mb-2">Chart library not fully loaded</div>
           </div>
         ) : (
-          <div className="w-full flex items-center justify-center overflow-visible" style={{ height: '825px', minHeight: '825px' }}>
+          <div className="w-full flex items-center justify-center overflow-visible">
             {(() => {
               try {
                 const RadarChart = R.RadarChart
@@ -433,8 +433,36 @@ export default function CompetitorComparison({ data }: { data: Brief }) {
                 const Legend = R.Legend
                 const Radar = R.Radar
                 
+                // Custom tooltip component that adapts to dark mode
+                const CustomTooltip = ({ active, payload, label }: any) => {
+                  if (!active || !payload || !payload.length) return null
+                  
+                  // Check if dark mode is active
+                  const isDark = typeof window !== 'undefined' && document.documentElement.classList.contains('dark')
+                  
+                  return (
+                    <div 
+                      className="rounded-lg border p-2 shadow-lg"
+                      style={{
+                        backgroundColor: isDark ? 'rgb(31, 41, 55)' : 'rgb(255, 255, 255)',
+                        borderColor: isDark ? 'rgb(55, 65, 81)' : 'rgb(229, 231, 235)',
+                        color: isDark ? 'rgb(249, 250, 251)' : 'rgb(17, 24, 39)',
+                        padding: '8px 12px'
+                      }}
+                    >
+                      <p style={{ marginBottom: '4px', fontWeight: 500, fontSize: '14px' }}>{label}</p>
+                      {payload.map((entry: any, index: number) => (
+                        <p key={index} style={{ fontSize: '13px', margin: '2px 0' }}>
+                          <span style={{ color: entry.color }}>{entry.name}: </span>
+                          {typeof entry.value === 'number' ? entry.value.toFixed(1) : entry.value}
+                        </p>
+                      ))}
+                    </div>
+                  )
+                }
+                
                 const containerWidth = 732
-                const containerHeight = 620
+                const containerHeight = 480
 
                 const companyScore = scoresData.scores.find(s => s.entity === companyName)
                 const peerScores = scoresData.scores.filter(s => s.entity !== companyName)
@@ -478,15 +506,7 @@ export default function CompetitorComparison({ data }: { data: Brief }) {
                         tickFormatter={(v: number) => String(Math.round(v))}
                         axisLine={false}
                       />
-                      <Tooltip 
-                        formatter={(value: number) => (typeof value === 'number' ? value.toFixed(1) : value)} 
-                        contentStyle={{ 
-                          backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '8px',
-                          padding: '8px 12px'
-                        }}
-                      />
+                      <Tooltip content={<CustomTooltip />} />
                       <Legend 
                         wrapperStyle={{ paddingTop: '20px', paddingBottom: '10px' }}
                         iconType="line"
@@ -528,7 +548,7 @@ export default function CompetitorComparison({ data }: { data: Brief }) {
                 return (
                   <div className="flex flex-col items-center justify-center h-full text-sm text-red-500 p-4">
                     <div className="mb-2 font-semibold">Chart Rendering Error</div>
-                    <div className="text-xs">{chartError?.message || String(chartError)}</div>
+                    <div className="text-sm">{chartError?.message || String(chartError)}</div>
                   </div>
                 )
               }
@@ -539,13 +559,13 @@ export default function CompetitorComparison({ data }: { data: Brief }) {
 
       {scoresData && scoresData.scores.length > 0 && (
         <div className="mt-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-          <div className="text-xs font-semibold text-blue-900 dark:text-blue-300 mb-2">Executive Summary</div>
+          <div className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-2">Executive Summary</div>
           {executiveSummary ? (
-            <p className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
+            <p className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed">
               {executiveSummary}
             </p>
           ) : (
-            <p className="text-xs text-blue-700 dark:text-blue-300 italic">
+            <p className="text-sm text-blue-700 dark:text-blue-300 italic">
               Generating executive summary...
             </p>
           )}

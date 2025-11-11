@@ -15,10 +15,10 @@ export default function MovesCard({ data }: { data: Brief }) {
           {moves.slice(0, 5).map((m, i) => (
             <li key={i} className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-4">
               <div className="font-semibold text-gray-900 dark:text-white">{m.move}</div>
-              <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                 Owner: {m.owner} • Horizon: {m.horizon_quarters} quarter{m.horizon_quarters > 1 ? 's' : ''}
               </div>
-              <div className="text-xs text-gray-600 dark:text-gray-300 mt-2">{m.rationale}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-300 mt-2">{m.rationale}</div>
             </li>
           ))}
         </ul>

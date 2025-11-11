@@ -49,15 +49,15 @@ export default function BriefExecutiveSummary({
       </p>
       <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-4">
-          <div className="text-xs uppercase text-gray-600 dark:text-gray-400 mb-1">{t('report.execSummary.annualUplift')}</div>
+          <div className="text-sm uppercase text-gray-600 dark:text-gray-400 mb-1">{t('report.execSummary.annualUplift')}</div>
           <div className="text-xl font-semibold text-blue-600 dark:text-blue-400">{formattedUplift}</div>
         </div>
         <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-4">
-          <div className="text-xs uppercase text-gray-600 dark:text-gray-400 mb-1">{t('report.execSummary.weightedPayback')}</div>
+          <div className="text-sm uppercase text-gray-600 dark:text-gray-400 mb-1">{t('report.execSummary.weightedPayback')}</div>
           <div className="text-xl font-semibold text-blue-600 dark:text-blue-400">{typeof weightedPayback === 'number' ? `${weightedPayback} ${t('common.months')}` : t('report.execSummary.estimate')}</div>
         </div>
         <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-4">
-          <div className="text-xs uppercase text-gray-600 dark:text-gray-400 mb-1">{t('report.execSummary.deliveryProfile')}</div>
+          <div className="text-sm uppercase text-gray-600 dark:text-gray-400 mb-1">{t('report.execSummary.deliveryProfile')}</div>
           <div className="space-y-1">
             <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">{t('report.execSummary.complexity', { value: avgComplexity })}</div>
             <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">{t('report.execSummary.effort', { value: avgEffort })}</div>

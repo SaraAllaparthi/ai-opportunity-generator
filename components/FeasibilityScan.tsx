@@ -139,18 +139,20 @@ export default function FeasibilityScan({ _data }: { _data: Brief }) {
         {items.map((item) => (
           <div 
             key={item.name} 
-            className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-4 transition-all duration-200 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600"
+            className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-4 transition-all duration-200 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 flex flex-col"
           >
-            <div className="mb-3">
+            <div className="mb-3 flex-grow">
               <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">{item.label}</h5>
-              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{item.description}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{item.description}</p>
             </div>
-            <div className={`rounded-full border px-2.5 py-1 text-xs font-medium text-center mb-2 ${getLevelColor(item.level)}`}>
-              {item.level}
+            <div className="mt-auto">
+              <div className={`rounded-full border px-2.5 py-1 text-sm font-medium text-center mb-2 ${getLevelColor(item.level)}`}>
+                {item.level}
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                {getLevelDescription(item.level, t)}
+              </p>
             </div>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 leading-relaxed">
-              {getLevelDescription(item.level, t)}
-            </p>
           </div>
         ))}
       </div>

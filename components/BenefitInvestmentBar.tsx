@@ -52,10 +52,10 @@ export default function BenefitInvestmentBar({ data }: { data: Brief }) {
   const benefitPercent = total > 0 ? (totalBenefit / total) * 100 : 50
   
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-3">
       {/* ROI Percentage Display */}
       <div className="text-center">
-        <div className="text-2xl font-bold text-gray-900 dark:text-white">
+        <div className="text-lg font-medium text-gray-900 dark:text-white">
           {t('report.roi.roi')}: {roiPercentage >= 0 ? '+' : ''}{roiPercentage.toFixed(1)}%
         </div>
       </div>
@@ -94,7 +94,7 @@ export default function BenefitInvestmentBar({ data }: { data: Brief }) {
       
       {/* Payback period */}
       {weightedPayback !== undefined && (
-        <div className="text-center text-xs text-gray-500 dark:text-gray-400">
+        <div className="text-center text-sm text-gray-500 dark:text-gray-400 pt-1">
           {t('report.roi.paybackText', { months: weightedPayback })}
         </div>
       )}

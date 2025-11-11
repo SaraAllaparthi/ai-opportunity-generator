@@ -141,7 +141,7 @@ export default async function SharePage({ params }: { params: Promise<{ slug: st
             />
             <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
               <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-lg">
-                <div className="mb-2 text-sm font-medium text-gray-600 dark:text-gray-400">{t('report.roi.contribution')}</div>
+                <div className="text-lg font-semibold text-gray-900 dark:text-white">{t('report.roi.contribution')}</div>
                 <RoiDonut data={data} />
                 <ul className="mt-6 space-y-2">
                   {data.use_cases.map((useCase, index) => {
@@ -180,10 +180,12 @@ export default async function SharePage({ params }: { params: Promise<{ slug: st
                   })}
                 </ul>
               </div>
-              <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-lg">
-                <div className="mb-2 text-sm font-medium text-gray-600 dark:text-gray-400">{t('report.roi.title')}</div>
-                <BenefitInvestmentBar data={data} />
-                <ul className="mt-6 space-y-2">
+              <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-lg flex flex-col">
+                <div className="text-lg font-semibold text-gray-900 dark:text-white mb-6">{t('report.roi.title')}</div>
+                <div className="flex-grow">
+                  <BenefitInvestmentBar data={data} />
+                </div>
+                <ul className="mt-4 space-y-2">
                   {(() => {
                     // Normalize numeric values to ensure consistency
                     const normalizeNum = (v: any): number => {
@@ -287,7 +289,7 @@ export default async function SharePage({ params }: { params: Promise<{ slug: st
             <p className="text-gray-600 dark:text-gray-300 text-sm">{t('report.subtitle.competitors')}</p>
           </div>
           <CompetitorsCard data={data} />
-          <div className="mt-6 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-lg">
+          <div className="mt-6 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-lg">
             <CompetitorComparison data={data} />
           </div>
         </SectionWrapper>
@@ -303,9 +305,10 @@ export default async function SharePage({ params }: { params: Promise<{ slug: st
           <div className="mt-8 text-center">
             <a
               href={`mailto:contact@maverickaigroup.ai?subject=${encodeURIComponent(t('cta.bookDiscoveryCall'))}`}
-              className="inline-flex h-12 items-center justify-center rounded-xl bg-blue-600 dark:bg-blue-500 px-8 text-sm font-semibold text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              className="group inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-blue-600 dark:bg-blue-500 px-6 text-xl font-medium text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-all shadow-md hover:shadow-lg"
             >
               {t('cta.bookDiscoveryCall')}
+              <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
             </a>
           </div>
         </SectionWrapper>
@@ -327,23 +330,16 @@ export default async function SharePage({ params }: { params: Promise<{ slug: st
           </div>
           <FeasibilityScan _data={data} />
         </SectionWrapper>
-
-        {/* Footer */}
-        <footer className="py-12 text-center text-sm text-gray-600 dark:text-gray-400 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm rounded-t-2xl border-t border-gray-200 dark:border-gray-800">
-          <div className="max-w-6xl mx-auto px-6">
-            <p className="mb-4">
-              <a 
-                href="https://www.maverickaigroup.ai" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-              >
-                {t('footer.builtBy')}
-              </a>
-            </p>
-          </div>
-        </footer>
       </main>
+
+      {/* Footer */}
+      <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 py-12">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="flex flex-col md:flex-row items-center justify-center gap-6">
+            <div className="text-sm text-gray-600 dark:text-gray-400">© 2025 Maverick Lens | Built by Maverick AI Group | All rights reserved.</div>
+          </div>
+        </div>
+      </footer>
       </div>
     </div>
   )

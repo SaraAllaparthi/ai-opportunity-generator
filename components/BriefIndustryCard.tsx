@@ -78,7 +78,7 @@ export default function IndustryCard({ data }: { data: Brief }) {
     <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-lg">
       <div className="mb-2 flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{cardTitle}</h3>
-        <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getConfidenceColor(confidence)}`}>Confidence {confidence}</span>
+        <span className={`rounded-full border px-2.5 py-1 text-sm font-medium ${getConfidenceColor(confidence)}`}>Confidence {confidence}</span>
       </div>
       {industry.summary && (
         <p className="text-sm text-gray-700 dark:text-gray-300 mb-5 leading-relaxed">{industry.summary}</p>

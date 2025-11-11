@@ -56,7 +56,7 @@ export default function CompetitorsCard({ data }: { data: Brief }) {
     <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-lg">
       <div className="mb-2 flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('report.competitors.title')}</h3>
-        <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getConfidenceColor(confidence)}`}>
+        <span className={`rounded-full border px-2.5 py-1 text-sm font-medium ${getConfidenceColor(confidence)}`}>
           {t('badge.confidence.' + confidence.toLowerCase())}
         </span>
       </div>
@@ -97,16 +97,16 @@ export default function CompetitorsCard({ data }: { data: Brief }) {
                   <div className="flex-1">
                     <div className="font-semibold text-gray-900 dark:text-white mb-1">{c.name}</div>
                     {c.website && (
-                      <a href={c.website} target="_blank" rel="noreferrer" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                      <a href={c.website} target="_blank" rel="noreferrer" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
                         {c.website}
                       </a>
                     )}
                   </div>
                 </div>
                 {c.positioning && (
-                  <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">{c.positioning}</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">{c.positioning}</div>
                 )}
-                <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
                   {c.hq && (
                     <span>📍 {c.hq}</span>
                   )}

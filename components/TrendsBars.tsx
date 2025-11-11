@@ -8,8 +8,8 @@ const CustomTooltip = ({ active, payload }: any) => {
   const fullName = data.payload.fullName || data.payload.name
   return (
     <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2 shadow-lg max-w-[200px]">
-      <p className="text-xs font-medium text-gray-900 dark:text-white mb-1 break-words">{fullName}</p>
-      <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold">Score: {data.value}</p>
+      <p className="text-sm font-medium text-gray-900 dark:text-white mb-1 break-words">{fullName}</p>
+      <p className="text-sm text-blue-600 dark:text-blue-400 font-semibold">Score: {data.value}</p>
     </div>
   )
 }

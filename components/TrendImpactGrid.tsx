@@ -232,6 +232,9 @@ export default function TrendImpactGrid({ data }: { data: Brief }) {
       adjustedPoints.push(adjustedPoint)
     })
     
+    // Log TrendPoints for debugging
+    console.log('[TrendImpactGrid] TrendPoints:', adjustedPoints)
+    
     return adjustedPoints
   }, [data.industry.trends])
 
@@ -249,7 +252,8 @@ export default function TrendImpactGrid({ data }: { data: Brief }) {
         {/* Trend bubbles with labels */}
         <div className="relative w-full h-full" style={{ padding: '48px' }}>
           {trends.map((point, index) => {
-            const color = getReadinessColor(point.readiness, index)
+            // Use the same color palette as the list in IndustryCard
+            const color = TREND_COLORS[index % TREND_COLORS.length]
             const isHovered = hoveredIndex === index
             
             // Convert hex to RGB for glow effects
@@ -301,13 +305,15 @@ export default function TrendImpactGrid({ data }: { data: Brief }) {
                 {/* Hover tooltip - only shown on hover with AI opportunity */}
                 {isHovered && (
                   <div
-                    className={`absolute ${labelPosition === 'right' ? 'left-full ml-3' : 'right-full mr-3'} top-1/2 -translate-y-1/2 z-20 pointer-events-none`}
-                    style={{ maxWidth: '220px' }}
+                    className={`absolute ${labelPosition === 'right' ? 'left-full ml-3' : 'right-full mr-3'} top-1/2 -translate-y-1/2 z-50 pointer-events-none`}
+                    style={{ minWidth: '280px', maxWidth: '320px' }}
                   >
-                    <div className="text-sm font-medium text-gray-900 dark:text-white bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-xl"
+                    <div 
+                      className="text-sm font-medium text-gray-900 dark:text-white bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-xl"
                       style={{
                         borderColor: `${color}60`,
                         boxShadow: `0 4px 12px ${rgba}`,
+                        opacity: 1,
                       }}
                     >
                       <div className="flex items-center gap-2 mb-1.5">
@@ -318,13 +324,15 @@ export default function TrendImpactGrid({ data }: { data: Brief }) {
                             boxShadow: `0 0 6px ${color}80`,
                           }}
                         />
-                        <span className="font-semibold text-sm">{point.trendName}</span>
+                        <span className="font-semibold text-sm">
+                          {point.trend.includes(':') ? point.trend.split(':')[0].trim() : point.trendName}
+                        </span>
                       </div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400 mb-1 leading-relaxed space-y-0.5">
+                      <div className="text-sm text-gray-600 dark:text-gray-400 mb-1 leading-relaxed flex items-center gap-4">
                         <div>{t('report.trends.readiness')}: {Math.round(point.readiness * 100)}%</div>
                         <div>{t('report.trends.impact')}: {Math.round(point.impact * 100)}%</div>
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 pt-1 border-t border-gray-200 dark:border-gray-700">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 pt-1 border-t border-gray-200 dark:border-gray-700">
                         {point.action}
                       </div>
                     </div>
@@ -339,10 +347,10 @@ export default function TrendImpactGrid({ data }: { data: Brief }) {
         <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 text-sm text-gray-600 dark:text-gray-400 font-medium">
           {t('report.trends.businessReadiness')}
         </div>
-        <div className="absolute bottom-4 left-12 text-xs text-gray-500 dark:text-gray-500">
+        <div className="absolute bottom-4 left-12 text-sm text-gray-500 dark:text-gray-500">
           {t('report.trends.low')}
         </div>
-        <div className="absolute bottom-4 right-12 text-xs text-gray-500 dark:text-gray-500">
+        <div className="absolute bottom-4 right-12 text-sm text-gray-500 dark:text-gray-500">
           {t('report.trends.high')}
         </div>
         
@@ -350,7 +358,7 @@ export default function TrendImpactGrid({ data }: { data: Brief }) {
         <div className="absolute left-6 top-1/2 transform -translate-y-1/2 -rotate-90 text-sm text-gray-600 dark:text-gray-400 font-medium whitespace-nowrap origin-center">
           {t('report.trends.potentialImpact')}
         </div>
-        <div className="absolute left-4 top-12 text-xs text-gray-500 dark:text-gray-500">
+        <div className="absolute left-4 top-12 text-sm text-gray-500 dark:text-gray-500">
           {t('report.trends.high')}
         </div>
       </div>

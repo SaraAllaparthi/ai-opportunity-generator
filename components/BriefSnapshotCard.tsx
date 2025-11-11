@@ -61,7 +61,7 @@ export default function SnapshotCard({ data }: { data: Brief }) {
           <div className="font-semibold text-gray-900 dark:text-white mb-1 text-lg">{company.name}</div>
           <a className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors text-sm" href={company.website} target="_blank" rel="noreferrer">{company.website}</a>
         </div>
-        <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getConfidenceColor(confidence)}`}>
+        <span className={`rounded-full border px-2.5 py-1 text-sm font-medium ${getConfidenceColor(confidence)}`}>
           {t('badge.confidence.' + confidence.toLowerCase())}
         </span>
       </div>
@@ -70,37 +70,37 @@ export default function SnapshotCard({ data }: { data: Brief }) {
         <div className="mb-4 grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
           {formattedSize && (
             <div>
-              <div className="text-xs uppercase text-gray-500 dark:text-gray-400 mb-0.5">{t('report.snapshot.size')}</div>
+              <div className="text-sm uppercase text-gray-500 dark:text-gray-400 mb-0.5">{t('report.snapshot.size')}</div>
               <div className="text-gray-900 dark:text-white font-medium">{formattedSize}</div>
             </div>
           )}
           {company.industry && (
             <div>
-              <div className="text-xs uppercase text-gray-500 dark:text-gray-400 mb-0.5">{t('report.snapshot.industry')}</div>
+              <div className="text-sm uppercase text-gray-500 dark:text-gray-400 mb-0.5">{t('report.snapshot.industry')}</div>
               <div className="text-gray-900 dark:text-white font-medium">{company.industry}</div>
             </div>
           )}
           {company.headquarters && (
             <div>
-              <div className="text-xs uppercase text-gray-500 dark:text-gray-400 mb-0.5">{t('report.snapshot.headquarters')}</div>
+              <div className="text-sm uppercase text-gray-500 dark:text-gray-400 mb-0.5">{t('report.snapshot.headquarters')}</div>
               <div className="text-gray-900 dark:text-white font-medium">{company.headquarters}</div>
             </div>
           )}
           {foundedYear && (
             <div>
-              <div className="text-xs uppercase text-gray-500 dark:text-gray-400 mb-0.5">{t('report.snapshot.founded')}</div>
+              <div className="text-sm uppercase text-gray-500 dark:text-gray-400 mb-0.5">{t('report.snapshot.founded')}</div>
               <div className="text-gray-900 dark:text-white font-medium">{foundedYear}</div>
             </div>
           )}
           {company.ceo && (
             <div>
-              <div className="text-xs uppercase text-gray-500 dark:text-gray-400 mb-0.5">{t('report.snapshot.ceo')}</div>
+              <div className="text-sm uppercase text-gray-500 dark:text-gray-400 mb-0.5">{t('report.snapshot.ceo')}</div>
               <div className="text-gray-900 dark:text-white font-medium">{company.ceo}</div>
             </div>
           )}
           {company.market_position && (
             <div>
-              <div className="text-xs uppercase text-gray-500 dark:text-gray-400 mb-0.5">{t('report.snapshot.marketPosition')}</div>
+              <div className="text-sm uppercase text-gray-500 dark:text-gray-400 mb-0.5">{t('report.snapshot.marketPosition')}</div>
               <div className="text-gray-900 dark:text-white font-medium">{company.market_position}</div>
             </div>
           )}
