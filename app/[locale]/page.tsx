@@ -263,7 +263,7 @@ export default function LandingPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="mx-auto max-w-4xl px-6 py-12 relative">
+      <section className="mx-auto max-w-4xl px-6 pt-12 pb-4 relative">
         {/* Decorative visual element */}
         <div className="absolute top-20 left-1/2 transform -translate-x-1/2 w-96 h-96 bg-blue-400/10 dark:bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
         <div className="text-center mb-12 relative z-10">
@@ -278,7 +278,7 @@ export default function LandingPage() {
               Built by Maverick AI Group
             </a>
           </div>
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 dark:text-white mb-8 leading-tight">
             {locale === 'de' ? (
               <>
                 Entdecken Sie Ihre <br />
@@ -287,19 +287,22 @@ export default function LandingPage() {
               </>
             ) : (
               <>
-                Discover Your <span className="text-blue-600 dark:text-blue-400">AI Opportunities</span> in Under 90 Seconds
+                Discover How <span className="text-blue-600 dark:text-blue-400">AI</span> Can <span className="text-blue-600 dark:text-blue-400">Grow Your Business</span>
               </>
             )}
           </h1>
-          <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-10 max-w-2xl mx-auto leading-relaxed">
             {t('home.hero.subtitle')}
+          </p>
+          <p className="text-lg md:text-lg text-gray-600 dark:text-gray-300 mb-16 max-w-2xl mx-auto leading-relaxed italic">
+            {t('home.hero.text1')}
           </p>
           <button
             onClick={() => {
               const formSection = document.getElementById('generator-form')
               formSection?.scrollIntoView({ behavior: 'smooth' })
             }}
-            className="group inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-blue-600 dark:bg-blue-500 px-6 text-base font-medium text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-all shadow-md hover:shadow-lg"
+            className="group inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-blue-600 dark:bg-blue-500 px-6 text-base font-medium text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-all shadow-md hover:shadow-lg mb-6"
           >
             <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -326,58 +329,181 @@ export default function LandingPage() {
       </section>
 
       {/* Problem → Solution Section */}
-      <section className="bg-gray-50 dark:bg-gray-900/50 py-12">
+      <section className="bg-gray-50 dark:bg-gray-900/50 pt-12 pb-4">
+        <div className="mx-auto max-w-4xl px-6">
+          <div className="flex flex-col gap-6">
+            {/* The Problem Card */}
+            <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 md:p-10 shadow-lg">
+              <h4 className="text-4xl font-semibold mb-3">
+                {(() => {
+                  const title = t('home.problemSolution.problem.title')
+                  const words = title.split(' ')
+                  if (words.length === 1) {
+                    return <span className="text-blue-600 dark:text-blue-400">{title}</span>
+                  }
+                  return (
+                    <>
+                      <span className="text-gray-900 dark:text-white">{words[0]} </span>
+                      <span className="text-blue-600 dark:text-blue-400">{words.slice(1).join(' ')}</span>
+                    </>
+                  )
+                })()}
+              </h4>
+              <p className="text-gray-600 dark:text-gray-300 mb-2">
+                {t('home.problemSolution.problem.text1')}
+              </p>
+              <p className="text-gray-600 dark:text-gray-300 mb-2">
+                {t('home.problemSolution.problem.text2')}
+              </p>
+              <p className="text-gray-600 dark:text-gray-300">
+                {t('home.problemSolution.problem.text3')}
+              </p>
+            </div>
+            
+            {/* The Solution Card */}
+            <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 md:p-10 shadow-lg">
+              <h4 className="text-4xl font-semibold mb-3">
+                {(() => {
+                  const title = t('home.problemSolution.solution.title')
+                  const words = title.split(' ')
+                  if (words.length === 1) {
+                    return <span className="text-blue-600 dark:text-blue-400">{title}</span>
+                  }
+                  return (
+                    <>
+                      <span className="text-gray-900 dark:text-white">{words[0]} </span>
+                      <span className="text-blue-600 dark:text-blue-400">{words.slice(1).join(' ')}</span>
+                    </>
+                  )
+                })()}
+              </h4>
+              <p className="text-gray-600 dark:text-gray-300 mb-2">
+                <span className="text-blue-600 font-bold dark:text-blue-400">{t('home.problemSolution.solution.text0')}</span>
+                {t('home.problemSolution.solution.text1')}
+              </p>
+              <p className="text-gray-600 dark:text-gray-300 mb-2">
+                {t('home.problemSolution.solution.text2')}
+              </p>
+              <p className="text-gray-600 dark:text-gray-300 mb-2">
+                {t('home.problemSolution.solution.text3')}
+              </p>
+              <p className="text-gray-600 dark:text-gray-300">
+              {(() => {
+                  const title = t('home.problemSolution.solution.text4')
+                  const words = title.split('?')
+                  if (words.length === 1) {
+                    return <span className="text-blue-600 dark:text-blue-400">{title}</span>
+                  }
+                  return (
+                    <>
+                      <span className="text-gray-900 font-bold dark:text-blue-400">{words[0]}? </span>
+                      <span className="text-blue-600 dark:text-white">{words.slice(1).join(' ')}</span>
+                    </>
+                  )
+                })()}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Button Section */}
+      <section className="bg-gray-50 dark:bg-gray-900/50 pt-4 pb-12">
+        <div className="mx-auto max-w-4xl px-6">
+          <div className="flex justify-center">
+            <button
+              onClick={() => {
+                const formSection = document.getElementById('generator-form')
+                formSection?.scrollIntoView({ behavior: 'smooth' })
+              }}
+              className="group inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-blue-600 dark:bg-blue-500 px-6 text-base font-medium text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-all shadow-md hover:shadow-lg"
+            >
+              <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              {t('home.problemSolution.solution.button')}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* What's Inside Your Report Section */}
+      <section className="py-12">
         <div className="mx-auto max-w-4xl px-6">
           <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 md:p-10 shadow-lg">
+            <h4 className="text-4xl font-semibold text-gray-900 dark:text-white mb-6 text-center">
+              What's Inside Your Report
+            </h4>
+            <ul className="space-y-4 mb-6">
+              <li className="flex items-start gap-3">
+                <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-gray-600 dark:text-gray-300">
+                  <strong className="text-gray-900 dark:text-white">Top 5 AI Use Cases</strong> — ranked by ROI and speed-to-value
+                </span>
+              </li>
+              <li className="flex items-start gap-3">
+                <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-gray-600 dark:text-gray-300">
+                  <strong className="text-gray-900 dark:text-white">Quantified Impact</strong> — benefit, cost, payback, and confidence level
+                </span>
+              </li>
+              <li className="flex items-start gap-3">
+                <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-gray-600 dark:text-gray-300">
+                  <strong className="text-gray-900 dark:text-white">90-Day Action Plan</strong> — your roadmap from idea to implementation
+                </span>
+              </li>
+              <li className="flex items-start gap-3">
+                <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-gray-600 dark:text-gray-300">
+                  <strong className="text-gray-900 dark:text-white">Competitive Benchmarking</strong> — see how you compare within your industry
+                </span>
+              </li>
+            </ul>
+            <p className="text-left text-gray-600 dark:text-gray-300 text-lg italic">
+              No guesswork. No jargon. Just actionable, data-backed insight.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section id="how-it-works" className="bg-gray-50 dark:bg-gray-900/50 py-12">
+        <div className="mx-auto max-w-4xl px-6">
+          <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 md:p-10 shadow-lg">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">{t('home.howItWorks.title')}</h2>
+              <p className="text-xl text-gray-600 dark:text-gray-300">{t('home.howItWorks.subtitle')}</p>
+            </div>
             <div className="space-y-8">
-              {/* The Problem */}
-              <div>
-                <h4 className="text-4xl font-semibold mb-3">
-                  {(() => {
-                    const title = t('home.problemSolution.problem.title')
-                    const words = title.split(' ')
-                    if (words.length === 1) {
-                      return <span className="text-blue-600 dark:text-blue-400">{title}</span>
-                    }
-                    return (
-                      <>
-                        <span className="text-gray-900 dark:text-white">{words[0]} </span>
-                        <span className="text-blue-600 dark:text-blue-400">{words.slice(1).join(' ')}</span>
-                      </>
-                    )
-                  })()}
-                </h4>
-                <p className="text-gray-600 dark:text-gray-300 mb-2">
-                  {t('home.problemSolution.problem.text1')}
-                </p>
-                <p className="text-gray-600 dark:text-gray-300">
-                  {t('home.problemSolution.problem.text2')}
-                </p>
+              <div className="flex gap-6">
+                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-blue-600 dark:bg-blue-500 text-white flex items-center justify-center font-bold text-lg">1</div>
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{t('home.howItWorks.step1.title')}</h3>
+                  <p className="text-gray-600 dark:text-gray-300">{t('home.howItWorks.step1.description')}</p>
+                </div>
               </div>
-              
-              {/* The Solution */}
-              <div>
-                <h4 className="text-4xl font-semibold mb-3">
-                  {(() => {
-                    const title = t('home.problemSolution.solution.title')
-                    const words = title.split(' ')
-                    if (words.length === 1) {
-                      return <span className="text-blue-600 dark:text-blue-400">{title}</span>
-                    }
-                    return (
-                      <>
-                        <span className="text-gray-900 dark:text-white">{words[0]} </span>
-                        <span className="text-blue-600 dark:text-blue-400">{words.slice(1).join(' ')}</span>
-                      </>
-                    )
-                  })()}
-                </h4>
-                <p className="text-gray-600 dark:text-gray-300 mb-2">
-                  {t('home.problemSolution.solution.text1')}
-                </p>
-                <p className="text-gray-600 dark:text-gray-300">
-                  {t('home.problemSolution.solution.text2')}
-                </p>
+              <div className="flex gap-6">
+                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-blue-600 dark:bg-blue-500 text-white flex items-center justify-center font-bold text-lg">2</div>
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{t('home.howItWorks.step2.title')}</h3>
+                  <p className="text-gray-600 dark:text-gray-300">{t('home.howItWorks.step2.description')}</p>
+                </div>
+              </div>
+              <div className="flex gap-6">
+                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-blue-600 dark:bg-blue-500 text-white flex items-center justify-center font-bold text-lg">3</div>
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{t('home.howItWorks.step3.title')}</h3>
+                  <p className="text-gray-600 dark:text-gray-300">{t('home.howItWorks.step3.description')}</p>
+                </div>
               </div>
             </div>
           </div>
@@ -390,12 +516,12 @@ export default function LandingPage() {
           <div id="generator-form" className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 md:p-10 shadow-xl">
           <div className="max-w-2xl mx-auto">
             <h2 className="text-4xl font-semibold text-gray-900 dark:text-white mb-2 text-center">{t('home.form.title')}</h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 text-center">{t('home.form.subtitle')}</p>
+            <p className="text-gray-600 dark:text-gray-300 mb-8 text-center">{t('home.form.subtitle')}</p>
             <form className="space-y-5" onSubmit={onSubmit}>
               <div>
-                <label className="text-xl block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('home.form.companyName')}</label>
+                <label className="block font-medium text-gray-700 dark:text-gray-300 mb-2">{t('home.form.companyName')}</label>
                 <input
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-3 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-400/20 transition-all"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-3 text-base text-gray-900 dark:text-white placeholder:text-sm placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-400/20 transition-all"
                   placeholder="e.g., Acme Corporation"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -403,9 +529,9 @@ export default function LandingPage() {
                 />
               </div>
               <div>
-                <label className="text-xl block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('home.form.website')}</label>
+                <label className="block font-medium text-gray-700 dark:text-gray-300 mb-2">{t('home.form.website')}</label>
                 <input
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-3 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-400/20 transition-all"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-3 text-base text-gray-900 dark:text-white placeholder:text-sm placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-400/20 transition-all"
                   placeholder="https://example.com"
                   value={website}
                   onChange={(e) => setWebsite(e.target.value)}
@@ -413,7 +539,7 @@ export default function LandingPage() {
                 />
               </div>
               <div>
-                <label className="text-xl block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('home.form.industry')}</label>
+                <label className="block font-medium text-gray-700 dark:text-gray-300 mb-2">{t('home.form.industry')}</label>
                 <select
                   className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-3 text-base text-gray-900 dark:text-white outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-400/20 transition-all"
                   value={industry}
@@ -429,17 +555,14 @@ export default function LandingPage() {
                 </select>
               </div>
               <div>
-                <label className="text-xl block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('home.form.headquarters')}</label>
+                <label className="block font-medium text-gray-700 dark:text-gray-300 mb-2">{t('home.form.headquarters')}</label>
                 <input
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-3 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-400/20 transition-all"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-3 text-base text-gray-900 dark:text-white placeholder:text-sm placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-400/20 transition-all"
                   placeholder="e.g., Zurich, Switzerland"
                   value={headquarters}
                   onChange={(e) => setHeadquarters(e.target.value)}
                   required
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Format: City, Country (e.g., "Berlin, Germany" or "Zurich, Switzerland")
-                </p>
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 We&apos;ll analyze public data from this website to generate your comprehensive AI opportunity report.
@@ -495,31 +618,21 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="bg-gray-50 dark:bg-gray-900/50 py-20">
+      {/* Why Leaders Choose Maverick Lens Section */}
+      <section id="features" className="bg-gray-50 dark:bg-gray-900/50 py-12">
         <div className="mx-auto max-w-6xl px-6">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">{t('home.features.title')}</h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">{t('home.features.subtitle')}</p>
+            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">{t('home.whyLeadersChoose.title')}</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-4">
                 <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{t('home.features.section4.title')}</h3>
-              <p className="text-gray-600 dark:text-gray-300">{t('home.features.section4.description')}</p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-4">
-                <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{t('home.features.section5.title')}</h3>
-              <p className="text-gray-600 dark:text-gray-300">{t('home.features.section5.description')}</p>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{t('home.whyLeadersChoose.section1.title')}</h3>
+              <p className="text-gray-600 dark:text-gray-300">{t('home.whyLeadersChoose.section1.description')}</p>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-4">
@@ -527,60 +640,92 @@ export default function LandingPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{t('home.features.section6.title')}</h3>
-              <p className="text-gray-600 dark:text-gray-300">{t('home.features.section6.description')}</p>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{t('home.whyLeadersChoose.section2.title')}</h3>
+              <p className="text-gray-600 dark:text-gray-300">{t('home.whyLeadersChoose.section2.description')}</p>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section id="how-it-works" className="py-20">
-        <div className="mx-auto max-w-4xl px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">{t('home.howItWorks.title')}</h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300">{t('home.howItWorks.subtitle')}</p>
-          </div>
-          <div className="space-y-8">
-            <div className="flex gap-6">
-              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-blue-600 dark:bg-blue-500 text-white flex items-center justify-center font-bold text-lg">1</div>
-              <div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{t('home.howItWorks.step1.title')}</h3>
-                <p className="text-gray-600 dark:text-gray-300">{t('home.howItWorks.step1.description')}</p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-4">
+                <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
               </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{t('home.whyLeadersChoose.section3.title')}</h3>
+              <p className="text-gray-600 dark:text-gray-300">{t('home.whyLeadersChoose.section3.description')}</p>
             </div>
-            <div className="flex gap-6">
-              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-blue-600 dark:bg-blue-500 text-white flex items-center justify-center font-bold text-lg">2</div>
-              <div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{t('home.howItWorks.step2.title')}</h3>
-                <p className="text-gray-600 dark:text-gray-300">{t('home.howItWorks.step2.description')}</p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-4">
+                <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
               </div>
-            </div>
-            <div className="flex gap-6">
-              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-blue-600 dark:bg-blue-500 text-white flex items-center justify-center font-bold text-lg">3</div>
-              <div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{t('home.howItWorks.step3.title')}</h3>
-                <p className="text-gray-600 dark:text-gray-300">{t('home.howItWorks.step3.description')}</p>
-              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{t('home.whyLeadersChoose.section4.title')}</h3>
+              <p className="text-gray-600 dark:text-gray-300">{t('home.whyLeadersChoose.section4.description')}</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Final CTA Section */}
+      <section className="py-12">
+        <div className="mx-auto max-w-4xl px-6">
+          <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 md:p-10 shadow-lg">
+            <div className="text-center mb-8">
+              <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">{t('home.cta.title')}</h2>
+              <p className="text-xl text-gray-600 dark:text-gray-300 mb-6">{t('home.cta.subtitle')}</p>
+            </div>
+            <div className="max-w-2xl mx-auto">
+              <p className="text-lg text-gray-700 dark:text-gray-300 mb-6 font-medium">
+                {t('home.cta.text1')}
+              </p>
+              <ul className="space-y-4 mb-8">
+                <li className="flex items-start gap-3">
+                  <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-gray-600 dark:text-gray-300">{t('home.cta.listitem1')}</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-gray-600 dark:text-gray-300">{t('home.cta.listtem2')}</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-gray-600 dark:text-gray-300">{t('home.cta.listitem3')}</span>
+                </li>
+              </ul>
+              <div className="flex justify-center">
+                <a
+                  href="mailto:contact@maverickaigroup.ai"
+                  className="group inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-blue-600 dark:bg-blue-500 px-6 text-base font-medium text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-all shadow-md hover:shadow-lg"
+                >
+                  {t('home.cta.button')}
+                  <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Built by Maverick AI Group Section */}
       <section className="bg-gray-50 dark:bg-gray-900/50 py-12">
-        <div className="mx-auto max-w-4xl px-6 text-center">
-          <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">{t('home.cta.title')}</h2>
-          <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">{t('home.cta.subtitle')}</p>
-            <a
-              href="mailto:contact@maverickaigroup.ai"
-              className="group inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-blue-600 dark:bg-blue-500 px-6 text-base font-medium text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-all shadow-md hover:shadow-lg"
-            >
-              {t('home.cta.button')}
-              <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            </a>
+        <div className="mx-auto max-w-4xl px-6">
+          <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 md:p-10 shadow-lg">
+            <div className="text-center">
+              <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-6">
+                {t('builtBy.title')}
+              </h2>
+              <p className="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+                {t('builtBy.text1')}
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -588,6 +733,7 @@ export default function LandingPage() {
       <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 py-12">
         <div className="mx-auto max-w-6xl px-6">
           <div className="flex flex-col md:flex-row items-center justify-center gap-6">
+            <div className="text-sm text-gray-600 dark:text-gray-400">{t('footer.builtInSwitzerland')}</div>
             <div className="text-sm text-gray-600 dark:text-gray-400">{t('footer.copyright')}</div>
           </div>
         </div>

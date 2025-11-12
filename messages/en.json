@@ -44,9 +44,10 @@
   },
   "home": {
     "hero": {
-      "title": "Discover Your AI Opportunities in Under 90 Seconds",
-      "subtitle": "Seamlessly analyze your company's public data to discover the most valuable AI use cases, quantify ROI and get an executive ready strategy brief in under 90 seconds.",
-      "button": "Generate AI Insights"
+      "title": "Discover How AI Can Grow Your Business",
+      "subtitle": "In 90 seconds, Maverick Lens shows exactly where AI can create real value in your business — ranked by ROI and time-to-value.",
+      "text1": "Turn your company’s online presence into a clear, ROI-driven AI action plan.",
+      "button": "Generate My AI Report"
     },
     "form": {
       "title": "Generate Your AI Report",
@@ -108,19 +109,47 @@
     },
     "cta": {
       "title": "Let's Design Your AI Roadmap Together",
-      "subtitle": "Work directly with our strategy team to map your company's fastest-ROI AI initiatives, identify data gaps, and define your 90-day execution plan.",
-      "button": "Book Strategic Session"
+      "subtitle": "Your 90-second report is just the beginning.",
+      "text1": "Work with our strategy team to:",
+      "listitem1": "Prioritize the highest-impact AI initiatives",
+      "listtem2": "Identify data and process gaps",
+      "listitem3": "Launch your first AI use case within 90 days",
+      "button": "Book a Strategy Session"
     },
     "problemSolution": {
       "problem": {
         "title": "Business Problem",
-        "text1": "CEOs know AI has potential — but not where to start.",
-        "text2": "Most organizations waste months on vague \"AI readiness\" discussions without a clear ROI case."
+        "text1": "AI is everywhere — but for most businesses, it's still just talk.",
+        "text2": "Months of \"AI readiness\" meetings, endless PowerPoints, zero measurable return.",
+        "text3": "By the time the recommendations arrive, the market has already moved."
       },
       "solution": {
         "title": "Our Solution",
-        "text1": "Maverick Lens uses multi-agent AI research to scan your company's public footprint, benchmark against competitors, and identify the fastest-payback AI initiatives.",
-        "text2": "The result: a quantified, McKinsey-style AI Opportunity Brief tailored to your business."
+        "text0": "Maverick Lens",
+        "text1": " cuts through the noise.",
+        "text2": "Using advanced AI, it analyzes your company's online footprint, benchmarks your competitors, and pinpoints the initiatives that will deliver the fastest ROI.",
+        "text3": "You'll get a concise, executive-ready AI Opportunity Brief — highlighting your top five AI use cases with ROI projections, feasibility insights, and a practical 90-day action plan.",
+        "text4": "The result? Clear priorities. Tangible value.",
+        "button": "Get My AI Insights"
+      }
+    },
+    "whyLeadersChoose": {
+      "title": "Why Leaders Choose Maverick Lens",
+      "section1": {
+        "title": "Clarity in Minutes",
+        "description": "Skip the buzzwords — get insight you can act on right away."
+      },
+      "section2": {
+        "title": "Quantified ROI",
+        "description": "Every recommendation includes projected cost, benefit, and payback."
+      },
+      "section3": {
+        "title": "Built for Decision-Makers",
+        "description": "Designed for CEOs, CFOs, and leadership teams who want results — not theory."
+      },
+      "section4": {
+        "title": "Zero Setup",
+        "description": "No integrations. No uploads. Just your website, and we handle the rest."
       }
     }
   },
@@ -257,8 +286,13 @@
     "employees": "employees"
   },
   "footer": {
+    "builtInSwitzerland": "Built in Switzerland. Trusted by business leaders.",
     "copyright": "© 2025 Maverick Lens | Built by Maverick AI Group | All rights reserved.",
     "builtBy": "Built by Maverick AI Group"
+  },
+  "builtBy": {
+    "title": "Built by Maverick AI Group",
+    "text1": "At Maverick AI Group, we help forward-thinking businesses turn AI into measurable growth with strategy, technology, and execution designed for leaders who value precision, clarity, and results."
   }
 }
 
