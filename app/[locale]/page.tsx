@@ -281,9 +281,7 @@ export default function LandingPage() {
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 dark:text-white mb-8 leading-tight">
             {locale === 'de' ? (
               <>
-                Entdecken Sie Ihre <br />
-                <span className="text-blue-600 dark:text-blue-400">KI-Chancen</span> <br />
-                in unter 90 Sekunden
+                Entdecken Sie, wie <span className="text-blue-600 dark:text-blue-400">KI</span> Ihr Unternehmen wachsen lassen kann
               </>
             ) : (
               <>
@@ -355,8 +353,11 @@ export default function LandingPage() {
               <p className="text-gray-600 dark:text-gray-300 mb-2">
                 {t('home.problemSolution.problem.text2')}
               </p>
-              <p className="text-gray-600 dark:text-gray-300">
+              <p className="text-gray-600 dark:text-gray-300 mb-4">
                 {t('home.problemSolution.problem.text3')}
+              </p>
+              <p className="text-gray-600 dark:text-gray-300">
+                {t('home.problemSolution.problem.text4')}
               </p>
             </div>
             
@@ -432,7 +433,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-4xl px-6">
           <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 md:p-10 shadow-lg">
             <h4 className="text-4xl font-semibold text-gray-900 dark:text-white mb-6 text-center">
-              What's Inside Your Report
+              {t('home.whatsInsideReport.title')}
             </h4>
             <ul className="space-y-4 mb-6">
               <li className="flex items-start gap-3">
@@ -440,7 +441,7 @@ export default function LandingPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span className="text-gray-600 dark:text-gray-300">
-                  <strong className="text-gray-900 dark:text-white">Top 5 AI Use Cases</strong> — ranked by ROI and speed-to-value
+                  <strong className="text-gray-900 dark:text-white">{t('home.whatsInsideReport.item1.title')}</strong> — {t('home.whatsInsideReport.item1.description')}
                 </span>
               </li>
               <li className="flex items-start gap-3">
@@ -448,7 +449,7 @@ export default function LandingPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span className="text-gray-600 dark:text-gray-300">
-                  <strong className="text-gray-900 dark:text-white">Quantified Impact</strong> — benefit, cost, payback, and confidence level
+                  <strong className="text-gray-900 dark:text-white">{t('home.whatsInsideReport.item2.title')}</strong> — {t('home.whatsInsideReport.item2.description')}
                 </span>
               </li>
               <li className="flex items-start gap-3">
@@ -456,7 +457,7 @@ export default function LandingPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span className="text-gray-600 dark:text-gray-300">
-                  <strong className="text-gray-900 dark:text-white">90-Day Action Plan</strong> — your roadmap from idea to implementation
+                  <strong className="text-gray-900 dark:text-white">{t('home.whatsInsideReport.item3.title')}</strong> — {t('home.whatsInsideReport.item3.description')}
                 </span>
               </li>
               <li className="flex items-start gap-3">
@@ -464,12 +465,12 @@ export default function LandingPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span className="text-gray-600 dark:text-gray-300">
-                  <strong className="text-gray-900 dark:text-white">Competitive Benchmarking</strong> — see how you compare within your industry
+                  <strong className="text-gray-900 dark:text-white">{t('home.whatsInsideReport.item4.title')}</strong> — {t('home.whatsInsideReport.item4.description')}
                 </span>
               </li>
             </ul>
             <p className="text-left text-gray-600 dark:text-gray-300 text-lg italic">
-              No guesswork. No jargon. Just actionable, data-backed insight.
+              {t('home.whatsInsideReport.closing')}
             </p>
           </div>
         </div>

@@ -44,9 +44,10 @@
   },
   "home": {
     "hero": {
-      "title": "Entdecken Sie Ihre KI-Chancen in unter 90 Sekunden",
-      "subtitle": "Analysieren Sie nahtlos die öffentlichen Daten Ihres Unternehmens, um die wertvollsten KI-Anwendungsfälle zu entdecken, den ROI zu quantifizieren und einen managementtauglichen Strategiebericht in unter 90 Sekunden zu erhalten.",
-      "button": "KI-Insights generieren"
+      "title": "Entdecken Sie, wie KI Ihr Unternehmen wachsen lassen kann",
+      "subtitle": "In 90 Sekunden zeigt Maverick Lens genau, wo KI in Ihrem Unternehmen echten Wert schaffen kann — bewertet nach ROI und Zeit bis zum Wert.",
+      "text1": "Verwandeln Sie die Online-Präsenz Ihres Unternehmens in einen klaren, ROI-gesteuerten KI-Aktionsplan.",
+      "button": "Meinen KI-Bericht generieren"
     },
     "form": {
       "title": "Generieren Sie Ihren KI-Bericht",
@@ -91,7 +92,7 @@
       }
     },
     "howItWorks": {
-      "title": "So funktioniert's",
+      "title": "So funktioniert es",
       "subtitle": "Erhalten Sie Ihren umfassenden KI-Chancenbericht in drei einfachen Schritten",
       "step1": {
         "title": "Unternehmensdetails eingeben",
@@ -99,29 +100,78 @@
       },
       "step2": {
         "title": "KI-Analyse",
-        "description": "Unser Multi-Agent-KI-System recherchiert Ihr Unternehmen und analysiert Chancen mit fortschrittlicher LLM-Technologie."
+        "description": "Unser System untersucht Ihre digitale Präsenz, Marktposition und Signale der Konkurrenz."
       },
       "step3": {
-        "title": "Bericht erhalten",
-        "description": "Erhalten Sie einen umfassenden Bericht mit KI-Chancen, ROI-Prognosen, Wettbewerbsanalyse und umsetzbaren Insights."
+        "title": "Erhalten Sie Ihren KI-Report",
+        "description": "In weniger als 90 Sekunden erhalten Sie einen maßgeschneiderten Bericht, der zeigt, wo KI in Ihrem Unternehmen messbare Resultate liefert."
       }
     },
     "cta": {
-      "title": "Lassen Sie uns gemeinsam Ihre KI-Roadmap gestalten",
-      "subtitle": "Arbeiten Sie direkt mit unserem Strategieteam zusammen, um die schnellsten ROI-KI-Initiativen Ihres Unternehmens zu kartieren, Datenlücken zu identifizieren und Ihren 90-Tage-Ausführungsplan zu definieren.",
-      "button": "Strategische Sitzung buchen"
+      "title": "Gestalten wir Ihre KI-Roadmap gemeinsam",
+      "subtitle": "Ihr 90-Sekunden-Report ist erst der Anfang.",
+      "text1": "Arbeiten Sie mit unserem Strategie-Team, um:",
+      "listitem1": "die wirkungsvollsten KI-Initiativen zu priorisieren",
+      "listtem2": "Daten- und Prozesslücken zu identifizieren",
+      "listitem3": "Ihren ersten KI-Anwendungsfall in 90 Tagen zu starten",
+      "button": "Strategiegespräch buchen"
     },
     "problemSolution": {
       "problem": {
-        "title": "Geschäftsproblem",
-        "text1": "CEOs wissen, dass KI Potenzial hat — aber nicht, wo sie anfangen sollen.",
-        "text2": "Die meisten Organisationen verschwenden Monate mit vagen \"KI-Bereitschafts\"-Diskussionen ohne klaren ROI-Fall."
+        "title": "Das Problem",
+        "text1": "KI ist überall – aber in den meisten Unternehmen bleibt sie ein Gesprächsthema.",
+        "text2": "Monate voller \"KI Readiness\"--Workshops, endlose PowerPoints, ohne messbares Resultat.",
+        "text3": "Wenn der Bericht endlich da ist, hat sich der Markt bereits verändert.",
+        "text4": "Sie brauchen keinen weiteren Workshop. Sie brauchen Klarheit, Tempo und eine klare Richtung, die auf Ihrer tatsächlichen Unternehmensrealität basiert."
       },
       "solution": {
         "title": "Unsere Lösung",
-        "text1": "Maverick Lens nutzt Multi-Agent-KI-Recherche, um den öffentlichen Fußabdruck Ihres Unternehmens zu scannen, sich mit Wettbewerbern zu vergleichen und die schnellsten Amortisations-KI-Initiativen zu identifizieren.",
-        "text2": "Das Ergebnis: ein quantifizierter, McKinsey-artiger KI-Chancenbericht, der auf Ihr Unternehmen zugeschnitten ist."
+        "text0": "Maverick Lens",
+        "text1": " schneidet durch das Rauschen.",
+        "text2": "Mit modernster KI analysiert es die Online-Spuren Ihres Unternehmens, vergleicht Sie mit Mitbewerbern und identifiziert die Initiativen, die den schnellsten Return on Investment bringen.",
+        "text3": "Sie erhalten einen kompakten, entscheidungsreifen KI-Opportunity-Report – mit Ihren fünf besten Anwendungsfällen, ROI-Prognosen, Machbarkeitsanalysen und einem konkreten 90-Tage-Aktionsplan.",
+        "text4": "Das Ergebnis? Klare Prioritäten. Messbarer Nutzen. Kein Leerlauf",
+        "button": "Meine KI-Insights erhalten"
       }
+    },
+    "whyLeadersChoose": {
+      "title": "Warum Führungskräfte Maverick Lens wählen",
+      "section1": {
+        "title": "Klarheit in Minuten",
+        "description": "Weniger Schlagworte – mehr Erkenntnisse, die Sie sofort umsetzen können."
+      },
+      "section2": {
+        "title": "Messbarer ROI",
+        "description": "Jede Empfehlung enthält geschätzte Kosten, Nutzen und Amortisationsdauer."
+      },
+      "section3": {
+        "title": "Für Entscheider gemacht",
+        "description": "Entwickelt für CEOs, CFOs und Führungsteams, die Resultate wollen – keine Theorien."
+      },
+      "section4": {
+        "title": "Ohne Aufwand",
+        "description": "Keine Integrationen. Keine Uploads. Nur Ihre Website, und wir erledigen den Rest."
+      }
+    },
+    "whatsInsideReport": {
+      "title": "Das steckt in Ihrem Report",
+      "item1": {
+        "title": "Top 5 KI-Anwendungsfälle",
+        "description": "bewertet nach ROI und Umsetzungszeit"
+      },
+      "item2": {
+        "title": "QQuantifizierter Nutzen",
+        "description": "Ertrag, Kosten, Amortisation und Vertrauensniveau"
+      },
+      "item3": {
+        "title": "90-Tage-Aktionsplan",
+        "description": "Ihre Roadmap von der Idee zur Umsetzung"
+      },
+      "item4": {
+        "title": "Wettbewerbsvergleich",
+        "description": "sehen Sie, wie Sie in Ihrer Branche abschneiden"
+      },
+      "closing": "Kein Rätselraten. Kein Fachjargon. Nur umsetzbare, datenbasierte Erkenntnisse."
     }
   },
   "report": {
@@ -257,8 +307,14 @@
     "employees": "Mitarbeiter"
   },
   "footer": {
+    "builtInSwitzerland": "Erstellt in der Schweiz. Vertrauen von Geschäftsführern.",
     "copyright": "© 2025 Maverick Lens | Erstellt von Maverick AI Group | Alle Rechte vorbehalten.",
     "builtBy": "Erstellt von Maverick AI Group"
+  },
+  "builtBy": {
+    "title": "Erstellt von Maverick AI Group",
+    "text1": "Wir haben Maverick Lens entwickelt, weil Führungskräfte kein sechsmonatiges Beratungsprojekt benötigen sollten, nur um zu wissen, wo sie mit KI anfangen sollen.",
+    "text2": "Bei Maverick AI Group helfen wir zukunftsorientierten Unternehmen, KI in messbares Wachstum zu verwandeln — mit Strategie, Technologie und Umsetzung, die für Führungskräfte entwickelt wurden, die Präzision, Klarheit und Ergebnisse schätzen."
   }
 }
 

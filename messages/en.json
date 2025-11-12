@@ -121,7 +121,8 @@
         "title": "Business Problem",
         "text1": "AI is everywhere — but for most businesses, it's still just talk.",
         "text2": "Months of \"AI readiness\" meetings, endless PowerPoints, zero measurable return.",
-        "text3": "By the time the recommendations arrive, the market has already moved."
+        "text3": "By the time the recommendations arrive, the market has already moved.",
+        "text4": "You don’t need another workshop. You need clarity, speed, and direction - grounded in your actual business reality."
       },
       "solution": {
         "title": "Our Solution",
@@ -151,6 +152,26 @@
         "title": "Zero Setup",
         "description": "No integrations. No uploads. Just your website, and we handle the rest."
       }
+    },
+    "whatsInsideReport": {
+      "title": "What's Inside Your Report",
+      "item1": {
+        "title": "Top 5 AI Use Cases",
+        "description": "ranked by ROI and speed-to-value"
+      },
+      "item2": {
+        "title": "Quantified Impact",
+        "description": "benefit, cost, payback, and confidence level"
+      },
+      "item3": {
+        "title": "90-Day Action Plan",
+        "description": "your roadmap from idea to implementation"
+      },
+      "item4": {
+        "title": "Competitive Benchmarking",
+        "description": "see how you compare within your industry"
+      },
+      "closing": "No guesswork. No jargon. Just actionable, data-backed insight."
     }
   },
   "report": {
