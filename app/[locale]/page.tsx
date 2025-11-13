@@ -281,7 +281,7 @@ export default function LandingPage() {
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 dark:text-white mb-8 leading-tight">
             {locale === 'de' ? (
               <>
-                Entdecken Sie, wie <span className="text-blue-600 dark:text-blue-400">KI</span> Ihr Unternehmen wachsen lassen kann
+                Entdecken Sie, wo <span className="text-blue-600 dark:text-blue-400">KI</span> in Ihrem Unternehmen echten Mehrwert schafft
               </>
             ) : (
               <>
@@ -353,12 +353,12 @@ export default function LandingPage() {
               <p className="text-gray-600 dark:text-gray-300 mb-2">
                 {t('home.problemSolution.problem.text2')}
               </p>
-              <p className="text-gray-600 dark:text-gray-300 mb-4">
+              <p className="text-gray-600 dark:text-gray-300 mb-2">
                 {t('home.problemSolution.problem.text3')}
               </p>
-              <p className="text-gray-600 dark:text-gray-300">
+              {/* <p className="text-gray-600 dark:text-gray-300 mb-4">
                 {t('home.problemSolution.problem.text4')}
-              </p>
+              </p> */}
             </div>
             
             {/* The Solution Card */}
@@ -398,7 +398,7 @@ export default function LandingPage() {
                   return (
                     <>
                       <span className="text-gray-900 font-bold dark:text-blue-400">{words[0]}? </span>
-                      <span className="text-blue-600 dark:text-white">{words.slice(1).join(' ')}</span>
+                      <span className="text-blue-600 dark:text-gray-300">{words.slice(1).join(' ')}</span>
                     </>
                   )
                 })()}

@@ -44,9 +44,9 @@
   },
   "home": {
     "hero": {
-      "title": "Entdecken Sie, wie KI Ihr Unternehmen wachsen lassen kann",
-      "subtitle": "In 90 Sekunden zeigt Maverick Lens genau, wo KI in Ihrem Unternehmen echten Wert schaffen kann — bewertet nach ROI und Zeit bis zum Wert.",
-      "text1": "Verwandeln Sie die Online-Präsenz Ihres Unternehmens in einen klaren, ROI-gesteuerten KI-Aktionsplan.",
+      "title": "Entdecken Sie, wo KI in Ihrem Unternehmen echten Mehrwert schafft",
+      "subtitle": "In nur 90 Sekunden zeigt Maverick Lens anhand Ihres öffentlichen Webauftritts, wo KI in Ihrem Unternehmen einen echten Wert schaffen kann.",
+      "text1": "Eine kompakte Einschätzung zum Optimierungspotenzial, zeitlicher und finanzieller Aufwand und dessen Rendite (ROI).",
       "button": "Meinen KI-Bericht generieren"
     },
     "form": {
@@ -96,15 +96,15 @@
       "subtitle": "Erhalten Sie Ihren umfassenden KI-Chancenbericht in drei einfachen Schritten",
       "step1": {
         "title": "Unternehmensdetails eingeben",
-        "description": "Geben Sie Ihren Firmennamen und Website-URL an. Wir verwenden dies, um öffentliche Informationen zu sammeln."
+        "description": "Geben Sie Ihren Firmennamen und Ihre Website-URL in unterer Maske ein. Maverick Lens sammelt ausschliesslich öffentliche, im Web verfügbare Daten für die Analyse."
       },
       "step2": {
         "title": "KI-Analyse",
-        "description": "Unser System untersucht Ihre digitale Präsenz, Marktposition und Signale der Konkurrenz."
+        "description": "Maverick Lens analysiert anhand Ihrer digitalen Präsenz die Marktposition Ihres Unternehmens und dessen der Mitbewerber in der angegeben Industrie und Region."
       },
       "step3": {
         "title": "Erhalten Sie Ihren KI-Report",
-        "description": "In weniger als 90 Sekunden erhalten Sie einen maßgeschneiderten Bericht, der zeigt, wo KI in Ihrem Unternehmen messbare Resultate liefert."
+        "description": "In weniger als 90 Sekunden erhalten Sie einen individuellen Bericht, der Ihnen aufzeigt wo KI in Ihrem Unternehmen messbare Resultate liefern kann."
       }
     },
     "cta": {
@@ -118,19 +118,19 @@
     },
     "problemSolution": {
       "problem": {
-        "title": "Das Problem",
-        "text1": "KI ist überall – aber in den meisten Unternehmen bleibt sie ein Gesprächsthema.",
-        "text2": "Monate voller \"KI Readiness\"--Workshops, endlose PowerPoints, ohne messbares Resultat.",
-        "text3": "Wenn der Bericht endlich da ist, hat sich der Markt bereits verändert.",
+        "title": "Die Herausforderung",
+        "text1": "Künstliche Intelligenz (KI) ist in aller Munde, doch für viele Unternehmen bleibt sie ein theoretisches Konzept. Das liegt oft daran, dass der praktische Einstieg unklar ist. ",
+        "text2": "Die Technologien entwickeln sich extrem schnell und theoretische Workshops bieten selten eine klare Anleitung, wo man konkret beginnen soll.",
+        "text3": "Genau hier setzt unsere Lösung an.",
         "text4": "Sie brauchen keinen weiteren Workshop. Sie brauchen Klarheit, Tempo und eine klare Richtung, die auf Ihrer tatsächlichen Unternehmensrealität basiert."
       },
       "solution": {
         "title": "Unsere Lösung",
         "text0": "Maverick Lens",
-        "text1": " schneidet durch das Rauschen.",
-        "text2": "Mit modernster KI analysiert es die Online-Spuren Ihres Unternehmens, vergleicht Sie mit Mitbewerbern und identifiziert die Initiativen, die den schnellsten Return on Investment bringen.",
-        "text3": "Sie erhalten einen kompakten, entscheidungsreifen KI-Opportunity-Report – mit Ihren fünf besten Anwendungsfällen, ROI-Prognosen, Machbarkeitsanalysen und einem konkreten 90-Tage-Aktionsplan.",
-        "text4": "Das Ergebnis? Klare Prioritäten. Messbarer Nutzen. Kein Leerlauf",
+        "text1": " sbietet Ihnen den schnellen, klaren Weg zur KI-Nutzung.",
+        "text2": "Es analysiert zunächst die öffentlich verfügbaren Daten Ihres Unternehmens, um Ihr KI-Optimierungspotenzial zu ermitteln, und erstellt daraufhin einen Report, der Ihnen eine realistische Übersicht liefert.",
+        "text3": "Basierend auf dieser Analyse schlägt das Tool in nur 90 Sekunden konkrete, auf Ihr Unternehmen zugeschnittene KI-Projekte vor und kalkuliert zusätzlich den geschätzten Zeit- und Finanzaufwand sowie die zu erwartende Rendite (ROI).",
+        "text4": "Das Ergebnis? Mit Maverick Lens erhalten Sie somit eine klare Roadmap und wissen genau, wo Sie ansetzen müssen.",
         "button": "Meine KI-Insights erhalten"
       }
     },
