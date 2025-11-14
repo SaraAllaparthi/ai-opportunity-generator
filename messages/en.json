@@ -256,6 +256,11 @@
         "high": "Strong capabilities ready for scalable AI deployment.",
         "medium": "Adequate foundation; some enablers still developing.",
         "low": "Gaps require foundational improvements."
+      },
+      "levelLabels": {
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low"
       }
     },
     "useCases": {

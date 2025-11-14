@@ -198,6 +198,8 @@ export default function TrendImpactGrid({ data }: { data: Brief }) {
   const trends = useMemo(() => {
     const rawTrends = (data.industry.trends || []).slice(0, 5)
     
+    console.log('[TrendImpactGrid] Raw trends count:', rawTrends.length, 'Trends:', rawTrends)
+    
     const points: TrendPoint[] = rawTrends.map((trend, index) => {
       const readiness = estimateReadiness(trend)
       const impact = estimateImpact(trend)
@@ -218,14 +220,34 @@ export default function TrendImpactGrid({ data }: { data: Brief }) {
     })
     
     // Ensure points don't overlap too much by adjusting positions (deterministic)
+    // Also ensure better spacing distribution for 5 points
     const adjustedPoints: TrendPoint[] = []
+    const minDistance = 15 // Minimum distance between points to prevent overlap
+    
     points.forEach((point, index) => {
       let adjustedPoint = { ...point }
-      // Add small deterministic offset based on trend text to prevent exact overlaps
+      // Add deterministic offset based on trend text to prevent exact overlaps
       const xOffset = getDeterministicOffset(point.trend, 3) * 8 - 4 // -4 to +4
       const yOffset = getDeterministicOffset(point.trend, 4) * 8 - 4 // -4 to +4
       adjustedPoint.x += xOffset
       adjustedPoint.y += yOffset
+      
+      // For 5 points, try to distribute them better across quadrants
+      // This helps ensure all points are visible
+      if (points.length === 5) {
+        // Distribute points more evenly across the grid
+        const quadrantOffsets = [
+          { x: -10, y: -10 }, // Top-left
+          { x: 10, y: -10 },  // Top-right
+          { x: -10, y: 10 },  // Bottom-left
+          { x: 10, y: 10 },   // Bottom-right
+          { x: 0, y: 0 }      // Center
+        ]
+        const quadrantOffset = quadrantOffsets[index % quadrantOffsets.length]
+        adjustedPoint.x += quadrantOffset.x
+        adjustedPoint.y += quadrantOffset.y
+      }
+      
       // Clamp to grid bounds (with padding for labels)
       adjustedPoint.x = Math.max(12, Math.min(88, adjustedPoint.x))
       adjustedPoint.y = Math.max(12, Math.min(85, adjustedPoint.y))
@@ -233,10 +255,10 @@ export default function TrendImpactGrid({ data }: { data: Brief }) {
     })
     
     // Log TrendPoints for debugging
-    console.log('[TrendImpactGrid] TrendPoints:', adjustedPoints)
+    console.log('[TrendImpactGrid] Processed points count:', adjustedPoints.length, 'Points:', adjustedPoints.map(p => ({ name: p.trendName, x: p.x, y: p.y })))
     
     return adjustedPoints
-  }, [data.industry.trends])
+  }, [data.industry.trends, t])
 
   return (
     <div className="w-full">
@@ -252,7 +274,7 @@ export default function TrendImpactGrid({ data }: { data: Brief }) {
         {/* Trend bubbles with labels */}
         <div className="relative w-full h-full" style={{ padding: '48px' }}>
           {trends.map((point, index) => {
-            // Use the same color palette as the list in IndustryCard
+            // Use the same color palette as the list in IndustryCard - ensure we have enough colors
             const color = TREND_COLORS[index % TREND_COLORS.length]
             const isHovered = hoveredIndex === index
             
@@ -271,9 +293,12 @@ export default function TrendImpactGrid({ data }: { data: Brief }) {
             // Position label to the right of the dot, or left if too far right
             const labelPosition = point.x > 70 ? 'left' : 'right'
             
+            // Ensure all points are visible - add a unique key based on trend text
+            const uniqueKey = `trend-${index}-${point.trend.substring(0, 20).replace(/\s/g, '-')}`
+            
             return (
               <div
-                key={index}
+                key={uniqueKey}
                 className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-200 z-10 group"
                 style={{
                   left: `${point.x}%`,
@@ -281,6 +306,8 @@ export default function TrendImpactGrid({ data }: { data: Brief }) {
                 }}
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}
+                data-trend-index={index}
+                data-trend-name={point.trendName}
               >
                 {/* Glowing bubble - color coded by readiness */}
                 <div

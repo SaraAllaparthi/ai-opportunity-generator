@@ -262,6 +262,11 @@
         "high": "Starke Fähigkeiten bereit für skalierbare KI-Bereitstellung.",
         "medium": "Angemessene Grundlage; einige Enabler entwickeln sich noch.",
         "low": "Lücken erfordern grundlegende Verbesserungen."
+      },
+      "levelLabels": {
+        "high": "Hoch",
+        "medium": "Mittel",
+        "low": "Niedrig"
       }
     },
     "useCases": {

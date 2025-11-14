@@ -147,7 +147,7 @@ export default function FeasibilityScan({ _data }: { _data: Brief }) {
             </div>
             <div className="mt-auto">
               <div className={`rounded-full border px-2.5 py-1 text-sm font-medium text-center mb-2 ${getLevelColor(item.level)}`}>
-                {item.level}
+                {t(`report.feasibility.levelLabels.${item.level.toLowerCase()}`)}
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
                 {getLevelDescription(item.level, t)}

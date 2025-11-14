@@ -3,7 +3,7 @@ import { normalizeWebsite } from '@/lib/utils/url'
 
 /**
  * Search for company facts using Perplexity: CEO name, founded year, company size
- * Enhanced CEO search: "Who is CEO of [company name] [Industry] [location] [website address]"
+ * Makes separate focused queries for CEO name and founded year using company name and website
  */
 export async function perplexitySearchCompanyFacts(
   companyName: string,
@@ -21,196 +21,172 @@ export async function perplexitySearchCompanyFacts(
     return {}
   }
 
-  // Extract country from location if provided (e.g., "Zurich, Switzerland" -> "Switzerland")
-  const country = countryLocation 
-    ? countryLocation.split(',').map(s => s.trim()).pop() || countryLocation
-    : undefined
-
-  // Build comprehensive CEO search query with all available context
-  const locationPart = countryLocation ? ` ${countryLocation}` : (country ? ` ${country}` : '')
-  const industryPart = industry ? ` ${industry}` : ''
-  const websitePart = website ? ` ${website}` : ''
-  
-  // Enhanced query format: Search specifically for CURRENT CEO or Group CEO with company name
-  // CRITICAL: Only return the CURRENT/ACTIVE CEO, NOT former or ex-CEOs
-  const ceoQuery = `Who is the CURRENT CEO or Group CEO of ${companyName}${industryPart}${locationPart}${websitePart}? Find the full name (first name and last name) of the person who CURRENTLY holds the CEO or Group CEO position. IMPORTANT: Do NOT return former CEOs, ex-CEOs, previous CEOs, or retired CEOs. Only return the name of the person who is the CURRENT, ACTIVE CEO as of 2024-2025.`
-  
-  // Enhanced founded year query with full context
-  const foundedQuery = `When was ${companyName}${industryPart}${locationPart}${websitePart} founded?`
-
-  const query = `${ceoQuery}
-
-Also find:
-2. Founded year - ${foundedQuery} Look for "founded", "established", "incorporated", or "registered" followed by a year (YYYY format). Return ONLY the year in format "Founded in YYYY" if found.
-
-3. Company size - How many employees does ${companyName} (${website || 'company website'}) have? Search for the total number of employees, workforce size, or headcount. Look for "employees", "employee count", "workforce", "headcount", "staff", "Mitarbeiter", or "people" followed by a number. Accept any size - small companies (10-100), medium (100-10,000), large (10,000-100,000), or very large (100,000+). Return ONLY in format "X employees" or "X-Y employees" or "X,XXX employees" if found. Include the full number with commas if it's a large number (e.g., "100,000 employees").
-
-CRITICAL REQUIREMENTS:
-- CEO: Return ONLY the full name (first name + last name) of the CURRENT, ACTIVE CEO if found. Do NOT return former CEOs, ex-CEOs, previous CEOs, or retired CEOs. Do NOT return titles only (e.g., "CEO" or "Group CEO" without a name). Do NOT infer or guess names. Only return if you find explicit information about the CURRENT CEO as of 2024-2025.
-- Founded: Only return if you find an explicit year (e.g., "founded in 1995" or "established 2001"). Do NOT estimate.
-- Size: Return the explicit employee count if found (e.g., "50 employees", "100-200 employees", "10,000 employees", "100,000+ employees"). Accept any size - small, medium, large, or very large companies. Include commas for large numbers. Do NOT estimate from revenue, but DO return the actual employee count if explicitly stated.
-
-Return your response as a JSON object with these exact keys: ceo (string or null), founded (string or null), size (string or null). If information is not found, use null for that field.`
-
-  console.log('[Perplexity] Searching company facts:', { companyName, website, countryLocation, country, industry })
-
+  const result: { ceo?: string; founded?: string; size?: string } = {}
   const url = 'https://api.perplexity.ai/chat/completions'
-  const body = {
-    model: 'sonar-pro',
-    messages: [
-      {
-        role: 'system',
-        content: 'You are a business intelligence researcher. Answer the question directly and return your response as a valid JSON object with these exact keys: ceo (string or null), founded (string or null), size (string or null). For CEO: Return ONLY the full name (first name + last name) if found. Do NOT return titles only. Do NOT infer or guess names. If information is not found, use null for that field. Do not include any markdown formatting, just the raw JSON object.'
-      },
-      {
-        role: 'user',
-        content: query
+
+  // Helper function to make a Perplexity API call
+  const makePerplexityCall = async (query: string, systemPrompt: string, timeoutMs: number = 20000): Promise<string> => {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), timeoutMs)
+
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'sonar-pro',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: query }
+          ],
+          temperature: 0.1,
+          max_tokens: 500
+        }),
+        signal: controller.signal
+      })
+
+      clearTimeout(timeout)
+
+      if (!res.ok) {
+        const errorText = await res.text()
+        console.error('[Perplexity] Error response:', { status: res.status, body: errorText })
+        return ''
       }
-    ],
-    temperature: 0.1,
-    max_tokens: 1000
+
+      const json = await res.json()
+      return json.choices?.[0]?.message?.content || ''
+    } catch (err) {
+      clearTimeout(timeout)
+      if ((err as any)?.name === 'AbortError') {
+        console.error('[Perplexity] Request timed out')
+      } else {
+        console.error('[Perplexity] Request error:', err)
+      }
+      return ''
+    }
   }
 
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 20000) // 20s timeout (optimized for 90s total)
-
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify(body),
-      signal: controller.signal
-    })
-
-    clearTimeout(timeout)
-
-    if (!res.ok) {
-      const errorText = await res.text()
-      console.error('[Perplexity] Error response for company facts:', { status: res.status, body: errorText })
-      return {}
-    }
-
-    const json = await res.json()
-    const content = json.choices?.[0]?.message?.content || ''
-    
-    console.log('[Perplexity] Company facts response:', {
-      contentLength: content.length,
-      contentPreview: content.substring(0, 500)
-    })
-
-    // Try to extract JSON from response
-    let facts: any = {}
-    
+  // Helper function to extract JSON from response
+  const extractJSON = (content: string): any => {
     // Strategy 1: Look for JSON object in code blocks
     const codeBlockMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/i)
     if (codeBlockMatch) {
       try {
-        facts = JSON.parse(codeBlockMatch[1])
-        console.log('[Perplexity] Extracted JSON from code block')
+        return JSON.parse(codeBlockMatch[1])
       } catch (e) {
-        console.error('[Perplexity] Failed to parse JSON from code block:', e)
+        // Continue to next strategy
       }
     }
     
     // Strategy 2: Look for JSON object anywhere
-    if (!facts.ceo && !facts.founded && !facts.size) {
-      const jsonMatch = content.match(/\{[\s\S]*?\}/)
-      if (jsonMatch) {
-        try {
-          facts = JSON.parse(jsonMatch[0])
-          console.log('[Perplexity] Extracted JSON from response')
-        } catch (e) {
-          console.error('[Perplexity] Failed to parse JSON object:', e)
-        }
+    const jsonMatch = content.match(/\{[\s\S]*?\}/)
+    if (jsonMatch) {
+      try {
+        return JSON.parse(jsonMatch[0])
+      } catch (e) {
+        // Continue to next strategy
       }
     }
     
     // Strategy 3: Try parsing entire content
-    if (!facts.ceo && !facts.founded && !facts.size) {
-      try {
-        const parsed = JSON.parse(content.trim())
-        if (typeof parsed === 'object' && parsed !== null) {
-          facts = parsed
-          console.log('[Perplexity] Parsed entire content as JSON object')
-        }
-      } catch (e) {
-        console.error('[Perplexity] Failed to parse response as JSON:', e)
+    try {
+      const parsed = JSON.parse(content.trim())
+      if (typeof parsed === 'object' && parsed !== null) {
+        return parsed
       }
+    } catch (e) {
+      // Failed to parse
     }
-
-    // Validate and clean results
-    const result: { ceo?: string; founded?: string; size?: string } = {}
     
-    // Validate CEO - reject placeholder names and generic terms
-    if (facts.ceo && typeof facts.ceo === 'string' && facts.ceo.trim() && facts.ceo.toLowerCase() !== 'null') {
-      const ceoStr = facts.ceo.trim()
+    return null
+  }
+
+  console.log('[Perplexity] Searching company facts:', { companyName, website, countryLocation, industry })
+
+  // 1. Separate focused query for CEO name
+  const ceoQuery = `What is the CEO name of ${companyName}${website ? ` (website: ${website})` : ''}? Search for the current CEO or Group CEO of this company. Return ONLY the full name (first name and last name) of the person who CURRENTLY holds the CEO or Group CEO position. IMPORTANT: Do NOT return former CEOs, ex-CEOs, previous CEOs, or retired CEOs. Only return the name of the person who is the CURRENT, ACTIVE CEO as of 2024-2025. If you cannot find the CEO name, return null.`
+  
+  const ceoSystemPrompt = 'You are a business intelligence researcher. Answer the question directly and return your response as a valid JSON object with this exact key: ceo (string or null). For CEO: Return ONLY the full name (first name + last name) if found. Do NOT return titles only. Do NOT infer or guess names. If information is not found, use null. Do not include any markdown formatting, just the raw JSON object.'
+
+  const ceoResponse = await makePerplexityCall(ceoQuery, ceoSystemPrompt)
+  console.log('[Perplexity] CEO query response:', {
+    contentLength: ceoResponse.length,
+    contentPreview: ceoResponse.substring(0, 300)
+  })
+
+  if (ceoResponse) {
+    const ceoFacts = extractJSON(ceoResponse)
+    if (ceoFacts && ceoFacts.ceo && typeof ceoFacts.ceo === 'string' && ceoFacts.ceo.trim() && ceoFacts.ceo.toLowerCase() !== 'null') {
+      const ceoStr = ceoFacts.ceo.trim()
       const lowerStr = ceoStr.toLowerCase()
       
-      // Reject generic terms
-      if (lowerStr.match(/^(ceo|founder|chief|executive|director|manager|unknown|n\/a|tbd|not available|not found)$/i)) {
-        console.log('[Perplexity] Rejected generic CEO term:', ceoStr)
-      }
-      // Reject common placeholder/test names
-      else if (lowerStr.match(/^(john doe|jane doe|test user|test name|example name|sample name|placeholder|demo|test|user|name|ceo name|company ceo|the ceo|our ceo)$/i)) {
-        console.log('[Perplexity] Rejected placeholder CEO name:', ceoStr)
-      }
-      // Reject if it's just a title with no actual name
-      else if (lowerStr.match(/^(ceo|chief executive|chief executive officer|group ceo|managing director)$/i)) {
-        console.log('[Perplexity] Rejected CEO (title only, no name):', ceoStr)
-      }
-      // CRITICAL: Reject former/ex-CEOs - only accept current CEOs
-      else if (lowerStr.match(/(former|ex-|previous|retired|past|prior|outgoing|departed|stepped down|resigned|left).*ceo|ceo.*(former|ex-|previous|retired|past|prior|outgoing|departed|stepped down|resigned|left)/i)) {
-        console.log('[Perplexity] Rejected former/ex-CEO (not current CEO):', ceoStr)
-      }
-      // Accept if it looks like a real name (has at least 2 words, reasonable length)
-      else if (ceoStr.length > 0 && ceoStr.length <= 150 && ceoStr.split(/\s+/).length >= 2) {
-        // Accept the CEO name - preserve as found (must be current CEO)
+      // Validate CEO name
+      if (!lowerStr.match(/^(ceo|founder|chief|executive|director|manager|unknown|n\/a|tbd|not available|not found)$/i) &&
+          !lowerStr.match(/^(john doe|jane doe|test user|test name|example name|sample name|placeholder|demo|test|user|name|ceo name|company ceo|the ceo|our ceo)$/i) &&
+          !lowerStr.match(/^(ceo|chief executive|chief executive officer|group ceo|managing director)$/i) &&
+          !lowerStr.match(/(former|ex-|previous|retired|past|prior|outgoing|departed|stepped down|resigned|left).*ceo|ceo.*(former|ex-|previous|retired|past|prior|outgoing|departed|stepped down|resigned|left)/i) &&
+          ceoStr.length > 0 && ceoStr.length <= 150 && ceoStr.split(/\s+/).length >= 2) {
         result.ceo = ceoStr
-        console.log('[Perplexity] Found current CEO:', result.ceo)
+        console.log('[Perplexity] ✅ Found CEO:', result.ceo)
       } else {
-        console.log('[Perplexity] Rejected CEO (doesn\'t look like a real name):', ceoStr)
+        console.log('[Perplexity] Rejected CEO (invalid format):', ceoStr)
       }
     }
-    
-    // Validate founded year
-    if (facts.founded && typeof facts.founded === 'string' && facts.founded.trim() && facts.founded.toLowerCase() !== 'null') {
-      const foundedStr = facts.founded.trim()
-      // Must contain a 4-digit year (1900-2099)
+  }
+
+  // 2. Separate focused query for founded year
+  const foundedQuery = `What is the founded year of ${companyName}${website ? ` (website: ${website})` : ''}? Search for when this company was founded, established, incorporated, or registered. Return ONLY the year (YYYY format) if found. Look for "founded", "established", "incorporated", or "registered" followed by a year. If you cannot find the founded year, return null.`
+  
+  const foundedSystemPrompt = 'You are a business intelligence researcher. Answer the question directly and return your response as a valid JSON object with this exact key: founded (string or null). For founded: Return ONLY the year in format "Founded in YYYY" if found (e.g., "Founded in 1995"). Do NOT estimate. If information is not found, use null. Do not include any markdown formatting, just the raw JSON object.'
+
+  const foundedResponse = await makePerplexityCall(foundedQuery, foundedSystemPrompt)
+  console.log('[Perplexity] Founded year query response:', {
+    contentLength: foundedResponse.length,
+    contentPreview: foundedResponse.substring(0, 300)
+  })
+
+  if (foundedResponse) {
+    const foundedFacts = extractJSON(foundedResponse)
+    if (foundedFacts && foundedFacts.founded && typeof foundedFacts.founded === 'string' && foundedFacts.founded.trim() && foundedFacts.founded.toLowerCase() !== 'null') {
+      const foundedStr = foundedFacts.founded.trim()
       const yearMatch = foundedStr.match(/\b(19|20)\d{2}\b/)
       if (yearMatch) {
         result.founded = `Founded in ${yearMatch[0]}`
-        console.log('[Perplexity] Found founded year:', result.founded)
+        console.log('[Perplexity] ✅ Found founded year:', result.founded)
       } else {
         console.log('[Perplexity] Rejected founded (no valid year):', foundedStr)
       }
     }
-    
-    // Validate size - accept any valid employee count, including large numbers
-    if (facts.size && typeof facts.size === 'string' && facts.size.trim() && facts.size.toLowerCase() !== 'null') {
-      const sizeStr = facts.size.trim()
-      // Must contain explicit employee count pattern - accept any number (including large ones)
-      // Pattern matches: "100 employees", "10,000 employees", "100,000+ employees", "50-200 employees", etc.
+  }
+
+  // 3. Company size query (keeping this as a separate call for consistency, but can be combined if needed)
+  const sizeQuery = `How many employees does ${companyName}${website ? ` (website: ${website})` : ''} have? Search for the total number of employees, workforce size, or headcount. Look for "employees", "employee count", "workforce", "headcount", "staff", "Mitarbeiter", or "people" followed by a number. Accept any size - small companies (10-100), medium (100-10,000), large (10,000-100,000), or very large (100,000+). Return ONLY in format "X employees" or "X-Y employees" or "X,XXX employees" if found. Include the full number with commas if it's a large number (e.g., "100,000 employees"). If you cannot find the employee count, return null.`
+  
+  const sizeSystemPrompt = 'You are a business intelligence researcher. Answer the question directly and return your response as a valid JSON object with this exact key: size (string or null). For size: Return the explicit employee count if found (e.g., "50 employees", "100-200 employees", "10,000 employees", "100,000+ employees"). Accept any size. Include commas for large numbers. Do NOT estimate from revenue. If information is not found, use null. Do not include any markdown formatting, just the raw JSON object.'
+
+  const sizeResponse = await makePerplexityCall(sizeQuery, sizeSystemPrompt)
+  console.log('[Perplexity] Company size query response:', {
+    contentLength: sizeResponse.length,
+    contentPreview: sizeResponse.substring(0, 300)
+  })
+
+  if (sizeResponse) {
+    const sizeFacts = extractJSON(sizeResponse)
+    if (sizeFacts && sizeFacts.size && typeof sizeFacts.size === 'string' && sizeFacts.size.trim() && sizeFacts.size.toLowerCase() !== 'null') {
+      const sizeStr = sizeFacts.size.trim()
       if (sizeStr.match(/\d+[\d,\s-]*(?:\+)?\s*(?:employees?|mitarbeiter|staff|workforce|headcount|people)/i)) {
-        // Keep the size as-is (Perplexity should return it in a good format)
         result.size = sizeStr
         console.log('[Perplexity] ✅ Found size:', result.size)
       } else {
-        console.log('[Perplexity] ⚠️ Rejected size (no employee count pattern):', facts.size)
+        console.log('[Perplexity] Rejected size (no employee count pattern):', sizeFacts.size)
       }
     }
-
-    return result
-  } catch (err) {
-    if ((err as any)?.name === 'AbortError') {
-      console.error('[Perplexity] Company facts search timed out')
-    } else {
-      console.error('[Perplexity] Company facts search error:', err)
-    }
-    return {}
   }
+
+  return result
 }
 
 /**
