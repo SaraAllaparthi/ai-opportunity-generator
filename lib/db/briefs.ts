@@ -66,7 +66,7 @@ export async function createBrief(data: Brief): Promise<{ id: string; share_slug
   
   const { data: row, error } = await supabase
     .from('briefs')
-    .insert({ share_slug: shareSlug, data: briefData })
+    .insert({ share_slug: shareSlug, data: briefData } as any)
     .select('id, share_slug')
     .single()
   
@@ -94,10 +94,10 @@ export async function createBrief(data: Brief): Promise<{ id: string; share_slug
     .single()
   
   if (verifyRow) {
-    const savedCompetitors = (verifyRow.data as any)?.competitors || []
+    const savedCompetitors = ((verifyRow as any).data as any)?.competitors || []
     console.log('[DB] ✅ Brief created successfully:', { 
-      id: row.id, 
-      share_slug: row.share_slug,
+      id: (row as any).id, 
+      share_slug: (row as any).share_slug,
       competitorsSaved: savedCompetitors.length,
       competitorNames: savedCompetitors.map((c: any) => c.name)
     })
@@ -105,7 +105,7 @@ export async function createBrief(data: Brief): Promise<{ id: string; share_slug
     console.warn('[DB] ⚠️ Brief created but verification query returned no data')
   }
   
-  return { id: String(row.id), share_slug: String(row.share_slug) }
+  return { id: String((row as any).id), share_slug: String((row as any).share_slug) }
 }
 
 export async function listBriefs(): Promise<BriefRow[]> {
