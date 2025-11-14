@@ -126,11 +126,17 @@
       },
       "solution": {
         "title": "Unsere Lösung",
-        "text0": "Maverick Lens",
-        "text1": " sbietet Ihnen den schnellen, klaren Weg zur KI-Nutzung.",
-        "text2": "Es analysiert zunächst die öffentlich verfügbaren Daten Ihres Unternehmens, um Ihr KI-Optimierungspotenzial zu ermitteln, und erstellt daraufhin einen Report, der Ihnen eine realistische Übersicht liefert.",
-        "text3": "Basierend auf dieser Analyse schlägt das Tool in nur 90 Sekunden konkrete, auf Ihr Unternehmen zugeschnittene KI-Projekte vor und kalkuliert zusätzlich den geschätzten Zeit- und Finanzaufwand sowie die zu erwartende Rendite (ROI).",
-        "text4": "Das Ergebnis? Mit Maverick Lens erhalten Sie somit eine klare Roadmap und wissen genau, wo Sie ansetzen müssen.",
+        "section1": {
+          "text1": "Unser Tool, Maverick Lens, bietet Ihnen den schnellen, klaren Weg zur KI-Nutzung.",
+          "text2": "Es analysiert zunächst die öffentlich verfügbaren Daten Ihres Unternehmens, um Ihr KI-Optimierungspotenzial zu ermitteln, und erstellt daraufhin einen Report, der Ihnen eine realistische Übersicht liefert.",
+          "text3": "Basierend auf dieser Analyse schlägt das Tool in nur 90 Sekunden konkrete, auf Ihr Unternehmen zugeschnittene KI-Projekte vor und kalkuliert zusätzlich den geschätzten Zeit- und Finanzaufwand sowie die zu erwartende Rendite (ROI)."
+        },
+        "section2": {
+          "subtitle": "Das Ergebnis",
+          "text1": "Mit Maverick Lens erhalten Sie somit eine klare Roadmap und wissen genau, wo Sie ansetzen müssen.",
+          "text2": "Sie sehen, wie Sie mit einfachen KI-Projekten einen signifikanten Mehrwert generieren können.",
+          "text3": "Der Report liefert Ihnen eine fundierte Entscheidungsgrundlage zur Priorisierung. Dies ohne Leerlauf und mit messbarem Nutzen."
+        },
         "button": "Meine KI-Insights erhalten"
       }
     },
@@ -160,7 +166,7 @@
         "description": "bewertet nach ROI und Umsetzungszeit"
       },
       "item2": {
-        "title": "QQuantifizierter Nutzen",
+        "title": "Quantifizierter Nutzen",
         "description": "Ertrag, Kosten, Amortisation und Vertrauensniveau"
       },
       "item3": {

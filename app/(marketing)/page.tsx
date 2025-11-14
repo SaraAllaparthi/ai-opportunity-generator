@@ -492,7 +492,14 @@ export default function LandingPage() {
       <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 py-12">
         <div className="mx-auto max-w-6xl px-6">
           <div className="flex flex-col md:flex-row items-center justify-center gap-6">
-            <div className="text-sm text-gray-600 dark:text-gray-400">© 2025 Maverick Lens | Built by Maverick AI Group | All rights reserved.</div>
+            <a 
+              href="https://www.maverickaigroup.ai/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
+            >
+              © 2025 Maverick Lens | Built by Maverick AI Group | All rights reserved.
+            </a>
           </div>
         </div>
       </footer>

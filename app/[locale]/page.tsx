@@ -362,48 +362,90 @@ export default function LandingPage() {
             </div>
             
             {/* The Solution Card */}
-            <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 md:p-10 shadow-lg">
-              <h4 className="text-4xl font-semibold mb-3">
-                {(() => {
-                  const title = t('home.problemSolution.solution.title')
-                  const words = title.split(' ')
-                  if (words.length === 1) {
-                    return <span className="text-blue-600 dark:text-blue-400">{title}</span>
-                  }
-                  return (
-                    <>
-                      <span className="text-gray-900 dark:text-white">{words[0]} </span>
-                      <span className="text-blue-600 dark:text-blue-400">{words.slice(1).join(' ')}</span>
-                    </>
-                  )
-                })()}
-              </h4>
-              <p className="text-gray-600 dark:text-gray-300 mb-2">
-                <span className="text-blue-600 font-bold dark:text-blue-400">{t('home.problemSolution.solution.text0')}</span>
-                {t('home.problemSolution.solution.text1')}
-              </p>
-              <p className="text-gray-600 dark:text-gray-300 mb-2">
-                {t('home.problemSolution.solution.text2')}
-              </p>
-              <p className="text-gray-600 dark:text-gray-300 mb-2">
-                {t('home.problemSolution.solution.text3')}
-              </p>
-              <p className="text-gray-600 dark:text-gray-300">
-              {(() => {
-                  const title = t('home.problemSolution.solution.text4')
-                  const words = title.split('?')
-                  if (words.length === 1) {
-                    return <span className="text-blue-600 dark:text-blue-400">{title}</span>
-                  }
-                  return (
-                    <>
-                      <span className="text-gray-900 font-bold dark:text-blue-400">{words[0]}? </span>
-                      <span className="text-blue-600 dark:text-gray-300">{words.slice(1).join(' ')}</span>
-                    </>
-                  )
-                })()}
-              </p>
-            </div>
+            {(locale === 'en') ? (
+              <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 md:p-10 shadow-lg">
+                <h4 className="text-4xl font-semibold mb-3">
+                  {(() => {
+                    const title = t('home.problemSolution.solution.title')
+                    const words = title.split(' ')
+                    if (words.length === 1) {
+                      return <span className="text-blue-600 dark:text-blue-400">{title}</span>
+                    }
+                    return (
+                      <>
+                        <span className="text-gray-900 dark:text-white">{words[0]} </span>
+                        <span className="text-blue-600 dark:text-blue-400">{words.slice(1).join(' ')}</span>
+                      </>
+                    )
+                  })()}
+                </h4>
+                <p className="text-gray-600 dark:text-gray-300 mb-2">
+                  <span className="text-blue-600 font-bold dark:text-blue-400">{t('home.problemSolution.solution.text0')}</span>
+                  {t('home.problemSolution.solution.text1')}
+                </p>
+                <p className="text-gray-600 dark:text-gray-300 mb-2">
+                  {t('home.problemSolution.solution.text2')}
+                </p>
+                <p className="text-gray-600 dark:text-gray-300 mb-2">
+                  {t('home.problemSolution.solution.text3')}
+                </p>
+                <p className="text-gray-600 dark:text-gray-300">
+                  {(() => {
+                    const title = t('home.problemSolution.solution.text4')
+                    const words = title.split('?')
+                    if (words.length === 1) {
+                      return <span className="text-blue-600 dark:text-blue-400">{title}</span>
+                    }
+                    return (
+                      <>
+                        <span className="text-gray-900 font-bold dark:text-blue-400">{words[0]}? </span>
+                        <span className="text-blue-600 dark:text-gray-300">{words.slice(1).join(' ')}</span>
+                      </>
+                    )
+                  })()}
+                </p>
+              </div>
+            ) : locale === 'de' ? (
+              <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 md:p-10 shadow-lg">
+                <h4 className="text-4xl font-semibold mb-3">
+                  {(() => {
+                    const title = t('home.problemSolution.solution.title')
+                    const words = title.split(' ')
+                    if (words.length === 1) {
+                      return <span className="text-blue-600 dark:text-blue-400">{title}</span>
+                    }
+                    return (
+                      <>
+                        <span className="text-gray-900 dark:text-white">{words[0]} </span>
+                        <span className="text-blue-600 dark:text-blue-400">{words.slice(1).join(' ')}</span>
+                      </>
+                    )
+                  })()}
+                </h4>
+                <p className="text-gray-600 dark:text-gray-300 mb-2">
+                  Unser Tool, 
+                  <span className="text-blue-600 font-bold dark:text-blue-400"> Maverick Lens</span>,
+                   bietet Ihnen den schnellen, klaren Weg zur KI-Nutzung.
+                </p>
+                <p className="text-gray-600 dark:text-gray-300 mb-2">
+                  Es analysiert zunächst die öffentlich verfügbaren Daten Ihres Unternehmens, um Ihr KI-Optimierungspotenzial zu ermitteln, und erstellt daraufhin einen Report, der Ihnen eine 
+                  <span className="text-blue-600 font-bold dark:text-blue-400"> realistische Übersicht </span>,liefert.
+                </p>
+                <p className="text-gray-600 dark:text-gray-300 mb-8">
+                  Basierend auf dieser Analyse schlägt das Tool in nur 90 Sekunden konkrete, auf Ihr Unternehmen zugeschnittene KI-Projekte vor und kalkuliert zusätzlich den geschätzten Zeit- und Finanzaufwand sowie die zu erwartende <span className="text-blue-600 font-bold dark:text-blue-400">Rendite (ROI)</span>.
+                </p>
+                <h4 className="text-2xl font-semibold mb-3">Das <span className="text-blue-600 font-bold dark:text-blue-400">Ergebnis</span></h4>
+                <p className="text-gray-600 dark:text-gray-300 mb-2">
+                  Mit <span className="text-blue-600 font-bold dark:text-blue-400">Maverick Lens</span> erhalten Sie somit eine klare Roadmap und wissen genau, wo Sie ansetzen müssen.
+                </p>
+                <p className="text-gray-600 dark:text-gray-300 mb-2">
+                  Sie sehen, wie Sie mit einfachen KI-Projekten einen signifikanten Mehrwert generieren können.
+                </p>
+                <p className="text-gray-600 dark:text-gray-300">
+                  Der Report liefert Ihnen eine fundierte Entscheidungsgrundlage zur Priorisierung. Dies ohne Leerlauf und mit <span className="text-blue-600 font-bold dark:text-blue-400">messbarem Nutzen</span>.
+                </p>
+              </div>
+            ) : null}
           </div>
         </div>
       </section>
@@ -667,52 +709,86 @@ export default function LandingPage() {
       </section>
 
       {/* Final CTA Section */}
-      <section className="py-12">
-        <div className="mx-auto max-w-4xl px-6">
-          <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 md:p-10 shadow-lg">
-            <div className="text-center mb-8">
-              <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">{t('home.cta.title')}</h2>
-              <p className="text-xl text-gray-600 dark:text-gray-300 mb-6">{t('home.cta.subtitle')}</p>
-            </div>
-            <div className="max-w-2xl mx-auto">
-              <p className="text-lg text-gray-700 dark:text-gray-300 mb-6 font-medium">
-                {t('home.cta.text1')}
-              </p>
-              <ul className="space-y-4 mb-8">
-                <li className="flex items-start gap-3">
-                  <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="text-gray-600 dark:text-gray-300">{t('home.cta.listitem1')}</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="text-gray-600 dark:text-gray-300">{t('home.cta.listtem2')}</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="text-gray-600 dark:text-gray-300">{t('home.cta.listitem3')}</span>
-                </li>
-              </ul>
-              <div className="flex justify-center">
-                <a
-                  href="mailto:contact@maverickaigroup.ai"
-                  className="group inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-blue-600 dark:bg-blue-500 px-6 text-base font-medium text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-all shadow-md hover:shadow-lg"
-                >
-                  {t('home.cta.button')}
-                  <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                </a>
+      {locale === 'en' && (
+        <section className="py-12">
+          <div className="mx-auto max-w-4xl px-6">
+            <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 md:p-10 shadow-lg">
+              <div className="text-center mb-8">
+                <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">{t('home.cta.title')}</h2>
+                <p className="text-xl text-gray-600 dark:text-gray-300 mb-6">{t('home.cta.subtitle')}</p>
+              </div>
+              <div className="max-w-2xl mx-auto">
+                <p className="text-lg text-gray-700 dark:text-gray-300 mb-6 font-medium">
+                  {t('home.cta.text1')}
+                </p>
+                <ul className="space-y-4 mb-8">
+                  <li className="flex items-start gap-3">
+                    <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-gray-600 dark:text-gray-300">{t('home.cta.listitem1')}</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-gray-600 dark:text-gray-300">{t('home.cta.listtem2')}</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <svg className="w-6 h-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-gray-600 dark:text-gray-300">{t('home.cta.listitem3')}</span>
+                  </li>
+                </ul>
+                <div className="flex justify-center">
+                  <a
+                    href="mailto:contact@maverickaigroup.ai"
+                    className="group inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-blue-600 dark:bg-blue-500 px-6 text-base font-medium text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-all shadow-md hover:shadow-lg"
+                  >
+                    {t('home.cta.button')}
+                    <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </a>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
+
+      {locale === 'de' && (
+        <section className="py-12">
+          <div className="mx-auto max-w-4xl px-6">
+            <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 md:p-10 shadow-lg">
+              <div className="text-center mb-8">
+                <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">{t('home.cta.title')}</h2>
+                <p className="text-xl text-gray-600 dark:text-gray-300 mb-6">{t('home.cta.subtitle')}</p>
+              </div>
+              <div className="max-w-2xl mx-auto">
+                <p className="text-lg text-gray-700 dark:text-gray-300 mb-2">
+                Gestalten Wir Ihre KI-Roadmap gemeinsam und erfahren Sie in einem ersten und unverbindlichen Gespräch mehr über das KI Potenzial Ihres Unternehmens. 
+                </p>
+                <p className="text-lg text-gray-700 dark:text-gray-300 mb-2">
+                Der vorab generierte Bericht von Maverick Lens dient dabei als <span className="text-blue-600 font-bold dark:text-blue-400">fundierte Grundlage für das Gespräch </span>und liefert Ihnen bereits konkrete, datengestützte Anhaltspunkte, welche die <span className="text-blue-600 font-bold dark:text-blue-400">potenzielle Richtung</span> Ihrer strategischen KI-Initiativen klar aufzeigen.
+                </p>    
+                <div className="flex justify-center">
+                  <a
+                    href="mailto:contact@maverickaigroup.ai"
+                    className="group inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-blue-600 dark:bg-blue-500 px-6 text-base font-medium text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-all shadow-md hover:shadow-lg"
+                  >
+                    {t('home.cta.button')}
+                    <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Built by Maverick AI Group Section */}
       <section className="bg-gray-50 dark:bg-gray-900/50 py-12">
@@ -722,7 +798,7 @@ export default function LandingPage() {
               <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-6">
                 {t('builtBy.title')}
               </h2>
-              <p className="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+              <p className="text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
                 {t('builtBy.text1')}
               </p>
             </div>
@@ -734,8 +810,22 @@ export default function LandingPage() {
       <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 py-12">
         <div className="mx-auto max-w-6xl px-6">
           <div className="flex flex-col md:flex-row items-center justify-center gap-6">
-            <div className="text-sm text-gray-600 dark:text-gray-400">{t('footer.builtInSwitzerland')}</div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">{t('footer.copyright')}</div>
+            <a 
+              href="https://www.maverickaigroup.ai/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
+            >
+              {t('footer.builtInSwitzerland')}
+            </a>
+            <a 
+              href="https://www.maverickaigroup.ai/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
+            >
+              {t('footer.copyright')}
+            </a>
           </div>
         </div>
       </footer>
