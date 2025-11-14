@@ -232,6 +232,7 @@
     "peerComparison": {
       "title": "Peer Comparison",
       "subtitle": "Comparative analysis against {count} competitor{plural}",
+      "competitors": "Competitors",
       "execSummary": "Executive Summary",
       "noCompetitors": "No competitors found in the brief data."
     },

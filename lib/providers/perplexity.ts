@@ -302,6 +302,17 @@ For each use case, provide:
 9. Estimated Ongoing Cost: CHF amount per year
 10. Payback Months: Number of months to recover investment
 
+CRITICAL ROI REALISM REQUIREMENTS:
+- ROI percentages should be realistic based on industry benchmarks:
+  * Typical AI projects: 20-100% ROI in first year
+  * Exceptional projects: 100-200% ROI (rare, requires strong evidence)
+  * ROI = (Annual Benefit - Total Investment) / Total Investment * 100
+  * Total Investment = One-Time Cost + Ongoing Cost
+- Ensure payback_months aligns with ROI: if ROI is 50%, payback should be ~8-12 months
+- If ROI exceeds 200%, review and adjust - such high ROIs are extremely rare and require exceptional justification
+- Base estimates on actual industry data and case studies, not theoretical maximums
+- Consider implementation risks, adoption time, and realistic benefit realization timelines
+
 CRITICAL REQUIREMENTS FOR CEO-FACING BRIEF:
 - Use cases MUST be HIGHLY SPECIFIC to ${companyName}'s niche and actual business activities
 - If ${companyName} makes specific products (from business description), use cases must reference those exact products (e.g., if "precision medical devices", use case must be "AI quality control for ${companyName}'s precision medical device manufacturing" not generic "AI quality control")
@@ -324,7 +335,16 @@ Return your response as a valid JSON array of use case objects. Each object must
     messages: [
       {
         role: 'system',
-        content: `You are an AI strategy consultant writing for the CEO of ${companyName}. You MUST return your response as a valid JSON array of use case objects. Each object MUST have: title (string - specific to ${companyName}'s business), description (string - specific to ${companyName}'s operations), value_driver (one of: revenue, cost, risk, speed, quality), value_add (string with quantified benefits for ${companyName}), complexity (1-5), effort (1-5), est_annual_benefit (number in CHF), est_one_time_cost (number in CHF), est_ongoing_cost (number in CHF), payback_months (number). Do not include any markdown formatting, just the raw JSON array. Focus on ${companyName}-specific, high-ROI use cases tailored to their exact niche.`
+        content: `You are an AI strategy consultant writing for the CEO of ${companyName}. You MUST return your response as a valid JSON array of use case objects. Each object MUST have: title (string - specific to ${companyName}'s business), description (string - specific to ${companyName}'s operations), value_driver (one of: revenue, cost, risk, speed, quality), value_add (string with quantified benefits for ${companyName}), complexity (1-5), effort (1-5), est_annual_benefit (number in CHF), est_one_time_cost (number in CHF), est_ongoing_cost (number in CHF), payback_months (number). 
+
+CRITICAL: Ensure ROI is realistic based on industry benchmarks:
+- Typical AI projects: 20-100% ROI in first year
+- Exceptional projects: 100-200% ROI (rare, requires strong evidence)
+- ROI = (Annual Benefit - Total Investment) / Total Investment * 100 where Total Investment = One-Time Cost + Ongoing Cost
+- If calculated ROI exceeds 200%, adjust costs/benefits to bring it within realistic range
+- Base estimates on actual industry data and case studies from Perplexity research, not theoretical maximums
+
+Do not include any markdown formatting, just the raw JSON array. Focus on ${companyName}-specific, realistic ROI use cases tailored to their exact niche.`
       },
       {
         role: 'user',

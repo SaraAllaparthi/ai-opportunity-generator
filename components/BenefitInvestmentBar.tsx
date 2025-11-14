@@ -1,6 +1,7 @@
 "use client"
 import { Brief } from '@/lib/schema/brief'
 import { useTranslations } from 'next-intl'
+import { validateROI } from '@/lib/utils/roiValidation'
 
 function computeWeightedPayback(useCases: Brief['use_cases']) {
   const items = useCases.filter(u => typeof u.est_annual_benefit === 'number' && typeof u.payback_months === 'number')
@@ -27,10 +28,11 @@ export default function BenefitInvestmentBar({ data }: { data: Brief }) {
   const totalOngoing = data.use_cases.reduce((a,u)=>a+normalizeNum(u.est_ongoing_cost),0)
   const totalInvestment = totalOneTime + totalOngoing
   
-  // Calculate ROI percentage
-  const roiPercentage = totalInvestment > 0 
+  // Calculate ROI percentage and validate it
+  const rawRoiPercentage = totalInvestment > 0 
     ? ((totalBenefit - totalInvestment) / totalInvestment) * 100 
     : 0
+  const roiPercentage = validateROI(rawRoiPercentage)
   
   // Calculate weighted payback
   const weightedPayback = computeWeightedPayback(data.use_cases)

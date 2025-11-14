@@ -238,6 +238,7 @@
     "peerComparison": {
       "title": "Peer-Vergleich",
       "subtitle": "Vergleichende Analyse gegen {count} Konkurrent{plural}",
+      "competitors": "Konkurrenten",
       "execSummary": "Management-Zusammenfassung",
       "noCompetitors": "Keine Konkurrenten in den Berichtsdaten gefunden."
     },

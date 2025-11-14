@@ -1,4 +1,5 @@
 import { Brief } from '@/lib/schema/brief'
+import { validateROI } from './roiValidation'
 
 export function formatCurrencyCHF(n?: number): string {
   if (typeof n !== 'number' || isNaN(n)) return 'Estimate'
@@ -31,7 +32,8 @@ function computeROIPercentage(useCases: Brief['use_cases']) {
   const uplift = computeUplift(useCases)
   const investment = computeTotalInvestment(useCases)
   if (typeof uplift === 'number' && investment > 0) {
-    return Math.round(((uplift - investment) / investment) * 100)
+    const rawRoi = ((uplift - investment) / investment) * 100
+    return validateROI(rawRoi)
   }
   return undefined
 }

@@ -33,7 +33,9 @@ export default function CompetitorsCard({ data }: { data: Brief }) {
     console.log('  First competitor:', JSON.stringify(data.competitors[0], null, 2))
   }
   
-  const competitors = (data.competitors || []).filter(c => c && c.name && c.name.trim())
+  const competitors = (data.competitors || [])
+    .filter(c => c && c.name && c.name.trim())
+    .slice(0, 3) // Display top 3 competitors only
   
   // Debug: Log after filtering
   console.log('[CompetitorsCard] After filtering:')

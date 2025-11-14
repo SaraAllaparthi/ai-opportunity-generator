@@ -270,7 +270,7 @@ export default function CompetitorComparison({ data }: { data: Brief }) {
   const competitors = useMemo(() => {
     return (data?.competitors || [])
       .filter(c => c && c.name && c.name.trim())
-      .slice(0, 5)
+      .slice(0, 3) // Use top 3 competitors only
   }, [data?.competitors])
 
   const hasCompetitors = competitors.length > 0
@@ -420,12 +420,18 @@ export default function CompetitorComparison({ data }: { data: Brief }) {
     <div className="w-full">
       <div className="mb-2">
         <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">{t('report.peerComparison.title')}</h4>
-        <p className="text-sm text-gray-600 dark:text-gray-300">
+        <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
           {t('report.subtitle.peerComparison', { 
             count: competitors.length, 
             plural: competitors.length > 1 ? 's' : '' 
           })}
         </p>
+        {competitors.length > 0 && (
+          <div className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+            <span className="font-medium">{t('report.peerComparison.competitors')}: </span>
+            <span>{competitors.map(c => c.name).join(', ')}</span>
+          </div>
+        )}
       </div>
 
       <div className="w-full flex items-center justify-center overflow-visible">
