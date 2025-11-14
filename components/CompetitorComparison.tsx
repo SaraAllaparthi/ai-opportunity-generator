@@ -365,7 +365,8 @@ export default function CompetitorComparison({ data }: { data: Brief }) {
 
   const chartData = scoresData
     ? dimensions.map(({ label, key }) => {
-        const row: Record<string, any> = { dimension: label }
+        const cleanLabel = label.trim()  // important
+        const row: Record<string, any> = { dimension: cleanLabel }
         scoresData.scores.forEach(score => {
           const entityKey = score.entity === companyName ? companyKey : competitorKeyMap[score.entity]
           if (entityKey) {
@@ -377,6 +378,25 @@ export default function CompetitorComparison({ data }: { data: Brief }) {
     : []
 
   const colors = ['#16a34a', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4']
+
+  // Print radar chart data for debugging
+  useEffect(() => {
+    if (scoresData && chartData.length > 0) {
+      console.log('=== RadarChart Data ===')
+      console.log('Company Name:', companyName)
+      console.log('Competitors:', competitors.map(c => c.name))
+      console.log('Dimensions:', dimensions.map(d => ({ label: d.label, key: d.key })))
+      console.log('Dimensions in chartData:', chartData.map(d => d.dimension))
+      console.log('Unique dimensions:', Array.from(new Set(chartData.map(d => d.dimension))))
+      console.log('Count:', chartData.length, 'Unique count:', new Set(chartData.map(d => d.dimension)).size)
+      console.log('Scores Data:', JSON.stringify(scoresData, null, 2))
+      console.log('Chart Data (for RadarChart):', JSON.stringify(chartData, null, 2))
+      console.log('Company Key:', companyKey)
+      console.log('Competitor Key Map:', competitorKeyMap)
+      console.log('Colors:', colors)
+      console.log('=====================')
+    }
+  }, [scoresData, chartData, companyName, competitors, companyKey, competitorKeyMap])
 
   if (!hasCompetitors) {
     return (
@@ -461,32 +481,34 @@ export default function CompetitorComparison({ data }: { data: Brief }) {
                   )
                 }
                 
-                const containerWidth = 732
-                const containerHeight = 480
+                const containerWidth = 880
+                const containerHeight = 620
 
                 const companyScore = scoresData.scores.find(s => s.entity === companyName)
                 const peerScores = scoresData.scores.filter(s => s.entity !== companyName)
                 
                 return (
                   <div className="w-full flex items-center justify-center overflow-visible">
-                    <RadarChart 
-                      width={containerWidth} 
+                    <RadarChart
+                      width={containerWidth}
                       height={containerHeight}
-                      data={chartData} 
-                      margin={{ top: 60, right: 75, bottom: 60, left: 75 }}
+                      data={chartData}
+                      margin={{ top: 20, right: 60, bottom: 40, left: 60 }}
                       outerRadius="75%"
+                      startAngle={0}
+                      endAngle={360}
                     >
-                      <PolarGrid 
-                        stroke="#e5e7eb" 
-                        strokeOpacity={0.35} 
-                        strokeWidth={1} 
-                      />
-                      <PolarAngleAxis 
-                        dataKey="dimension" 
-                        tick={{ fontSize: 11, fill: 'currentColor', fontWeight: 500 }} 
+                      <PolarGrid stroke="#e5e7eb" strokeOpacity={0.35} strokeWidth={1} />
+
+                      <PolarAngleAxis
+                        dataKey="dimension"
+                        type="category"
+                        interval={0}
+                        tick={{ fontSize: 14, fill: 'currentColor', fontWeight: 500 }}
                         tickLine={false}
-                        tickFormatter={(value: string) => {
-                          // Shorten long labels to prevent overlap
+                        tickMargin={18}
+                        tickFormatter={(raw: string) => {
+                          const value = raw.trim()
                           const shortLabels: Record<string, string> = {
                             'Operational Efficiency': 'Ops Efficiency',
                             'Technology Maturity': 'Tech Maturity',
@@ -498,32 +520,41 @@ export default function CompetitorComparison({ data }: { data: Brief }) {
                           return shortLabels[value] || value
                         }}
                       />
-                      <PolarRadiusAxis 
-                        angle={90} 
-                        domain={[0, 5]} 
-                        tickCount={6} 
-                        tick={{ fontSize: 10, fill: '#6b7280' }} 
+
+                      <PolarRadiusAxis
+                        angle={90}
+                        domain={[0, 5]}
+                        tickCount={6}
+                        tick={{ fontSize: 10, fill: '#6b7280' }}
                         tickFormatter={(v: number) => String(Math.round(v))}
                         axisLine={false}
                       />
+
                       <Tooltip content={<CustomTooltip />} />
-                      <Legend 
+
+                      <Legend
                         wrapperStyle={{ paddingTop: '20px', paddingBottom: '10px' }}
                         iconType="line"
-                        formatter={(value: string) => <span style={{ fontSize: '12px', color: 'currentColor' }}>{value}</span>}
-                        verticalAlign="bottom"
+                        formatter={(value: string) => (
+                          <span style={{ fontSize: '16px', fontWeight: 600, color: 'currentColor' }}>{value}</span>
+                        )}
+                        verticalAlign="top"
+                        align="center"
                       />
+
                       {companyScore && (
-                      <Radar
-                        name={companyName || 'Company'}
-                        dataKey={companyKey}
-                        stroke="#2563eb"
-                        fill="#2563eb"
-                        fillOpacity={0.25}
-                        strokeWidth={2.5}
-                        dot={{ fill: '#2563eb', r: 4 }}
-                      />
+                        <Radar
+                          name={companyName || 'Company'}
+                          dataKey={companyKey}
+                          stroke="#2563eb"
+                          fill="#2563eb"
+                          fillOpacity={0.25}
+                          strokeWidth={3}
+                          dot={{ fill: '#2563eb', r: 6 }}
+                          isAnimationActive={false}
+                        />
                       )}
+
                       {peerScores.map((peer, i) => {
                         const peerKey = competitorKeyMap[peer.entity]
                         if (!peerKey) return null
@@ -535,9 +566,10 @@ export default function CompetitorComparison({ data }: { data: Brief }) {
                             stroke={colors[i % colors.length]}
                             fill={colors[i % colors.length]}
                             fillOpacity={0.12}
-                            strokeWidth={2}
+                            strokeWidth={2.5}
                             strokeDasharray="4 3"
-                            dot={{ fill: colors[i % colors.length], r: 3 }}
+                            dot={{ fill: colors[i % colors.length], r: 5 }}
+                            isAnimationActive={false}
                           />
                         )
                       })}
