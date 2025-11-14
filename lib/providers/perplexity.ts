@@ -2,18 +2,20 @@
 import { normalizeWebsite } from '@/lib/utils/url'
 
 /**
- * Search for company facts using Perplexity: CEO name, founded year, company size
- * Makes separate focused queries for CEO name and founded year using company name and website
+ * Search for company facts using Perplexity: CEO name, founded year, company size, market position
+ * Makes separate focused queries using company name, website, and country
  */
 export async function perplexitySearchCompanyFacts(
   companyName: string,
   website?: string,
   countryLocation?: string,
-  industry?: string
+  industry?: string,
+  locale?: 'en' | 'de'
 ): Promise<{
   ceo?: string
   founded?: string
   size?: string
+  market_position?: string
 }> {
   const apiKey = process.env.PERPLEXITY_API_KEY
   if (!apiKey) {
@@ -21,8 +23,14 @@ export async function perplexitySearchCompanyFacts(
     return {}
   }
 
-  const result: { ceo?: string; founded?: string; size?: string } = {}
+  const result: { ceo?: string; founded?: string; size?: string; market_position?: string } = {}
   const url = 'https://api.perplexity.ai/chat/completions'
+  
+  // Build context string with company name, website, and country
+  const contextParts: string[] = [companyName]
+  if (website) contextParts.push(`website: ${website}`)
+  if (countryLocation) contextParts.push(`located in ${countryLocation}`)
+  const context = contextParts.join(', ')
 
   // Helper function to make a Perplexity API call
   const makePerplexityCall = async (query: string, systemPrompt: string, timeoutMs: number = 20000): Promise<string> => {
@@ -104,10 +112,10 @@ export async function perplexitySearchCompanyFacts(
     return null
   }
 
-  console.log('[Perplexity] Searching company facts:', { companyName, website, countryLocation, industry })
+  console.log('[Perplexity] Searching company facts:', { companyName, website, countryLocation, industry, context })
 
   // 1. Separate focused query for CEO name
-  const ceoQuery = `What is the CEO name of ${companyName}${website ? ` (website: ${website})` : ''}? Search for the current CEO or Group CEO of this company. Return ONLY the full name (first name and last name) of the person who CURRENTLY holds the CEO or Group CEO position. IMPORTANT: Do NOT return former CEOs, ex-CEOs, previous CEOs, or retired CEOs. Only return the name of the person who is the CURRENT, ACTIVE CEO as of 2024-2025. If you cannot find the CEO name, return null.`
+  const ceoQuery = `What is the CEO name of ${context}? Search for the current CEO or Group CEO of this company. Return ONLY the full name (first name and last name) of the person who CURRENTLY holds the CEO or Group CEO position. IMPORTANT: Do NOT return former CEOs, ex-CEOs, previous CEOs, or retired CEOs. Only return the name of the person who is the CURRENT, ACTIVE CEO. If you cannot find the CEO name, return null.`
   
   const ceoSystemPrompt = 'You are a business intelligence researcher. Answer the question directly and return your response as a valid JSON object with this exact key: ceo (string or null). For CEO: Return ONLY the full name (first name + last name) if found. Do NOT return titles only. Do NOT infer or guess names. If information is not found, use null. Do not include any markdown formatting, just the raw JSON object.'
 
@@ -138,7 +146,7 @@ export async function perplexitySearchCompanyFacts(
   }
 
   // 2. Separate focused query for founded year
-  const foundedQuery = `What is the founded year of ${companyName}${website ? ` (website: ${website})` : ''}? Search for when this company was founded, established, incorporated, or registered. Return ONLY the year (YYYY format) if found. Look for "founded", "established", "incorporated", or "registered" followed by a year. If you cannot find the founded year, return null.`
+  const foundedQuery = `What is the founded year of ${context}? Search for when this company was founded, established, incorporated, or registered. Return ONLY the year (YYYY format) if found. Look for "founded", "established", "incorporated", or "registered" followed by a year. If you cannot find the founded year, return null.`
   
   const foundedSystemPrompt = 'You are a business intelligence researcher. Answer the question directly and return your response as a valid JSON object with this exact key: founded (string or null). For founded: Return ONLY the year in format "Founded in YYYY" if found (e.g., "Founded in 1995"). Do NOT estimate. If information is not found, use null. Do not include any markdown formatting, just the raw JSON object.'
 
@@ -162,8 +170,25 @@ export async function perplexitySearchCompanyFacts(
     }
   }
 
-  // 3. Company size query (keeping this as a separate call for consistency, but can be combined if needed)
-  const sizeQuery = `How many employees does ${companyName}${website ? ` (website: ${website})` : ''} have? Search for the total number of employees, workforce size, or headcount. Look for "employees", "employee count", "workforce", "headcount", "staff", "Mitarbeiter", or "people" followed by a number. Accept any size - small companies (10-100), medium (100-10,000), large (10,000-100,000), or very large (100,000+). Return ONLY in format "X employees" or "X-Y employees" or "X,XXX employees" if found. Include the full number with commas if it's a large number (e.g., "100,000 employees"). If you cannot find the employee count, return null.`
+  // 3. Company size query
+  const sizeQuery = `How many employees does ${context} have? Search for the total number of employees, workforce size, or headcount. Look for "employees", "employee count", "workforce", "headcount", "staff", "Mitarbeiter", or "people" followed by a number. Accept any size - small companies (10-100), medium (100-10,000), large (10,000-100,000), or very large (100,000+). Return ONLY in format "X employees" or "X-Y employees" or "X,XXX employees" if found. Include the full number with commas if it's a large number (e.g., "100,000 employees"). If you cannot find the employee count, return null.`
+  
+  // 4. Market position query - more specific and locale-aware
+  const marketPositionQuery = locale === 'de'
+    ? `Was ist die spezifische Marktposition von ${context}${industry ? ` in der ${industry} Branche` : ''}? Suchen Sie nach detaillierten, spezifischen Informationen zur Marktposition dieses Unternehmens. Suchen Sie nach:
+- Marktanteil in Prozent oder Rang (z.B. "Top 3", "Marktführer", "#1 Anbieter")
+- Spezifische Branchenposition (z.B. "führender Anbieter von X in Y Region", "Top 5 im europäischen Markt")
+- Marktführungsdetails (z.B. "Marktführer in der Schweiz", "dominanter Player in der DACH-Region")
+- Wettbewerbsposition mit spezifischen Details (z.B. "zweitgrößter Anbieter", "am schnellsten wachsendes Unternehmen im Sektor")
+
+Geben Sie NUR spezifische, faktische Informationen zurück, wenn diese explizit angegeben sind. Geben Sie KEINE generischen Begriffe wie "führender Anbieter" ohne Kontext zurück. Seien Sie spezifisch bezüglich Branche, Region oder Marktsegment. Verwenden Sie deutsche Begriffe wie "Marktführer", "führender Anbieter", "Top 3 in der Branche", "regionaler Marktführer", "Marktanteil". Wenn Sie keine spezifischen Marktpositionsinformationen finden können, geben Sie null zurück.`
+    : `What is the specific market position of ${context}${industry ? ` in the ${industry} industry` : ''}? Search for detailed, specific information about this company's market position. Look for:
+- Market share percentage or ranking (e.g., "top 3", "market leader", "#1 provider")
+- Specific industry position (e.g., "leading provider of X in Y region", "top 5 in European market")
+- Market leadership details (e.g., "market leader in Switzerland", "dominant player in DACH region")
+- Competitive standing with specific details (e.g., "second largest provider", "fastest growing company in sector")
+
+Return ONLY specific, factual information if explicitly stated. Do NOT return generic terms like "leading provider" without context. Be specific about industry, region, or market segment. If you cannot find specific market position information, return null.`
   
   const sizeSystemPrompt = 'You are a business intelligence researcher. Answer the question directly and return your response as a valid JSON object with this exact key: size (string or null). For size: Return the explicit employee count if found (e.g., "50 employees", "100-200 employees", "10,000 employees", "100,000+ employees"). Accept any size. Include commas for large numbers. Do NOT estimate from revenue. If information is not found, use null. Do not include any markdown formatting, just the raw JSON object.'
 
@@ -182,6 +207,35 @@ export async function perplexitySearchCompanyFacts(
         console.log('[Perplexity] ✅ Found size:', result.size)
       } else {
         console.log('[Perplexity] Rejected size (no employee count pattern):', sizeFacts.size)
+      }
+    }
+  }
+
+  // 4. Market position query
+  const marketPositionSystemPrompt = locale === 'de'
+    ? 'Sie sind ein Business-Intelligence-Forscher. Beantworten Sie die Frage direkt und geben Sie Ihre Antwort als gültiges JSON-Objekt mit diesem exakten Schlüssel zurück: market_position (string oder null). Für market_position: Geben Sie NUR spezifische, faktische Informationen zur Marktposition zurück, wenn diese explizit angegeben ist. Verwenden Sie deutsche Begriffe. Seien Sie spezifisch - vermeiden Sie generische Begriffe wie "führender Anbieter" ohne Kontext. Geben Sie Details zu Branche, Region oder Marktsegment an. Schließen Sie NICHT und schätzen Sie NICHT. Wenn keine Informationen gefunden werden, verwenden Sie null. Verwenden Sie kein Markdown-Format, nur das rohe JSON-Objekt.'
+    : 'You are a business intelligence researcher. Answer the question directly and return your response as a valid JSON object with this exact key: market_position (string or null). For market_position: Return ONLY specific, factual information about market position if explicitly stated. Be specific - avoid generic terms like "leading provider" without context. Include details about industry, region, or market segment. Do NOT infer or estimate. If information is not found, use null. Do not include any markdown formatting, just the raw JSON object.'
+
+  const marketPositionResponse = await makePerplexityCall(marketPositionQuery, marketPositionSystemPrompt)
+  console.log('[Perplexity] Market position query response:', {
+    contentLength: marketPositionResponse.length,
+    contentPreview: marketPositionResponse.substring(0, 300)
+  })
+
+  if (marketPositionResponse) {
+    const marketPositionFacts = extractJSON(marketPositionResponse)
+    if (marketPositionFacts && marketPositionFacts.market_position && typeof marketPositionFacts.market_position === 'string' && marketPositionFacts.market_position.trim() && marketPositionFacts.market_position.toLowerCase() !== 'null') {
+      const marketPositionStr = marketPositionFacts.market_position.trim()
+      // Validate it's not a generic placeholder or too generic
+      const lowerStr = marketPositionStr.toLowerCase()
+      const isGeneric = lowerStr.match(/^(unknown|n\/a|tbd|not available|not found|none|placeholder|leading provider|market leader|führender anbieter|marktführer)$/i)
+      const isTooGeneric = lowerStr.match(/^(leading|provider|leader|führend|anbieter)$/i) && marketPositionStr.split(/\s+/).length <= 2
+      
+      if (!isGeneric && !isTooGeneric && marketPositionStr.length > 0 && marketPositionStr.length <= 200) {
+        result.market_position = marketPositionStr
+        console.log('[Perplexity] ✅ Found market position:', result.market_position)
+      } else {
+        console.log('[Perplexity] Rejected market position (invalid/too generic):', marketPositionStr)
       }
     }
   }

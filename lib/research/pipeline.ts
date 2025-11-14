@@ -127,8 +127,8 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
     )
     
     // Run Perplexity company facts search, website crawler, and AI use cases research in parallel with OpenAI searches
-    // Pass company name, website, headquarters, and industry for comprehensive CEO search
-    const perplexityFactsPromise = perplexitySearchCompanyFacts(input.name, input.website, input.headquartersHint, input.industryHint)
+    // Pass company name, website, headquarters, industry, and locale for comprehensive search
+    const perplexityFactsPromise = perplexitySearchCompanyFacts(input.name, input.website, input.headquartersHint, input.industryHint, input.locale)
       .catch(err => {
         console.error('[Pipeline] Perplexity company facts search failed:', err)
         return {} // Return empty on error - no fallbacks
@@ -510,6 +510,7 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
       }
       
       // Founded: Must contain explicit year pattern, otherwise remove
+      // Also reject future years and current year (likely placeholders like 2025)
       if (json.company.founded) {
         const foundedStr = String(json.company.founded)
         // Check if it contains a 4-digit year (1900-2099)
@@ -518,16 +519,32 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
           console.log(`[Pipeline] Removing invalid founded field: ${json.company.founded} (no explicit year found)`)
           json.company.founded = undefined
         } else {
-          // Ensure format is "Founded in YYYY"
-          const year = yearMatch[0]
-          json.company.founded = `Founded in ${year}`
+          const year = parseInt(yearMatch[0])
+          const currentYear = new Date().getFullYear()
+          // Reject future years and current year (likely incorrect placeholder)
+          if (year > currentYear || year === currentYear) {
+            console.log(`[Pipeline] Removing invalid founded field: ${json.company.founded} (future/current year - likely placeholder)`)
+            json.company.founded = undefined
+          } else if (year < 1800) {
+            console.log(`[Pipeline] Removing invalid founded field: ${json.company.founded} (year too old)`)
+            json.company.founded = undefined
+          } else {
+            // Ensure format is "Founded in YYYY"
+            json.company.founded = `Founded in ${yearMatch[0]}`
+          }
         }
       }
       
       // CEO: Only remove if clearly invalid (generic terms, placeholder names, former/ex-CEOs, not a name)
       // Always preserve CEO information if it looks like a real name and is current CEO
       if (json.company.ceo) {
-        const ceoStr = String(json.company.ceo).trim()
+        let ceoStr = String(json.company.ceo).trim()
+        // Clean up CEO name - remove ", CEO" or "CEO" suffix/prefix before validation
+        ceoStr = ceoStr.replace(/[,\s]+(Group\s+)?CEO.*$/i, '')
+        ceoStr = ceoStr.replace(/^(Group\s+)?CEO[:\s,]+/i, '')
+        ceoStr = ceoStr.replace(/[,\s]+Chief\s+Executive\s+Officer.*$/i, '')
+        ceoStr = ceoStr.trim()
+        
         const lowerStr = ceoStr.toLowerCase()
         
         // Reject generic terms
@@ -535,7 +552,7 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
           console.log(`[Pipeline] Removing invalid CEO field: ${json.company.ceo} (generic term, not a name)`)
           json.company.ceo = undefined
         }
-        // Reject common placeholder/test names
+        // Reject common placeholder/test names (including "John Doe, CEO" format)
         else if (lowerStr.match(/^(john doe|jane doe|test user|test name|example name|sample name|placeholder|demo|test|user|name|ceo name|company ceo|the ceo|our ceo)$/i)) {
           console.log(`[Pipeline] Removing invalid CEO field: ${json.company.ceo} (placeholder/test name)`)
           json.company.ceo = undefined
@@ -552,8 +569,9 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
         }
         // Accept if it looks like a real name (has at least 2 words, reasonable length)
         else if (ceoStr.length > 0 && ceoStr.length <= 150 && ceoStr.split(/\s+/).length >= 2) {
-          // Keep the CEO name - preserve as is (allow various formats)
-          console.log(`[Pipeline] Preserving CEO name: ${ceoStr}`)
+          // Keep the cleaned CEO name (without ", CEO" suffix)
+          json.company.ceo = ceoStr
+          console.log(`[Pipeline] Preserving CEO name (cleaned): ${ceoStr}`)
         } else {
           // Single word or suspicious - reject
           console.log(`[Pipeline] Removing invalid CEO field: ${json.company.ceo} (doesn't look like a real name)`)
@@ -672,65 +690,74 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
     }
     
     // Second, validate and compare Perplexity results with website data
-    // If we have CEO from website, compare with Perplexity to ensure accuracy
+    // CRITICAL: Perplexity results should OVERRIDE LLM-generated data if they exist
     if (perplexityFacts && typeof perplexityFacts === 'object') {
-      // CEO: Compare website CEO with Perplexity CEO for validation
-      if (parsed.company.ceo) {
-        // We have CEO from website - validate it matches Perplexity if Perplexity found one
-        if ('ceo' in perplexityFacts && perplexityFacts.ceo && typeof perplexityFacts.ceo === 'string') {
-          const websiteCeo = parsed.company.ceo.trim().toLowerCase()
-          const perplexityCeo = perplexityFacts.ceo.trim().toLowerCase()
-          
-          // Simple comparison: check if names are similar (same last name or significant overlap)
-          const websiteWords = websiteCeo.split(/\s+/)
-          const perplexityWords = perplexityCeo.split(/\s+/)
-          const lastNamesMatch = websiteWords[websiteWords.length - 1] === perplexityWords[perplexityWords.length - 1]
-          const hasSignificantOverlap = websiteWords.some(w => perplexityWords.includes(w)) && 
-                                       perplexityWords.some(w => websiteWords.includes(w))
-          
-          if (lastNamesMatch || hasSignificantOverlap) {
-            console.log(`[Pipeline] ✅ Website CEO (${parsed.company.ceo}) matches Perplexity CEO (${perplexityFacts.ceo}) - validated`)
-          } else {
-            console.log(`[Pipeline] ⚠️ Website CEO (${parsed.company.ceo}) differs from Perplexity CEO (${perplexityFacts.ceo}) - using website version`)
-          }
-        }
-      } else if ('ceo' in perplexityFacts && perplexityFacts.ceo && typeof perplexityFacts.ceo === 'string' && perplexityFacts.ceo.trim().length > 0) {
-        // No CEO from website - use Perplexity as fallback, but validate carefully
-        const ceoName = perplexityFacts.ceo.trim()
+      // CEO: Perplexity results take priority over LLM-generated data
+      if ('ceo' in perplexityFacts && perplexityFacts.ceo && typeof perplexityFacts.ceo === 'string' && perplexityFacts.ceo.trim().length > 0) {
+        let ceoName = perplexityFacts.ceo.trim()
+        // Clean up CEO name - remove ", CEO" or "CEO" suffix/prefix
+        ceoName = ceoName.replace(/[,\s]+(Group\s+)?CEO.*$/i, '')
+        ceoName = ceoName.replace(/^(Group\s+)?CEO[:\s,]+/i, '')
+        ceoName = ceoName.replace(/[,\s]+Chief\s+Executive\s+Officer.*$/i, '')
+        ceoName = ceoName.trim()
+        
         const lowerName = ceoName.toLowerCase()
 
         // Reject generic terms, placeholder names, and titles without names
         if (lowerName.match(/^(ceo|founder|chief|executive|director|manager|unknown|n\/a|tbd|not available|not found)$/i) ||
             lowerName.match(/^(john doe|jane doe|test user|test name|example name|sample name|placeholder|demo|test|user|name|ceo name|company ceo|the ceo|our ceo)$/i) ||
             lowerName.match(/^(ceo|chief executive|chief executive officer|group ceo|managing director)$/i)) {
-          console.log(`[Pipeline] Perplexity CEO result rejected (invalid): ${ceoName}`)
-        } else if (ceoName.length <= 150 && ceoName.split(/\s+/).length >= 2 && /^[A-Z][a-z]+(\s+[A-Z][a-z]+)+/.test(ceoName)) {
-          // Valid CEO name - use Perplexity result as fallback
+          console.log(`[Pipeline] Perplexity CEO result rejected (invalid): ${perplexityFacts.ceo}`)
+        } else if (ceoName.length > 0 && ceoName.length <= 150 && ceoName.split(/\s+/).length >= 2) {
+          // Valid CEO name - use Perplexity result (OVERRIDE any LLM-generated data)
           parsed.company.ceo = ceoName
-          console.log(`[Pipeline] ⚠️ Using CEO from Perplexity (fallback, website didn't have it): ${ceoName}`)
+          console.log(`[Pipeline] ✅ Using CEO from Perplexity (overriding any LLM data): ${ceoName}`)
         } else {
           console.log(`[Pipeline] Perplexity CEO result rejected (doesn't look like a real name): ${ceoName}`)
         }
-      } else if (!parsed.company.ceo) {
-        // No CEO from website or Perplexity - validate LLM-generated one if it exists
-        if (parsed.company.ceo) {
-          const llmCeoLower = String(parsed.company.ceo).toLowerCase().trim()
-          // Check if LLM CEO is a placeholder name
-          if (llmCeoLower.match(/^(john doe|jane doe|test user|test name|example name|sample name|placeholder|demo|test|user|name|ceo name|company ceo|the ceo|our ceo)$/i)) {
-            console.log(`[Pipeline] LLM CEO is invalid placeholder, removing: ${parsed.company.ceo}`)
-            parsed.company.ceo = undefined
-          } else {
-            console.log(`[Pipeline] Using LLM-generated CEO (last resort): ${parsed.company.ceo}`)
-          }
+      } else if (parsed.company.ceo) {
+        // We have CEO from LLM/website but Perplexity didn't find one - validate it's not a placeholder
+        const ceoName = String(parsed.company.ceo).trim()
+        // Clean up CEO name - remove ", CEO" or "CEO" suffix/prefix
+        let cleanedCeo = ceoName.replace(/[,\s]+(Group\s+)?CEO.*$/i, '')
+        cleanedCeo = cleanedCeo.replace(/^(Group\s+)?CEO[:\s,]+/i, '')
+        cleanedCeo = cleanedCeo.trim()
+        const lowerName = cleanedCeo.toLowerCase()
+        
+        // Check if it's a placeholder name (including "John Doe, CEO" format)
+        if (lowerName.match(/^(john doe|jane doe|test user|test name|example name|sample name|placeholder|demo|test|user|name|ceo name|company ceo|the ceo|our ceo)$/i)) {
+          console.log(`[Pipeline] LLM/Website CEO is invalid placeholder, removing: ${parsed.company.ceo}`)
+          parsed.company.ceo = undefined
         }
       }
-      // Founded: Only use Perplexity if we don't already have founded year from crawled website
-      if (!parsed.company.founded && 'founded' in perplexityFacts && perplexityFacts.founded && typeof perplexityFacts.founded === 'string') {
+      
+      // Founded: Perplexity results take priority over LLM-generated data
+      if ('founded' in perplexityFacts && perplexityFacts.founded && typeof perplexityFacts.founded === 'string') {
         const foundedStr = perplexityFacts.founded.trim()
         const yearMatch = foundedStr.match(/\b(19|20)\d{2}\b/)
         if (yearMatch) {
-          parsed.company.founded = `Founded in ${yearMatch[0]}`
-          console.log(`[Pipeline] ⚠️ Using founded year from Perplexity (fallback, website didn't have it): ${yearMatch[0]}`)
+          const year = parseInt(yearMatch[0])
+          const currentYear = new Date().getFullYear()
+          // Reject future years and current year (likely incorrect)
+          if (year <= currentYear && year >= 1800) {
+            parsed.company.founded = `Founded in ${yearMatch[0]}`
+            console.log(`[Pipeline] ✅ Using founded year from Perplexity (overriding any LLM data): ${yearMatch[0]}`)
+          } else {
+            console.log(`[Pipeline] Perplexity founded year rejected (invalid year): ${yearMatch[0]}`)
+          }
+        }
+      } else if (parsed.company.founded) {
+        // We have founded from LLM/website but Perplexity didn't find one - validate it's not 2025
+        const foundedStr = String(parsed.company.founded).trim()
+        const yearMatch = foundedStr.match(/\b(19|20)\d{2}\b/)
+        if (yearMatch) {
+          const year = parseInt(yearMatch[0])
+          const currentYear = new Date().getFullYear()
+          // Reject future years and current year (likely incorrect placeholder)
+          if (year > currentYear || year === currentYear) {
+            console.log(`[Pipeline] LLM/Website founded year is invalid (future/current year), removing: ${parsed.company.founded}`)
+            parsed.company.founded = undefined
+          }
         }
       }
       // Size: Only use Perplexity if we don't already have size from crawled website
@@ -739,6 +766,33 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
         if (sizeStr.match(/\d+[\s-]*(?:employees?|mitarbeiter|staff|workforce|headcount|people)/i)) {
           parsed.company.size = perplexityFacts.size.trim()
           console.log(`[Pipeline] ⚠️ Using size from Perplexity (fallback, website didn't have it): ${perplexityFacts.size}`)
+        }
+      }
+      
+      // Market position: Perplexity results take priority over LLM-generated data
+      if ('market_position' in perplexityFacts && perplexityFacts.market_position && typeof perplexityFacts.market_position === 'string' && perplexityFacts.market_position.trim().length > 0) {
+        const marketPositionStr = perplexityFacts.market_position.trim()
+        const lowerStr = marketPositionStr.toLowerCase()
+        // Reject generic placeholders and too generic terms
+        const isGeneric = lowerStr.match(/^(unknown|n\/a|tbd|not available|not found|none|placeholder|leading provider|market leader|führender anbieter|marktführer)$/i)
+        const isTooGeneric = lowerStr.match(/^(leading|provider|leader|führend|anbieter)$/i) && marketPositionStr.split(/\s+/).length <= 2
+        
+        if (!isGeneric && !isTooGeneric && marketPositionStr.length > 0 && marketPositionStr.length <= 200) {
+          parsed.company.market_position = marketPositionStr
+          console.log(`[Pipeline] ✅ Using market position from Perplexity (overriding any LLM data): ${marketPositionStr}`)
+        } else {
+          console.log(`[Pipeline] Perplexity market position rejected (invalid/too generic): ${marketPositionStr}`)
+        }
+      } else if (parsed.company.market_position) {
+        // We have market position from LLM/website but Perplexity didn't find one - validate it's not a placeholder or too generic
+        const marketPositionStr = String(parsed.company.market_position).trim()
+        const lowerStr = marketPositionStr.toLowerCase()
+        const isGeneric = lowerStr.match(/^(unknown|n\/a|tbd|not available|not found|none|placeholder|leading provider|market leader|führender anbieter|marktführer)$/i)
+        const isTooGeneric = lowerStr.match(/^(leading|provider|leader|führend|anbieter)$/i) && marketPositionStr.split(/\s+/).length <= 2
+        
+        if (isGeneric || isTooGeneric) {
+          console.log(`[Pipeline] LLM/Website market position is invalid/too generic, removing: ${parsed.company.market_position}`)
+          parsed.company.market_position = undefined
         }
       }
     }
@@ -757,10 +811,18 @@ export async function runResearchPipeline(input: PipelineInput): Promise<{ brief
         console.log(`[Pipeline] Overrode industry with crawled website data: ${crawledData.industry}`)
       }
       
-      // Market position: Use crawled data if available
+      // Market position: Use crawled data if available, but translate to German if locale is 'de'
       if ('marketPosition' in crawledData && crawledData.marketPosition && typeof crawledData.marketPosition === 'string' && crawledData.marketPosition.trim()) {
-        parsed.company.market_position = crawledData.marketPosition.trim()
-        console.log(`[Pipeline] Overrode market_position with crawled website data: ${crawledData.marketPosition}`)
+        let marketPosition = crawledData.marketPosition.trim()
+        // If locale is German and market position is in English, we should prefer Perplexity result (which will be in German)
+        // But if Perplexity didn't find one, use crawled data as-is (it might already be in German from the website)
+        // Only override if we don't already have a Perplexity result
+        if (!parsed.company.market_position) {
+          parsed.company.market_position = marketPosition
+          console.log(`[Pipeline] Overrode market_position with crawled website data: ${marketPosition}`)
+        } else {
+          console.log(`[Pipeline] Keeping Perplexity market_position (in German) over crawled data: ${parsed.company.market_position}`)
+        }
       }
       
       // Latest news: Use crawled data if available

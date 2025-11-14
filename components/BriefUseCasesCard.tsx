@@ -35,15 +35,23 @@ export default function UseCasesCard({ data }: { data: Brief }) {
       </div>
       <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">{t('report.useCases.prioritized')}</p>
       <ol className="space-y-3 text-sm">
-        {sorted.map((u, i) => {
-          // Calculate ROI using consistent formula: (Benefit - Investment) / Investment * 100
-          const investment = (u.est_one_time_cost || 0) + (u.est_ongoing_cost || 0)
-          const roiPct = (typeof u.est_annual_benefit === 'number' && investment > 0)
-            ? Math.round(((u.est_annual_benefit - investment) / investment) * 100)
-            : undefined
-          const roiColor = 'bg-green-600'
+        {(() => {
+          // Calculate maxPayback once outside the map for consistency
           const maxPayback = Math.max(...sorted.map(s => s.payback_months || 0), 1)
-          const progress = Math.min(100, Math.round(((u.payback_months || maxPayback) / maxPayback) * 100))
+          return sorted.map((u, i) => {
+            // Calculate ROI using consistent formula: (Benefit - Investment) / Investment * 100
+            const investment = (u.est_one_time_cost || 0) + (u.est_ongoing_cost || 0)
+            const roiPct = (typeof u.est_annual_benefit === 'number' && investment > 0)
+              ? Math.round(((u.est_annual_benefit - investment) / investment) * 100)
+              : undefined
+            const roiColor = 'bg-green-600'
+            // Calculate progress: shorter payback = lower progress value
+            // If payback_months is missing, treat it as maxPayback (worst case)
+            const currentPayback = u.payback_months || maxPayback
+            const progress = Math.min(100, Math.round((currentPayback / maxPayback) * 100))
+            // Calculate bar width: inverse of progress (shorter payback = more blue)
+            // Ensure minimum 2% width so the bar is always visible
+            const barWidth = Math.max(2, 100 - progress)
           return (
           <motion.li 
             key={i} 
@@ -66,7 +74,7 @@ export default function UseCasesCard({ data }: { data: Brief }) {
             </div>
             <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{u.description}</p>
             <div className="mt-3 h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
-              <div className="h-2 rounded-full bg-blue-600 dark:bg-blue-500" style={{ width: `${100 - progress}%` }}></div>
+              <div className="h-2 rounded-full bg-blue-600 dark:bg-blue-500" style={{ width: `${barWidth}%` }}></div>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3 text-sm text-gray-600 dark:text-gray-400">
               <div>{t('report.useCases.annualBenefit')}: <span className="text-blue-600 dark:text-blue-400 font-medium">{u.est_annual_benefit?.toLocaleString() ?? '—'}</span></div>
@@ -74,7 +82,9 @@ export default function UseCasesCard({ data }: { data: Brief }) {
               <div>{t('report.useCases.ongoingCost')}: <span className="text-gray-700 dark:text-gray-300">{u.est_ongoing_cost?.toLocaleString() ?? '—'}</span></div>
             </div>
           </motion.li>
-        )})}
+          )
+        })
+        })()}
       </ol>
       <div className="mt-4">
         <h4 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">{t('report.roi.summary')}</h4>
@@ -88,7 +98,7 @@ export default function UseCasesCard({ data }: { data: Brief }) {
                 <th className="p-3">{t('report.roi.ongoing')}</th>
                 <th className="p-3">{t('report.roi.payback')}</th>
                 <th className="p-3">{t('report.roi.roi')}</th>
-                <th className="p-3">{t('report.roi.confidence')}</th>
+                <th className="p-3 whitespace-nowrap">{t('report.roi.confidence')}</th>
               </tr>
             </thead>
             <tbody>
@@ -109,7 +119,7 @@ export default function UseCasesCard({ data }: { data: Brief }) {
                     <td className="p-3 text-gray-600 dark:text-gray-400">{u.payback_months ? t('report.useCases.paybackMonths', { months: u.payback_months }) : t('report.roi.estimate')}</td>
                     <td className="p-3 text-blue-600 dark:text-blue-400 font-medium">{roi}</td>
                     <td className="p-3">
-                      <span className={`rounded-full border px-2 py-0.5 text-sm font-medium ${
+                      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium whitespace-nowrap ${
                         conf === 'Medium' || conf === 'High' 
                           ? 'bg-green-500/20 text-green-700 dark:text-green-400 border-green-500 dark:border-green-500' 
                           : getConfidenceColor(conf)
