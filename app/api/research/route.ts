@@ -3,6 +3,7 @@ import { track } from '@/lib/utils/analytics'
 import { runResearchPipeline } from '@/lib/research/pipeline'
 import { createBrief } from '@/lib/db/briefs'
 import { NextRequest } from 'next/server'
+import { requireActiveUser } from '@/lib/auth'
 
 // Configure for longer execution time (Next.js 16+ supports maxDuration export)
 export const runtime = 'nodejs' // Use Node.js runtime (not Edge)
@@ -25,6 +26,10 @@ export async function POST(req: NextRequest) {
   const startTime = Date.now()
   
   try {
+    // Check authentication - only active users can generate reports
+    const user = await requireActiveUser()
+    console.log('[API] Authenticated user:', { email: user.email, role: user.role })
+    
     // Log deployment info for debugging
     console.log('[API] Request received:', {
       isVercel: process.env.VERCEL === '1',
@@ -137,6 +142,20 @@ export async function POST(req: NextRequest) {
   } catch (err: any) {
     const message = err?.message || String(err)
     const stack = err?.stack
+    
+    // Handle authentication errors separately
+    if (message === 'Unauthorized' || message === 'Account disabled') {
+      console.error('[API] Authentication error:', message)
+      return new Response(JSON.stringify({ 
+        error: message === 'Account disabled' 
+          ? 'Your account has been disabled. Please contact an administrator.' 
+          : 'You must be logged in to generate reports. Please sign in first.'
+      }), { 
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+    
     console.error('[API] Error generating brief:', {
       message,
       stack,

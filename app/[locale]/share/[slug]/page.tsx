@@ -15,6 +15,7 @@ import StickyHeader from '@/components/StickyHeader'
 import SectionWrapper from '@/components/SectionWrapper'
 import { getTranslations } from 'next-intl/server'
 import { generateExecutiveSummary, computeUplift, computeWeightedPayback, formatCurrencyCHF } from '@/lib/utils/executiveSummary'
+import { getCurrentAppUser } from '@/lib/auth'
 
 // Briefs are static once created - cache the page indefinitely
 export const revalidate = false // Never revalidate since briefs are immutable once created
@@ -23,6 +24,7 @@ export default async function SharePage({ params }: { params: Promise<{ slug: st
   // In Next.js 16, params is a Promise and must be awaited
   const { slug, locale } = await params
   const t = await getTranslations({ locale })
+  const user = await getCurrentAppUser() // Fetch user for header
   
   if (!slug) {
     console.error('[SharePage] No slug provided in params')
@@ -30,7 +32,7 @@ export default async function SharePage({ params }: { params: Promise<{ slug: st
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none"></div>
         <div className="relative z-10">
-          <StickyHeader showLocaleSwitcher={false} />
+          <StickyHeader showLocaleSwitcher={false} user={user} />
           <main className="mx-auto max-w-6xl px-6 py-24">
             <div className="text-center">
               <div className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Maverick Lens</div>
@@ -75,7 +77,7 @@ export default async function SharePage({ params }: { params: Promise<{ slug: st
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none"></div>
         <div className="relative z-10">
-          <StickyHeader showLocaleSwitcher={false} />
+          <StickyHeader showLocaleSwitcher={false} user={user} />
           <main className="mx-auto max-w-6xl px-6 py-24">
             <div className="text-center">
               <div className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Maverick Lens</div>
@@ -119,7 +121,7 @@ export default async function SharePage({ params }: { params: Promise<{ slug: st
       {/* Subtle background pattern */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none"></div>
       <div className="relative z-10">
-      <StickyHeader showLocaleSwitcher={false} />
+      <StickyHeader showLocaleSwitcher={false} user={user} />
       <main className="mx-auto max-w-6xl px-6">
         {/* Hero / Executive Summary */}
         <SectionWrapper id="exec-summary" className="pb-4">

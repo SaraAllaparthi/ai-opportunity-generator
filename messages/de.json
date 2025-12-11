@@ -323,6 +323,38 @@
     "copyright": "© 2025 Maverick Lens | Erstellt von Maverick AI Group | Alle Rechte vorbehalten.",
     "builtBy": "Erstellt von Maverick AI Group"
   },
+  "login": {
+    "title": "Anmelden",
+    "subtitle": "Melden Sie sich an, um KI-Chancenberichte zu generieren",
+    "alreadyLoggedIn": "Bereits angemeldet",
+    "loggedInAs": "Sie sind angemeldet als {email}",
+    "goToHome": "Zur Startseite",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "passwordHint": "Mindestens 6 Zeichen",
+    "submit": "Registrieren / Anmelden",
+    "loggingIn": "Anmeldung läuft...",
+    "loggedInRedirecting": "Angemeldet! Weiterleitung...",
+    "accountCreated": "Konto erstellt! Weiterleitung...",
+    "checkEmail": "Bitte überprüfen Sie Ihre E-Mail, um Ihr Konto zu bestätigen.",
+    "error": "Fehler: {message}"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "subtitle": "Verwalten Sie Ihre Kontoeinstellungen",
+    "changePasswordTitle": "Passwort ändern",
+    "currentPassword": "Aktuelles Passwort",
+    "newPassword": "Neues Passwort",
+    "confirmPassword": "Neues Passwort bestätigen",
+    "changePassword": "Passwort ändern",
+    "updating": "Wird aktualisiert...",
+    "passwordChanged": "Passwort erfolgreich geändert!",
+    "passwordMismatch": "Neue Passwörter stimmen nicht überein",
+    "passwordTooShort": "Passwort muss mindestens 6 Zeichen lang sein",
+    "incorrectPassword": "Aktuelles Passwort ist falsch",
+    "notLoggedIn": "Sie müssen angemeldet sein, um Ihr Passwort zu ändern",
+    "error": "Fehler: {message}"
+  },
   "builtBy": {
     "title": "Erstellt von Maverick AI Group",
     "text1": "Wir haben Maverick Lens entwickelt, weil Führungskräfte kein sechsmonatiges Beratungsprojekt benötigen sollten, nur um zu wissen, wo sie mit KI anfangen sollen.",

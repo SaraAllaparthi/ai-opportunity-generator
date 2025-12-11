@@ -317,6 +317,38 @@
     "copyright": "© 2025 Maverick Lens | Built by Maverick AI Group | All rights reserved.",
     "builtBy": "Built by Maverick AI Group"
   },
+  "login": {
+    "title": "Sign In",
+    "subtitle": "Sign in to generate AI opportunity reports",
+    "alreadyLoggedIn": "Already Logged In",
+    "loggedInAs": "You are logged in as {email}",
+    "goToHome": "Go to Home",
+    "email": "Email",
+    "password": "Password",
+    "passwordHint": "Minimum 6 characters",
+    "submit": "Sign Up / Sign In",
+    "loggingIn": "Logging in...",
+    "loggedInRedirecting": "Logged in! Redirecting...",
+    "accountCreated": "Account created! Redirecting...",
+    "checkEmail": "Please check your email to confirm your account.",
+    "error": "Error: {message}"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your account settings",
+    "changePasswordTitle": "Change Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm New Password",
+    "changePassword": "Change Password",
+    "updating": "Updating...",
+    "passwordChanged": "Password changed successfully!",
+    "passwordMismatch": "New passwords do not match",
+    "passwordTooShort": "Password must be at least 6 characters",
+    "incorrectPassword": "Current password is incorrect",
+    "notLoggedIn": "You must be logged in to change your password",
+    "error": "Error: {message}"
+  },
   "builtBy": {
     "title": "Built by Maverick AI Group",
     "text1": "At Maverick AI Group, we help forward-thinking businesses turn AI into measurable growth with strategy, technology, and execution designed for leaders who value precision, clarity, and results."

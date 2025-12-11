@@ -605,19 +605,26 @@ Find at least ${stage.minResults} competitors if possible. Focus on finding real
       messages: [
         {
           role: 'system',
-          content: `You are a business intelligence researcher specializing in finding competitors for companies. Use your search capabilities to find direct competitors based on the company information provided. ${locale === 'de' ? 'WICHTIG: Alle Texte müssen auf Deutsch sein. Die positioning-Beschreibungen müssen auf Deutsch verfasst werden.' : ''} Return ONLY a valid JSON array of competitor objects. Each object: name (string, required), website (string, required - can be domain.com or full URL), hq (string or null), size_band (string or null${locale === 'de' ? ' - use "X Mitarbeiter" or "X-Y Mitarbeiter" format' : ''}), positioning (string or null, max 140 chars${locale === 'de' ? ' - MUST be in German' : ''}), source_url (string or null). No markdown, just JSON array. Search thoroughly using all available sources. Return at least 3-5 competitors if possible.`
+          content: `You are a business intelligence researcher specializing in finding competitors for companies. Use your search capabilities to find direct competitors based on the company information provided. ${locale === 'de' ? 'WICHTIG: Alle Texte müssen auf Deutsch sein. Die positioning-Beschreibungen müssen auf Deutsch verfasst werden.' : ''} 
+
+CRITICAL OUTPUT INSTRUCTIONS:
+1. Return ONLY a valid JSON array of competitor objects.
+2. Do NOT include any introductory text, explanations, thinking process, or conclusion.
+3. Start your response immediately with [ (open bracket) and end with ] (close bracket).
+4. Each object must have: name (string, required), website (string, required - can be domain.com or full URL), hq (string or null), size_band (string or null${locale === 'de' ? ' - use "X Mitarbeiter" or "X-Y Mitarbeiter" format' : ''}), positioning (string or null, max 140 chars${locale === 'de' ? ' - MUST be in German' : ''}), source_url (string or null). 
+5. Return at least 3-5 competitors if possible.`
         },
         {
           role: 'user',
           content: query
         }
       ],
-      temperature: 0.3,
+      temperature: 0.1, // Lower temperature to be more deterministic and strict
       max_tokens: 3000
     }
 
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 20000) // 20s timeout per stage (optimized for 90s total)
+    const timeout = setTimeout(() => controller.abort(), 30000) // Increase timeout to 30s
 
     try {
       const res = await fetch(url, {
@@ -660,30 +667,31 @@ Find at least ${stage.minResults} competitors if possible. Focus on finding real
         }
       }
       
-      // Strategy 2: Find largest JSON array
+      // Strategy 2: Find first '[' and last ']' to extract potential JSON array
       if (competitors.length === 0) {
-        const jsonArrayMatches = content.match(/\[[\s\S]{20,}?\]/g)
-        if (jsonArrayMatches) {
-          const sortedMatches = jsonArrayMatches.sort((a: string, b: string) => b.length - a.length)
-          for (const match of sortedMatches) {
-            try {
-              const parsed = JSON.parse(match)
-              if (Array.isArray(parsed) && parsed.length > 0) {
-                competitors = parsed
-                console.log(`[Perplexity] ✅ ${stage.name} stage: Extracted from response:`, competitors.length, 'competitors')
-                break
-              }
-            } catch (e) {
-              // Continue
+        const firstBracket = content.indexOf('[')
+        const lastBracket = content.lastIndexOf(']')
+        
+        if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
+          const potentialJson = content.substring(firstBracket, lastBracket + 1)
+          try {
+            const parsed = JSON.parse(potentialJson)
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              competitors = parsed
+              console.log(`[Perplexity] ✅ ${stage.name} stage: Extracted via bracket matching:`, competitors.length, 'competitors')
             }
+          } catch (e) {
+             console.warn(`[Perplexity] ⚠️ ${stage.name} stage: Failed to parse bracket-extracted JSON`, e)
           }
         }
       }
-      
-      // Strategy 3: Parse entire content
+
+      // Strategy 3: Parse entire content (if logic above failed or wasn't tried)
       if (competitors.length === 0) {
         try {
-          const parsed = JSON.parse(content.trim())
+          // Clean content of markdown/text around it if possible
+          const cleanContent = content.replace(/^[^[{]*([\[{])/, '$1').replace(/([\]}])[^\]}]*$/, '$1')
+          const parsed = JSON.parse(cleanContent)
           if (Array.isArray(parsed)) {
             competitors = parsed
           } else if (parsed.competitors && Array.isArray(parsed.competitors)) {
@@ -692,7 +700,7 @@ Find at least ${stage.minResults} competitors if possible. Focus on finding real
             competitors = parsed.data
           }
           if (competitors.length > 0) {
-            console.log(`[Perplexity] ✅ ${stage.name} stage: Parsed entire content:`, competitors.length, 'competitors')
+            console.log(`[Perplexity] ✅ ${stage.name} stage: Parsed content (cleaned):`, competitors.length, 'competitors')
           }
         } catch (e) {
           console.error(`[Perplexity] ❌ ${stage.name} stage: Failed to parse as JSON:`, e)

@@ -1,4 +1,4 @@
-import { getBriefBySlug } from '@/lib/db/briefs'
+import { createClient } from '@/lib/db/supabase-server'
 import { track } from '@/lib/utils/analytics'
 import SnapshotCard from '@/components/BriefSnapshotCard'
 import IndustryCard from '@/components/BriefIndustryCard'
@@ -14,16 +14,41 @@ import FeasibilityScan from '@/components/FeasibilityScan'
 import StickyHeader from '@/components/StickyHeader'
 import SectionWrapper from '@/components/SectionWrapper'
 import { generateExecutiveSummary, computeUplift, computeWeightedPayback, formatCurrencyCHF } from '@/lib/utils/executiveSummary'
+import { notFound } from 'next/navigation'
 
-// Briefs are static once created - cache the page indefinitely
-export const revalidate = false // Never revalidate since briefs are immutable once created
+// Share pages are dynamic now, depending on token validity
+export const revalidate = 0 
 
 export default async function SharePage({ params }: { params: Promise<{ slug: string }> }) {
-  // In Next.js 16, params is a Promise and must be awaited
-  const { slug } = await params
+  const { slug: token } = await params
   
-  if (!slug) {
-    console.error('[SharePage] No slug provided in params')
+  if (!token) {
+    notFound()
+  }
+  
+  const supabase = await createClient()
+
+  // Fetch share record with joined report data
+  // RLS ensures we only get a result if token is valid (not expired, not revoked)
+  // Note: We need to select reports(report_json)
+  const { data: share, error } = await supabase
+    .from('report_shares')
+    .select(`
+      *,
+      reports (
+        report_json
+      )
+    `)
+    .eq('token', token)
+    .maybeSingle()
+  
+  await track('share_opened', { token, found: !!share })
+
+  if (error) {
+    console.error('[SharePage] Error fetching share:', error)
+  }
+
+  if (!share || !share.reports) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none"></div>
@@ -33,52 +58,7 @@ export default async function SharePage({ params }: { params: Promise<{ slug: st
             <div className="text-center">
               <div className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Maverick Lens</div>
               <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 text-sm text-gray-600 dark:text-gray-300 shadow-lg">
-                Invalid report link. Please check the URL and try again.
-              </div>
-            </div>
-          </main>
-        </div>
-      </div>
-    )
-  }
-  
-  console.log('[SharePage] Fetching brief with slug:', slug)
-  
-  // Try fetching with cache first, then without cache if not found (for newly created briefs)
-  let brief = await getBriefBySlug(slug, false)
-  if (!brief) {
-    // If not found in cache, try fetching directly (may be a newly created brief)
-    console.log('[SharePage] Brief not found in cache, trying direct fetch for:', slug)
-    brief = await getBriefBySlug(slug, true)
-  }
-  
-  // If still not found, wait a bit and retry (for race conditions with database writes)
-  if (!brief) {
-    console.log('[SharePage] Brief still not found, waiting 500ms and retrying:', slug)
-    await new Promise(resolve => setTimeout(resolve, 500))
-    brief = await getBriefBySlug(slug, true)
-    
-    // Final retry after another delay
-    if (!brief) {
-      console.log('[SharePage] Brief still not found after first retry, waiting 1s and retrying again:', slug)
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      brief = await getBriefBySlug(slug, true)
-    }
-  }
-  
-  await track('share_opened', { slug, found: !!brief })
-  if (!brief) {
-    console.error('[SharePage] Brief not found after all retries. Slug:', slug)
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none"></div>
-        <div className="relative z-10">
-          <StickyHeader />
-          <main className="mx-auto max-w-6xl px-6 py-24">
-            <div className="text-center">
-              <div className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Maverick Lens</div>
-              <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 text-sm text-gray-600 dark:text-gray-300 shadow-lg">
-                Brief not found or unavailable. Please check the link.
+                Link expired or invalid. Please check the URL and try again.
               </div>
             </div>
           </main>
@@ -87,22 +67,11 @@ export default async function SharePage({ params }: { params: Promise<{ slug: st
     )
   }
 
-  const data = brief.data
+  // Cast the JSON data to the expected type
+  const data = (share.reports as any).report_json
   
   // Debug: Log competitor data when rendering page
-  console.log('[SharePage] Rendering page with data:')
-  console.log('  Company:', data.company?.name)
-  console.log('  Competitors count:', data.competitors?.length || 0)
-  console.log('  Competitors type:', Array.isArray(data.competitors) ? 'array' : typeof data.competitors)
-  console.log('  Competitors array:', JSON.stringify(data.competitors || [], null, 2))
-  if (data.competitors && data.competitors.length > 0) {
-    console.log('  First competitor:', JSON.stringify(data.competitors[0], null, 2))
-    console.log('  Competitor names:', data.competitors.map((c: any) => c.name))
-    console.log('  Competitor websites:', data.competitors.map((c: any) => c.website))
-  } else {
-    console.log('  ⚠️ No competitors in data!')
-    console.log('  ⚠️ This will cause CompetitorComparison to return null')
-  }
+  console.log('[SharePage] Rendering page with data for company:', data.company?.name)
   
   // Validate data structure before passing to components
   if (!data.competitors || !Array.isArray(data.competitors)) {
@@ -110,6 +79,8 @@ export default async function SharePage({ params }: { params: Promise<{ slug: st
       type: typeof data.competitors,
       value: data.competitors
     })
+    // Initialize empty array to prevent crashes
+    data.competitors = []
   }
   
   return (
@@ -134,15 +105,15 @@ export default async function SharePage({ params }: { params: Promise<{ slug: st
               summaryText={generateExecutiveSummary(data, 'en')}
               formattedUplift={formatCurrencyCHF(computeUplift(data.use_cases))}
               weightedPayback={computeWeightedPayback(data.use_cases)}
-              avgComplexity={Math.round((data.use_cases.reduce((a, u) => a + u.complexity, 0) / (data.use_cases.length || 1)) * 10) / 10}
-              avgEffort={Math.round((data.use_cases.reduce((a, u) => a + u.effort, 0) / (data.use_cases.length || 1)) * 10) / 10}
+              avgComplexity={Math.round((data.use_cases.reduce((a: number, u: any) => a + u.complexity, 0) / (data.use_cases.length || 1)) * 10) / 10}
+              avgEffort={Math.round((data.use_cases.reduce((a: number, u: any) => a + u.effort, 0) / (data.use_cases.length || 1)) * 10) / 10}
             />
             <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
               <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-lg">
                 <div className="mb-2 text-sm font-medium text-gray-600 dark:text-gray-400">ROI Contribution</div>
                 <RoiDonut data={data} />
                 <ul className="mt-6 space-y-2">
-                  {data.use_cases.map((useCase, index) => {
+                  {data.use_cases.map((useCase: any, index: number) => {
                     // Normalize numeric values to ensure consistency
                     const normalizeNum = (v: any): number => {
                       if (typeof v === 'number' && !isNaN(v)) return v
@@ -195,10 +166,10 @@ export default async function SharePage({ params }: { params: Promise<{ slug: st
                       return 0
                     }
                     
-                    const totalOneTime = data.use_cases.reduce((a, u) => a + normalizeNum(u.est_one_time_cost), 0)
-                    const totalOngoing = data.use_cases.reduce((a, u) => a + normalizeNum(u.est_ongoing_cost), 0)
+                    const totalOneTime = data.use_cases.reduce((a: number, u: any) => a + normalizeNum(u.est_one_time_cost), 0)
+                    const totalOngoing = data.use_cases.reduce((a: number, u: any) => a + normalizeNum(u.est_ongoing_cost), 0)
                     const totalInvestment = totalOneTime + totalOngoing
-                    const totalBenefit = data.use_cases.reduce((a, u) => a + normalizeNum(u.est_annual_benefit), 0)
+                    const totalBenefit = data.use_cases.reduce((a: number, u: any) => a + normalizeNum(u.est_annual_benefit), 0)
                     const roiPercentage = totalInvestment > 0 
                       ? ((totalBenefit - totalInvestment) / totalInvestment) * 100 
                       : 0

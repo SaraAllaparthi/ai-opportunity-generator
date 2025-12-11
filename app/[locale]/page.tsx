@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation'
 import { useTranslations, useLocale } from 'next-intl'
 import ThemeToggle from '@/components/ThemeToggle'
 import LocaleSwitcher from '@/components/LocaleSwitcher'
+import { useAuth } from '@/lib/hooks/useAuth'
+import UserMenu from '@/components/UserMenu'
 
 const industriesEn = [
   "Accounting & Auditing",
@@ -109,6 +111,7 @@ export default function LandingPage() {
   const router = useRouter()
   const t = useTranslations()
   const locale = useLocale()
+  const { user, logout } = useAuth()
   
   // Get industries based on locale
   const industries = locale === 'de' ? industriesDe : industriesEn
@@ -192,15 +195,25 @@ export default function LandingPage() {
       })
       if (!res.ok) {
         let msg = "Failed to start research"
-        try {
-          const j = await res.json()
-          // Show detailed error in development, or user-friendly message in production
-          msg = j.details || j.error || msg
-          // If there's a stack trace in development, append it
-          if (j.stack && typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-            msg = `${msg}\n\n${j.stack}`
-          }
-        } catch {}
+        
+        // Handle authentication error
+        if (res.status === 401) {
+          msg = "You must be logged in to generate reports. Please sign in first."
+          // Redirect to login page after showing error
+          setTimeout(() => {
+            router.push(`/${locale}/login`)
+          }, 2000)
+        } else {
+          try {
+            const j = await res.json()
+            // Show detailed error in development, or user-friendly message in production
+            msg = j.details || j.error || msg
+            // If there's a stack trace in development, append it
+            if (j.stack && typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+              msg = `${msg}\n\n${j.stack}`
+            }
+          } catch {}
+        }
         throw new Error(msg)
       }
       const data = await res.json()
@@ -257,7 +270,26 @@ export default function LandingPage() {
             <a href="#how-it-works" className="text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">{t('nav.howItWorks')}</a>
             <LocaleSwitcher />
             <ThemeToggle />
-            <button className="text-sm font-medium text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300 transition-colors">{t('nav.signIn')}</button>
+            {user ? (
+              <div className="flex items-center gap-4">
+                {user.role === 'admin' && (
+                  <a
+                    href={`/${locale}/admin`}
+                    className="text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
+                  >
+                    Admin
+                  </a>
+                )}
+                <UserMenu user={user} locale={locale} />
+              </div>
+            ) : (
+              <a 
+                href={`/${locale}/login`}
+                className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+              >
+                {t('nav.signIn')}
+              </a>
+            )}
           </nav>
         </div>
       </header>
@@ -613,7 +645,11 @@ export default function LandingPage() {
               <button
                 className="group w-full h-12 items-center justify-center gap-2 rounded-lg bg-blue-600 dark:bg-blue-500 text-base font-medium text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex"
                 disabled={loading}
-                type="submit"
+                type={user ? "submit" : "button"}
+                onClick={user ? undefined : (e) => {
+                  e.preventDefault()
+                  router.push(`/${locale}/login`)
+                }}
               >
                 {loading ? (
                   <div className="w-full">
@@ -643,12 +679,19 @@ export default function LandingPage() {
                       </div>
                     )}
                   </div>
-                ) : (
+                ) : user ? (
                   <>
                     <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                     {t('home.hero.button')}
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                    </svg>
+                    Sign In to Generate Report
                   </>
                 )}
               </button>
