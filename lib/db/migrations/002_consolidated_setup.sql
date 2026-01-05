@@ -4,26 +4,6 @@
 -- NOTE: This script assumes 'briefs' table (001) already exists.
 
 -- ==========================================
--- 1. Helper Functions (Fix Recursion - 004)
--- ==========================================
-
--- Secure function to check admin status
-CREATE OR REPLACE FUNCTION public.is_admin()
-RETURNS boolean
-LANGUAGE sql
-SECURITY DEFINER
-SET search_path = public
-STABLE
-AS $$
-  SELECT EXISTS (
-    SELECT 1
-    FROM public.app_users
-    WHERE auth_user_id = auth.uid()
-    AND role = 'admin'
-  );
-$$;
-
--- ==========================================
 -- 2. App Users Table (002)
 -- ==========================================
 
@@ -43,6 +23,27 @@ CREATE TABLE IF NOT EXISTS public.app_users (
 );
 
 ALTER TABLE public.app_users ENABLE ROW LEVEL SECURITY;
+
+-- ==========================================
+-- 1. Helper Functions (Fix Recursion - 004)
+-- ==========================================
+
+-- Secure function to check admin status
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.app_users
+    WHERE auth_user_id = auth.uid()
+    AND role = 'admin'
+  );
+$$;
+
 
 -- Policies for app_users
 -- Users can read their own data
