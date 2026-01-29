@@ -22,7 +22,7 @@ export default function LoginForm() {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
 
-    // Try login first (most common case for existing users)
+    // Try login first
     console.log('Attempting login with email:', email)
     const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
       email,
@@ -30,44 +30,12 @@ export default function LoginForm() {
     })
 
     if (loginError) {
-      // If login fails because user doesn't exist, try signup
-      if (loginError.message.includes('Invalid login credentials')) {
-        console.log('Login failed, attempting signup...')
-        const { data: signupData, error: signupError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${location.origin}/auth/callback`,
-            data: {
-              email: email
-            }
-          },
-        })
-
-        if (signupError) {
-          setMessage(t('login.error', { message: signupError.message }))
-          console.error('Signup error:', signupError)
-        } else {
-          // Check if email confirmation is required
-          if (signupData.user && !signupData.session) {
-            console.warn('User created but no session - email confirmation required')
-            setMessage(t('login.checkEmail'))
-          } else if (signupData.session) {
-            console.log('User created with session, redirecting...')
-            setMessage(t('login.accountCreated'))
-            setTimeout(() => {
-              window.location.href = `/${locale}`
-            }, 1000)
-          } else {
-            console.error('Unexpected signup state:', signupData)
-            setMessage('Signup completed but something went wrong. Please try logging in.')
-          }
-        }
-      } else {
-        // Other login errors (wrong password, etc.)
-        setMessage(t('login.error', { message: loginError.message }))
-        console.error('Login error:', loginError)
-      }
+      // Show the specific error from Supabase
+      setMessage(t('login.error', { message: loginError.message }))
+      console.error('Login error:', loginError)
+      
+      // Only if we REALLY want auto-signup, we should be careful.
+      // But "User already registered" is exactly what happens when you call signUp on an existing user.
     } else {
       // Login successful
       console.log('Login successful! Session:', loginData.session)
